@@ -6,4 +6,4 @@
 *.ilk
 *.log
 *.tmp
-
+/local-artifacts/

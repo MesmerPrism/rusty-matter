@@ -31,3 +31,12 @@ cargo run -p rusty-matter-fixtures -- validate
 External real hand-mesh captures and exported GLB files are intentionally not
 committed here. Use them as local validation inputs for mesh scripts, then keep
 the deterministic repo fixtures generic and small.
+
+For exported GLB captures, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-HandMeshGlbSmoke.ps1 `
+  -GlbPath "<exported-hand-mesh.glb>"
+```
+
+Generated `local-artifacts` output is ignored by git.

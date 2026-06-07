@@ -39,4 +39,16 @@ mesh import/export scripts. They prove the same topology/sample/collider/SDF
 path on PC with a deforming Meta hand mesh, but the generic Matter mesh crate
 must not become restricted to that hand topology.
 
+To smoke-test an already exported GLB without headset access:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-HandMeshGlbSmoke.ps1 `
+  -GlbPath "<exported-hand-mesh.glb>"
+```
+
+This writes `local-artifacts\hand-mesh-glb-smoke\summary.json` plus one
+`TriangleMeshSurface` JSON file per supported triangle primitive. The command
+uses a dependency-free GLB reader in `tools\extract_glb_mesh_surfaces.py`; it is
+not part of `check_all.ps1` because the GLB is an external local artifact.
+
 Slow cross-repo validation should run only before a larger bundle push.
