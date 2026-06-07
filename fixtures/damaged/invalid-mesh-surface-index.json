@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_mesh_surface_index.v1",
+  "damaged_input_id": "damaged.mesh_surface.invalid_index",
+  "expected_rejection_code": "mesh.index_out_of_range",
+  "actual_rejection_code": "mesh.index_out_of_range",
+  "message": "surface triangle 0 references vertex 2, but only 2 vertices exist"
+}

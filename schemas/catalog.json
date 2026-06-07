@@ -1,0 +1,312 @@
+{
+  "$schema": "rusty.matter.schema.catalog.v1",
+  "version": 1,
+  "entries": [
+    {
+      "schema_id": "rusty.matter.math.vec3.v1",
+      "rust_type": "Vec3",
+      "fixture_paths": [
+        "fixtures/sdf/unit-triangle-sdf-summary.json",
+        "fixtures/sdf/unit-tetrahedron-sdf-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.math.bounds3.v1",
+      "rust_type": "Bounds3",
+      "fixture_paths": [
+        "fixtures/sdf/unit-triangle-sdf-summary.json",
+        "fixtures/sdf/unit-tetrahedron-sdf-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.triangle_mesh.v1",
+      "rust_type": "TriangleMeshSnapshot",
+      "fixture_paths": [
+        "fixtures/mesh/unit-triangle.json",
+        "fixtures/mesh/unit-tetrahedron.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.surface.v1",
+      "rust_type": "TriangleMeshSurface",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-surface.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.surface_topology_key.v1",
+      "rust_type": "MeshSurfaceTopologyKey",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-sample-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.surface_sample_config.v1",
+      "rust_type": "MeshSurfaceSampleConfig",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-sample-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.surface_sample.v1",
+      "rust_type": "MeshSurfaceSample",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-sample-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.surface_sample_set.v1",
+      "rust_type": "MeshSurfaceSampleSet",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-sample-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.coordinate_map.v1",
+      "rust_type": "MeshCoordinateMap",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.coordinate_frame_config.v1",
+      "rust_type": "MeshCoordinateFrameConfig",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.coordinate_local_frame.v1",
+      "rust_type": "MeshCoordinateLocalFrame",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.coordinate_frame_set.v1",
+      "rust_type": "MeshCoordinateFrameSet",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.dynamic_collider_config.v1",
+      "rust_type": "DynamicMeshColliderConfig",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-dynamic-collider-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.dynamic_collider_update.v1",
+      "rust_type": "DynamicMeshColliderUpdate",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-dynamic-collider-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.dynamic_collider_contact.v1",
+      "rust_type": "DynamicMeshColliderContact",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-dynamic-collider-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.hand.validation_mesh_frame.v1",
+      "rust_type": "HandValidationMeshFrame",
+      "fixture_paths": [
+        "fixtures/hand/synthetic-hand-validation-mesh-frame.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.sdf.packed_grid.v1",
+      "rust_type": "PackedSdfGrid",
+      "fixture_paths": [
+        "fixtures/sdf/unit-triangle-packed-grid.json",
+        "fixtures/sdf/unit-tetrahedron-packed-grid.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.sdf_summary.v1",
+      "rust_type": "SdfFixtureSummary",
+      "fixture_paths": [
+        "fixtures/sdf/unit-triangle-sdf-summary.json",
+        "fixtures/sdf/unit-tetrahedron-sdf-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+      "rust_type": "DamagedFixtureReport",
+      "fixture_paths": [
+        "fixtures/damaged/invalid-coordinate-frame-config.json",
+        "fixtures/damaged/invalid-hand-validation-mesh-frame.json",
+        "fixtures/damaged/invalid-mesh-index.json",
+        "fixtures/damaged/invalid-mesh-surface-index.json",
+        "fixtures/damaged/invalid-particle-body.json",
+        "fixtures/damaged/invalid-particle-influence.json",
+        "fixtures/damaged/invalid-voxel-size.json",
+        "fixtures/damaged/voxel-budget-overflow.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.state.v1",
+      "rust_type": "ParticleState",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.set.v1",
+      "rust_type": "ParticleSet",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.sdf_interaction_config.v1",
+      "rust_type": "SdfParticleInteractionConfig",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.fixed_step_config.v1",
+      "rust_type": "ParticleFixedStepConfig",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.interactions.v1",
+      "rust_type": "ParticleInteractions",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.influence_point.v1",
+      "rust_type": "ParticleInfluencePoint",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.impulse.v1",
+      "rust_type": "ParticleImpulse",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.interaction_body.v1",
+      "rust_type": "ParticleInteractionBody",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.render_sample.v1",
+      "rust_type": "ParticleRenderSample",
+      "fixture_paths": [
+        "fixtures/particles/render-payload-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.render_payload.v1",
+      "rust_type": "ParticleRenderPayload",
+      "fixture_paths": [
+        "fixtures/particles/render-payload-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.particle.simulation_diagnostics.v1",
+      "rust_type": "ParticleSimulationDiagnostics",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.mesh_surface_sample_summary.v1",
+      "rust_type": "MeshSurfaceSampleSummary",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-sample-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.mesh_coordinate_map_summary.v1",
+      "rust_type": "MeshCoordinateMapSummary",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.dynamic_collider_summary.v1",
+      "rust_type": "DynamicColliderSummary",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-dynamic-collider-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.hand_validation_mesh_summary.v1",
+      "rust_type": "HandValidationMeshSummary",
+      "fixture_paths": [
+        "fixtures/hand/synthetic-hand-validation-mesh-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.particle_step_summary.v1",
+      "rust_type": "ParticleStepSummary",
+      "fixture_paths": [
+        "fixtures/particles/interaction-step-summary.json",
+        "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.particle_render_payload_summary.v1",
+      "rust_type": "ParticleRenderPayloadSummary",
+      "fixture_paths": [
+        "fixtures/particles/render-payload-summary.json"
+      ],
+      "status": "foundation"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_id": "rusty.matter.fixture.particle_step_summary.v1",
+  "fixture_id": "fixture.particle.interaction_step.v1",
+  "set_id": "particles.interaction_fixture",
+  "particle_count": 2,
+  "fixed_steps": 1,
+  "sampled_particles": 0,
+  "affected_particles": 0,
+  "rejected_particles": 0,
+  "clamped_particles": 0,
+  "neighbor_checks": 2,
+  "influence_samples": 2,
+  "impulses_applied": 2,
+  "body_collisions": 2,
+  "max_speed": 0.10616726,
+  "first_position": {
+    "x": -0.0947683,
+    "y": 0.0066308947,
+    "z": 0.0
+  },
+  "first_velocity": {
+    "x": -0.010248813,
+    "y": 0.10567142,
+    "z": 0.0
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_particle_influence.v1",
+  "damaged_input_id": "damaged.particle.invalid_influence",
+  "expected_rejection_code": "particle.invalid_influence_config",
+  "actual_rejection_code": "particle.invalid_influence_config",
+  "message": "invalid influence point config: radius must be finite and non-negative"
+}

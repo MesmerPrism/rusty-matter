@@ -1,0 +1,74 @@
+{
+  "schema_id": "rusty.matter.hand.validation_mesh_frame.v1",
+  "frame_id": "hand.validation_mesh.synthetic_left.0001",
+  "handedness": "Left",
+  "reference_space": "local_floor",
+  "source": "meta.hand_tracking_mesh",
+  "time_seconds": 0.125,
+  "surface": {
+    "schema_id": "rusty.matter.mesh.surface.v1",
+    "surface_id": "mesh.synthetic_meta_hand_patch.left",
+    "positions": [
+      {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.01
+      },
+      {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.02
+      },
+      {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.03
+      }
+    ],
+    "triangles": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        0,
+        2,
+        3
+      ]
+    ]
+  },
+  "normals": [
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 1.0
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 1.0
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 1.0
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 1.0
+    }
+  ],
+  "topology_key": {
+    "schema_id": "rusty.matter.mesh.surface_topology_key.v1",
+    "vertex_count": 4,
+    "triangle_count": 2,
+    "index_hash": 16112794849697168423
+  }
+}

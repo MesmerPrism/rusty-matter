@@ -1,0 +1,17 @@
+{
+  "schema_id": "rusty.matter.fixture.dynamic_collider_summary.v1",
+  "fixture_id": "fixture.mesh.unit_square_dynamic_collider.v1",
+  "surface_id": "mesh.unit_square_surface",
+  "status": "initialized",
+  "vertex_count": 4,
+  "triangle_count": 2,
+  "diagnostic_shell_vertex_count": 4,
+  "diagnostic_shell_triangle_count": 2,
+  "closest_point": {
+    "x": 0.25,
+    "y": 0.25,
+    "z": 0.05
+  },
+  "closest_distance": 0.05,
+  "overlaps_probe_sphere": true
+}

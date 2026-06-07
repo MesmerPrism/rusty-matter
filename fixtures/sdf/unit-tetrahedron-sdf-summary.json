@@ -1,0 +1,20 @@
+{
+  "schema_id": "rusty.matter.fixture.sdf_summary.v1",
+  "fixture_id": "fixture.sdf.unit_tetrahedron.v1",
+  "mesh_id": "mesh.unit_tetrahedron",
+  "grid_id": "sdf.mesh.unit_tetrahedron",
+  "dimensions": [
+    4,
+    4,
+    4
+  ],
+  "voxel_size": 0.5,
+  "sample_count": 64,
+  "min_distance": 0.14433755,
+  "max_distance": 1.5877132,
+  "origin": {
+    "x": -0.5,
+    "y": -0.5,
+    "z": -0.5
+  }
+}

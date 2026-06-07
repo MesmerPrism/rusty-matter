@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.voxel_budget_overflow.v1",
+  "damaged_input_id": "damaged.sdf.voxel_budget_overflow",
+  "expected_rejection_code": "sdf.voxel_budget_exceeded",
+  "actual_rejection_code": "sdf.voxel_budget_exceeded",
+  "message": "requested 20808 voxels, max is 10"
+}

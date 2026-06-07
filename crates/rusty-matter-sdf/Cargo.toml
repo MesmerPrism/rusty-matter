@@ -1,0 +1,19 @@
+[package]
+name = "rusty-matter-sdf"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+serde = ["dep:serde", "rusty-matter-model/serde"]
+
+[dependencies]
+rusty-matter-model = { path = "../rusty-matter-model" }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[lints]
+workspace = true
+

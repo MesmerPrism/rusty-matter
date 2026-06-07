@@ -1,0 +1,235 @@
+use super::*;
+use rusty_matter_model::Vec3;
+
+fn unit_square_surface() -> TriangleMeshSurface {
+    TriangleMeshSurface::new(
+        "mesh.unit_square",
+        vec![
+            Vec3::ZERO,
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(1.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        ],
+        vec![[0, 1, 2], [0, 2, 3]],
+    )
+}
+
+#[test]
+fn surface_validates_and_hashes_topology() {
+    let surface = unit_square_surface();
+
+    surface.validate().expect("surface validates");
+    assert_eq!(surface.vertex_count(), 4);
+    assert_eq!(surface.triangle_count(), 2);
+    assert_eq!(surface.topology_key().triangle_count, 2);
+}
+
+#[test]
+fn sampler_is_deterministic() {
+    let surface = unit_square_surface();
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.unit_square".to_owned(),
+        point_count: 8,
+        first_tier_neighbor_count: 2,
+        second_tier_neighbor_count: 2,
+        seed: 42,
+        ..MeshSurfaceSampleConfig::default()
+    };
+
+    let first = sample_mesh_surface_points(&surface, &config).expect("samples build");
+    let second = sample_mesh_surface_points(&surface, &config).expect("samples build");
+
+    assert_eq!(first, second);
+    assert_eq!(first.len(), 8);
+    assert!(first.is_valid());
+}
+
+#[test]
+fn high_quality_coordinate_map_builds_local_frames() {
+    let surface = unit_square_surface();
+    let mut sample_config = MeshSurfaceSampleConfig::high_quality_surface_points(12);
+    sample_config.sample_set_id = "samples.coordinate_map".to_owned();
+    let frame_config = MeshCoordinateFrameConfig {
+        frame_config_id: "mesh.coordinate_frame.test".to_owned(),
+        max_displacement: Vec3::new(0.02, 0.03, 0.04),
+        clamp_mode: MeshLocalDisplacementClampMode::Ellipsoid,
+        ..MeshCoordinateFrameConfig::default()
+    };
+
+    let coordinate_map = MeshCoordinateMap::from_surface(
+        "mesh.coordinate_map.unit_square",
+        &surface,
+        sample_config,
+        frame_config,
+    )
+    .expect("coordinate map builds");
+    let displaced = coordinate_map.frames.frames[0]
+        .displace(Vec3::new(2.0, 0.0, 0.0), coordinate_map.frames.clamp_mode);
+
+    assert!(coordinate_map.is_valid_for_surface(&surface));
+    assert_eq!(coordinate_map.samples.len(), 12);
+    assert_eq!(coordinate_map.frames.frames.len(), 12);
+    assert!(
+        (displaced - coordinate_map.frames.frames[0].anchor).length()
+            <= coordinate_map.frames.frames[0].max_displacement.x + 1.0e-5
+    );
+}
+
+#[test]
+fn live_sampler_updates_deformed_surface() {
+    let surface = unit_square_surface();
+    let mut deformed = surface.clone();
+    for position in &mut deformed.positions {
+        position.z += 0.125;
+    }
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.deformed".to_owned(),
+        point_count: 4,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let mut sampler = LiveMeshSurfaceSampler::new(config);
+
+    let first = sampler.update_from_surface(&surface);
+    let old_positions = sampler.samples().expect("samples exist").positions();
+    let second = sampler.update_from_surface(&deformed);
+    let samples = sampler.samples().expect("samples exist");
+
+    assert_eq!(first.status, LiveMeshSurfaceUpdateStatus::Initialized);
+    assert_eq!(second.status, LiveMeshSurfaceUpdateStatus::Updated);
+    for (old, sample) in old_positions.iter().copied().zip(samples.samples.iter()) {
+        assert!((sample.position - (old + Vec3::new(0.0, 0.0, 0.125))).length() < 1.0e-5);
+    }
+}
+
+#[test]
+fn live_sampler_resamples_changed_topology() {
+    let surface = unit_square_surface();
+    let mut changed = surface.clone();
+    changed.triangles.push([0, 2, 1]);
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.changed".to_owned(),
+        point_count: 4,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let mut sampler = LiveMeshSurfaceSampler::new(config);
+
+    let first = sampler.update_from_surface(&surface);
+    let second = sampler.update_from_surface(&changed);
+
+    assert_eq!(first.status, LiveMeshSurfaceUpdateStatus::Initialized);
+    assert_eq!(
+        second.status,
+        LiveMeshSurfaceUpdateStatus::ResampledTopology
+    );
+    assert_ne!(first.topology_key, second.topology_key);
+}
+
+#[test]
+fn hand_validation_mesh_frame_reuses_generic_surface() {
+    let surface = unit_square_surface();
+    let mut frame = HandValidationMeshFrame::from_surface(
+        "hand.validation_mesh.left.0001",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        0.5,
+        surface.clone(),
+    );
+    frame.normals = vec![Vec3::new(0.0, 0.0, 1.0); surface.vertex_count()];
+
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.hand_validation_mesh".to_owned(),
+        point_count: 6,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = frame
+        .surface()
+        .sample_points(&config)
+        .expect("hand mesh samples through generic surface");
+    let mut collider = DynamicMeshCollider::default();
+    let update = collider.update_from_surface(frame.surface());
+
+    frame.validate().expect("hand frame validates");
+    assert_eq!(frame.topology_key, surface.topology_key());
+    assert_eq!(samples.topology_key, surface.topology_key());
+    assert_eq!(update.status, DynamicMeshColliderUpdateStatus::Initialized);
+}
+
+#[test]
+fn hand_rig_and_joint_frame_validate_recording_payloads() {
+    let surface = unit_square_surface();
+    let mut rig = HandRigCapture::from_bind_surface(
+        "hand.rig_capture.left",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        surface,
+    );
+    rig.joint_parent_indices = vec![-1, 0];
+    rig.joint_radii_m = vec![0.01, 0.008];
+    rig.vertex_joint_indices = vec![[0, 1, 0, 0]; rig.bind_surface.vertex_count()];
+    rig.vertex_joint_weights = vec![[0.75, 0.25, 0.0, 0.0]; rig.bind_surface.vertex_count()];
+
+    let joint_frame = HandJointFrame {
+        schema_id: HAND_JOINT_FRAME_SCHEMA_ID.to_owned(),
+        frame_id: "hand.joint_frame.left.0001".to_owned(),
+        handedness: Handedness::Left,
+        reference_space: "local_floor".to_owned(),
+        source: "meta.hand_tracking_mesh".to_owned(),
+        time_seconds: 0.25,
+        poses: vec![
+            HandJointPose {
+                position: Vec3::ZERO,
+                orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+                radius_m: 0.01,
+            },
+            HandJointPose {
+                position: Vec3::new(0.1, 0.0, 0.0),
+                orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+                radius_m: 0.008,
+            },
+        ],
+        confidence: vec![1.0, 0.9],
+    };
+
+    rig.validate().expect("rig validates");
+    joint_frame.validate().expect("joint frame validates");
+}
+
+#[test]
+fn dynamic_collider_inflates_and_queries_surface() {
+    let surface = unit_square_surface();
+    let mut collider = DynamicMeshCollider::new(DynamicMeshColliderConfig {
+        surface_inflation: 0.1,
+        contact_padding: 0.01,
+        prefer_convex: true,
+        ..DynamicMeshColliderConfig::default()
+    });
+
+    let update = collider.update_from_surface(&surface);
+    let contact = collider
+        .closest_point(Vec3::new(0.25, 0.25, 0.2))
+        .expect("contact is available");
+
+    assert_eq!(update.status, DynamicMeshColliderUpdateStatus::Initialized);
+    assert_eq!(update.vertex_count, 4);
+    assert_eq!(update.triangle_count, 2);
+    assert!(update.convex_eligible);
+    assert!(collider.diagnostic_shell().is_some());
+    assert!(contact.distance < 0.11);
+    assert!(collider.overlaps_sphere(Vec3::new(0.25, 0.25, 0.2), 0.11));
+}
+
+#[test]
+fn invalid_surface_rejects_bad_indices() {
+    let surface = TriangleMeshSurface::new(
+        "mesh.bad",
+        vec![Vec3::ZERO, Vec3::new(1.0, 0.0, 0.0)],
+        vec![[0, 1, 2]],
+    );
+
+    assert!(matches!(
+        surface.validate(),
+        Err(MatterMeshError::IndexOutOfRange { .. })
+    ));
+}

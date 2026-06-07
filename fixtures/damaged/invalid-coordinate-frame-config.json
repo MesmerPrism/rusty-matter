@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_coordinate_frame_config.v1",
+  "damaged_input_id": "damaged.mesh.invalid_coordinate_frame_config",
+  "expected_rejection_code": "mesh.invalid_coordinate_frame_config",
+  "actual_rejection_code": "mesh.invalid_coordinate_frame_config",
+  "message": "invalid mesh coordinate frame config: max_displacement must be finite and non-negative"
+}

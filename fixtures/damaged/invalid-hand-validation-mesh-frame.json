@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_hand_validation_mesh_frame.v1",
+  "damaged_input_id": "damaged.hand.invalid_validation_mesh_frame",
+  "expected_rejection_code": "mesh.invalid_hand_payload",
+  "actual_rejection_code": "mesh.invalid_hand_payload",
+  "message": "invalid hand payload: hand mesh frame time_seconds must be finite and non-negative"
+}

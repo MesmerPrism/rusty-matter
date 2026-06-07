@@ -1,0 +1,25 @@
+{
+  "schema_id": "rusty.matter.fixture.mesh_coordinate_map_summary.v1",
+  "fixture_id": "fixture.mesh.unit_square_coordinate_map.v1",
+  "coordinate_map_id": "mesh.coordinate_map.unit_square_fixture",
+  "surface_id": "mesh.unit_square_surface",
+  "topology_index_hash": 16112794849697168423,
+  "sample_count": 12,
+  "frame_count": 12,
+  "clamp_mode": "ellipsoid",
+  "first_anchor": {
+    "x": 0.70007145,
+    "y": 0.3625348,
+    "z": 0.0
+  },
+  "first_axis_z": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 1.0
+  },
+  "first_displaced_point": {
+    "x": 0.7088002,
+    "y": 0.35598826,
+    "z": 0.03491486
+  }
+}

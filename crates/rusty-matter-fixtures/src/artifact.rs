@@ -1,0 +1,123 @@
+use std::fs;
+use std::path::Path;
+
+use serde::Serialize;
+
+use crate::damaged::damaged_fixture_reports;
+use crate::error::CliError;
+use crate::mesh::{
+    dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
+    mesh_surface_sample_summary, synthetic_hand_validation_mesh_frame, unit_square_surface,
+};
+use crate::particles::{
+    particle_interaction_step_summary, particle_render_payload_summary,
+    particle_sdf_attraction_step_summary,
+};
+use crate::sdf::{sdf_fixture_cases, summarize_sdf_fixture};
+use rusty_matter_sdf::build_sdf_from_mesh;
+
+#[derive(Clone, Debug)]
+pub(crate) struct FixtureArtifact {
+    relative_path: &'static str,
+    json: String,
+}
+
+impl FixtureArtifact {
+    fn new<T>(relative_path: &'static str, value: &T) -> Result<Self, CliError>
+    where
+        T: Serialize,
+    {
+        let json = serde_json::to_string_pretty(value).map_err(CliError::Serialize)?;
+        Ok(Self {
+            relative_path,
+            json,
+        })
+    }
+
+    pub(crate) fn write(&self, repo_root: &Path) -> Result<(), CliError> {
+        let path = repo_root.join(self.relative_path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|source| CliError::Io {
+                path: parent.to_path_buf(),
+                source,
+            })?;
+        }
+        fs::write(&path, format!("{}\n", self.json)).map_err(|source| CliError::Io { path, source })
+    }
+
+    pub(crate) fn validate(&self, repo_root: &Path) -> Result<(), CliError> {
+        let path = repo_root.join(self.relative_path);
+        let existing = fs::read_to_string(&path).map_err(|source| CliError::Io {
+            path: path.clone(),
+            source,
+        })?;
+        if existing.trim_end() == self.json.trim_end() {
+            Ok(())
+        } else {
+            Err(CliError::FixtureMismatch {
+                path,
+                expected: self.json.clone(),
+            })
+        }
+    }
+}
+
+pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError> {
+    let mut artifacts = Vec::new();
+
+    for case in sdf_fixture_cases() {
+        let mesh = (case.mesh)();
+        let grid = build_sdf_from_mesh(&mesh, case.config).map_err(CliError::Sdf)?;
+        let summary = summarize_sdf_fixture(case.fixture_id, &mesh, &grid);
+
+        artifacts.push(FixtureArtifact::new(case.mesh_path, &mesh)?);
+        artifacts.push(FixtureArtifact::new(case.grid_path, &grid)?);
+        artifacts.push(FixtureArtifact::new(case.summary_path, &summary)?);
+    }
+
+    let surface = unit_square_surface();
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/mesh/unit-square-surface.json",
+        &surface,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/mesh/unit-square-sample-summary.json",
+        &mesh_surface_sample_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/mesh/unit-square-coordinate-map-summary.json",
+        &mesh_coordinate_map_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/mesh/unit-square-dynamic-collider-summary.json",
+        &dynamic_collider_summary(&surface)?,
+    )?);
+
+    let hand_frame = synthetic_hand_validation_mesh_frame();
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/hand/synthetic-hand-validation-mesh-frame.json",
+        &hand_frame,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/hand/synthetic-hand-validation-mesh-summary.json",
+        &hand_validation_mesh_summary(&hand_frame)?,
+    )?);
+
+    for damaged in damaged_fixture_reports()? {
+        artifacts.push(FixtureArtifact::new(damaged.path, &damaged.report)?);
+    }
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/particles/sdf-attraction-step-summary.json",
+        &particle_sdf_attraction_step_summary()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/particles/interaction-step-summary.json",
+        &particle_interaction_step_summary()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/particles/render-payload-summary.json",
+        &particle_render_payload_summary()?,
+    )?);
+
+    Ok(artifacts)
+}

@@ -1,0 +1,11 @@
+{
+  "schema_id": "rusty.matter.fixture.hand_validation_mesh_summary.v1",
+  "fixture_id": "fixture.hand.synthetic_validation_mesh.v1",
+  "frame_id": "hand.validation_mesh.synthetic_left.0001",
+  "handedness": "left",
+  "source": "meta.hand_tracking_mesh",
+  "surface_id": "mesh.synthetic_meta_hand_patch.left",
+  "topology_index_hash": 16112794849697168423,
+  "vertex_count": 4,
+  "triangle_count": 2
+}

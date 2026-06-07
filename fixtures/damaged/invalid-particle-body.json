@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_particle_body.v1",
+  "damaged_input_id": "damaged.particle.invalid_body",
+  "expected_rejection_code": "particle.invalid_body_config",
+  "actual_rejection_code": "particle.invalid_body_config",
+  "message": "invalid particle interaction body config: box bounds must be finite and ordered"
+}

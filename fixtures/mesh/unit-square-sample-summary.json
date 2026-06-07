@@ -1,0 +1,24 @@
+{
+  "schema_id": "rusty.matter.fixture.mesh_surface_sample_summary.v1",
+  "fixture_id": "fixture.mesh.unit_square_samples.v1",
+  "surface_id": "mesh.unit_square_surface",
+  "topology_index_hash": 16112794849697168423,
+  "vertex_count": 4,
+  "triangle_count": 2,
+  "sample_count": 16,
+  "pattern": "low_discrepancy",
+  "first_position": {
+    "x": 0.7018294,
+    "y": 0.25764558,
+    "z": 0.0
+  },
+  "first_normal": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 1.0
+  },
+  "first_tier_min": 3,
+  "first_tier_max": 3,
+  "second_tier_min": 4,
+  "second_tier_max": 4
+}

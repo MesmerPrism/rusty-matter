@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_voxel_size.v1",
+  "damaged_input_id": "damaged.sdf.invalid_voxel_size",
+  "expected_rejection_code": "sdf.invalid_voxel_size",
+  "actual_rejection_code": "sdf.invalid_voxel_size",
+  "message": "voxel size must be finite and positive: 0"
+}
