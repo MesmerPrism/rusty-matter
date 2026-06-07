@@ -1,7 +1,10 @@
 use rusty_matter_model::Vec3;
 
 use crate::math::normalize_or;
-use crate::{MatterMeshError, MeshSurfaceTopologyKey, TriangleMeshSurface};
+use crate::{
+    MatterMeshError, MeshSurfaceTopologyKey, SurfaceDistanceSampler, SurfaceDistanceSamplerConfig,
+    TriangleMeshSurface,
+};
 
 /// Schema ID for dynamic mesh collider configuration.
 pub const DYNAMIC_MESH_COLLIDER_CONFIG_SCHEMA_ID: &str =
@@ -164,6 +167,7 @@ pub struct DynamicMeshColliderContact {
 pub struct DynamicMeshCollider {
     config: DynamicMeshColliderConfig,
     collider_surface: Option<TriangleMeshSurface>,
+    distance_sampler: Option<SurfaceDistanceSampler>,
     diagnostic_shell: Option<DynamicMeshColliderShell>,
     topology_key: Option<MeshSurfaceTopologyKey>,
 }
@@ -175,6 +179,7 @@ impl DynamicMeshCollider {
         Self {
             config,
             collider_surface: None,
+            distance_sampler: None,
             diagnostic_shell: None,
             topology_key: None,
         }
@@ -192,6 +197,12 @@ impl DynamicMeshCollider {
         self.collider_surface.as_ref()
     }
 
+    /// Returns the accelerated distance sampler for the collider surface.
+    #[must_use]
+    pub fn distance_sampler(&self) -> Option<&SurfaceDistanceSampler> {
+        self.distance_sampler.as_ref()
+    }
+
     /// Returns the diagnostic shell.
     #[must_use]
     pub fn diagnostic_shell(&self) -> Option<&DynamicMeshColliderShell> {
@@ -201,6 +212,7 @@ impl DynamicMeshCollider {
     /// Clears generated surfaces.
     pub fn clear(&mut self) {
         self.collider_surface = None;
+        self.distance_sampler = None;
         self.diagnostic_shell = None;
         self.topology_key = None;
     }
@@ -231,6 +243,12 @@ impl DynamicMeshCollider {
             self.clear();
             return self.update_summary(DynamicMeshColliderUpdateStatus::InvalidSurface);
         };
+        let Ok(distance_sampler) =
+            collider_surface.distance_sampler(SurfaceDistanceSamplerConfig::default())
+        else {
+            self.clear();
+            return self.update_summary(DynamicMeshColliderUpdateStatus::InvalidSurface);
+        };
         let diagnostic_shell = if self.config.diagnostic_shell_enabled {
             let shell_inflation =
                 self.config.surface_inflation + self.config.diagnostic_shell_inflation;
@@ -254,6 +272,7 @@ impl DynamicMeshCollider {
         };
 
         self.collider_surface = Some(collider_surface);
+        self.distance_sampler = Some(distance_sampler);
         self.diagnostic_shell = diagnostic_shell;
         self.topology_key = Some(next_key);
         self.update_summary(status)
@@ -262,7 +281,14 @@ impl DynamicMeshCollider {
     /// Returns the closest point on the current collider surface.
     #[must_use]
     pub fn closest_point(&self, point: Vec3) -> Option<DynamicMeshColliderContact> {
-        closest_point_on_mesh_surface(self.collider_surface.as_ref()?, point)
+        let sample = self.distance_sampler.as_ref()?.sample(point)?;
+        Some(DynamicMeshColliderContact {
+            schema_id: DYNAMIC_MESH_COLLIDER_CONTACT_SCHEMA_ID.to_owned(),
+            point: sample.point,
+            normal: sample.normal,
+            distance: sample.distance,
+            triangle_index: sample.triangle_index,
+        })
     }
 
     /// Returns whether a sphere overlaps the current collider surface.
@@ -385,85 +411,4 @@ fn surface_center(surface: &TriangleMeshSurface) -> Vec3 {
         sum = sum + *position;
     }
     sum / surface.positions.len() as f32
-}
-
-fn closest_point_on_mesh_surface(
-    surface: &TriangleMeshSurface,
-    point: Vec3,
-) -> Option<DynamicMeshColliderContact> {
-    if !point.is_finite() || surface.validate().is_err() {
-        return None;
-    }
-    let mut best = None;
-    let mut best_distance_squared = f32::INFINITY;
-    for (triangle_index, triangle) in surface.triangles.iter().copied().enumerate() {
-        let [a, b, c] = triangle;
-        let a = usize::try_from(a).ok()?;
-        let b = usize::try_from(b).ok()?;
-        let c = usize::try_from(c).ok()?;
-        let v0 = *surface.positions.get(a)?;
-        let v1 = *surface.positions.get(b)?;
-        let v2 = *surface.positions.get(c)?;
-        let closest = closest_point_on_triangle(point, v0, v1, v2);
-        let distance_squared = point.distance_squared(closest);
-        if distance_squared < best_distance_squared {
-            best_distance_squared = distance_squared;
-            best = Some(DynamicMeshColliderContact {
-                schema_id: DYNAMIC_MESH_COLLIDER_CONTACT_SCHEMA_ID.to_owned(),
-                point: closest,
-                normal: normalize_or((v1 - v0).cross(v2 - v0), Vec3::new(0.0, 1.0, 0.0)),
-                distance: distance_squared.sqrt(),
-                triangle_index,
-            });
-        }
-    }
-    best
-}
-
-fn closest_point_on_triangle(point: Vec3, a: Vec3, b: Vec3, c: Vec3) -> Vec3 {
-    let ab = b - a;
-    let ac = c - a;
-    let ap = point - a;
-    let d1 = ab.dot(ap);
-    let d2 = ac.dot(ap);
-    if d1 <= 0.0 && d2 <= 0.0 {
-        return a;
-    }
-
-    let bp = point - b;
-    let d3 = ab.dot(bp);
-    let d4 = ac.dot(bp);
-    if d3 >= 0.0 && d4 <= d3 {
-        return b;
-    }
-
-    let vc = d1 * d4 - d3 * d2;
-    if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
-        let v = d1 / (d1 - d3);
-        return a + ab * v;
-    }
-
-    let cp = point - c;
-    let d5 = ab.dot(cp);
-    let d6 = ac.dot(cp);
-    if d6 >= 0.0 && d5 <= d6 {
-        return c;
-    }
-
-    let vb = d5 * d2 - d1 * d6;
-    if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
-        let w = d2 / (d2 - d6);
-        return a + ac * w;
-    }
-
-    let va = d3 * d6 - d5 * d4;
-    if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
-        let w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-        return b + (c - b) * w;
-    }
-
-    let denom = 1.0 / (va + vb + vc);
-    let v = vb * denom;
-    let w = vc * denom;
-    a + ab * v + ac * w
 }

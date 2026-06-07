@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/rusty-matter-fixtures",
+    "crates/rusty-matter-handmesh-wasm",
     "crates/rusty-matter-mesh",
     "crates/rusty-matter-model",
     "crates/rusty-matter-particles",

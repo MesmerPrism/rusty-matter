@@ -14,6 +14,26 @@ The check covers:
 - schema catalog export check;
 - Matter dependency and namespace boundary scans.
 
+For accelerated mesh-distance work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-mesh distance_sampler
+```
+
+Those tests verify exact closest-point behavior and that dense-surface queries
+prune exact triangle tests through the Matter-owned sampler that browser Wasm
+and Makepad/native adapters should share.
+
+To build the browser WebAssembly adapter over the same Matter sampler:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-HandMeshWasmRuntime.ps1
+```
+
+The script installs `wasm-bindgen` under `target\wasm-tools` when missing,
+builds `rusty-matter-handmesh-wasm` for `wasm32-unknown-unknown`, and writes
+web-ready JS/Wasm artifacts under `local-artifacts\handmesh-wasm`.
+
 ## External Hand Mesh Validation
 
 Matter's generic mesh contracts should also be exercised on a real deforming

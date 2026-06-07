@@ -2,6 +2,7 @@
 
 mod collider;
 mod coordinate;
+mod distance;
 mod error;
 mod hand;
 mod math;
@@ -10,6 +11,7 @@ mod surface;
 
 pub use collider::*;
 pub use coordinate::*;
+pub use distance::*;
 pub use error::*;
 pub use hand::*;
 pub use sampling::*;

@@ -12,6 +12,7 @@ Matter owns:
   coordinate frames;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
+- accelerated closest-surface distance samplers over the current triangle mesh;
 - fields and packed SDF grids;
 - particle state and dynamics;
 - render-neutral particle payload data derived from Matter state;
@@ -66,7 +67,7 @@ The implemented foundation slices are intentionally CPU/data-only:
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
-  reference behavior;
+  reference behavior backed by the shared accelerated distance sampler;
 - packed SDF grid contracts;
 - mesh-to-SDF CPU reference builder;
 - particle state and SDF interaction contracts;
@@ -81,6 +82,10 @@ The implemented foundation slices are intentionally CPU/data-only:
 Runtime workers, renderer-owned GPU state, platform adapters, command routing,
 and downstream visual-driver behavior stay outside Matter.
 
+The optional `rusty-matter-handmesh-wasm` crate is a thin browser export over
+the same Matter mesh distance sampler used natively. It does not own renderer
+policy, browser UI, command routing, or hand-mesh acquisition.
+
 ## Module Map
 
 Crate roots stay as facades so Matter does not rebuild the monolithic
@@ -89,12 +94,16 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-mesh/src/surface.rs`: generic triangle surface and topology key.
 - `rusty-matter-mesh/src/sampling.rs`: deterministic surface sampling,
   barycentric anchor updates, live sampler updates, and cross-neighborhoods.
+- `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
+  over dynamic triangle meshes, including query diagnostics for node and exact
+  triangle tests.
 - `rusty-matter-mesh/src/coordinate.rs`: coordinate-map frame configs, local
   frames, and coordinate maps.
 - `rusty-matter-mesh/src/hand.rs`: hand rig, joint-frame, and validation mesh
   wrappers over the shared generic surface contract.
 - `rusty-matter-mesh/src/collider.rs`: dynamic mesh collider config, update,
-  diagnostic shell, closest-point, and sphere-overlap reference behavior.
+  diagnostic shell, closest-point, and sphere-overlap reference behavior over
+  the shared distance sampler.
 - `rusty-matter-model/src/ids.rs`: dotted IDs and Matter schema IDs.
 - `rusty-matter-model/src/vec3.rs`: vector math primitives.
 - `rusty-matter-model/src/bounds.rs`: axis-aligned bounds.
@@ -112,6 +121,9 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   candidate hash.
 - `rusty-matter-particles/src/simulator.rs`: fixed-step CPU reference
   simulation.
+- `rusty-matter-handmesh-wasm/src/web.rs`: `wasm-bindgen` adapter that accepts
+  typed-array mesh buffers and exposes accelerated closest-surface samples plus
+  sampler diagnostics for browser previews.
 - `rusty-matter-fixtures/src/main.rs`: dispatch-only entrypoint; fixture
   families live in `sdf`, `mesh`, `particles`, `damaged`, `summary`, and
   `artifact` modules.

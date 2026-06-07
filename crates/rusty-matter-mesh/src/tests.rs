@@ -14,6 +14,34 @@ fn unit_square_surface() -> TriangleMeshSurface {
     )
 }
 
+fn grid_surface(rows: usize, cols: usize) -> TriangleMeshSurface {
+    let mut positions = Vec::with_capacity((rows + 1) * (cols + 1));
+    for row in 0..=rows {
+        for col in 0..=cols {
+            positions.push(Vec3::new(
+                col as f32 / cols as f32,
+                row as f32 / rows as f32,
+                0.0,
+            ));
+        }
+    }
+
+    let mut triangles = Vec::with_capacity(rows * cols * 2);
+    let stride = cols + 1;
+    for row in 0..rows {
+        for col in 0..cols {
+            let a = (row * stride + col) as u32;
+            let b = a + 1;
+            let c = ((row + 1) * stride + col) as u32;
+            let d = c + 1;
+            triangles.push([a, b, d]);
+            triangles.push([a, d, c]);
+        }
+    }
+
+    TriangleMeshSurface::new("mesh.grid", positions, triangles)
+}
+
 #[test]
 fn surface_validates_and_hashes_topology() {
     let surface = unit_square_surface();
@@ -125,6 +153,47 @@ fn live_sampler_resamples_changed_topology() {
 }
 
 #[test]
+fn distance_sampler_returns_closest_surface_point() {
+    let surface = unit_square_surface();
+    let sampler = surface
+        .distance_sampler(SurfaceDistanceSamplerConfig::default())
+        .expect("distance sampler builds");
+    let sample = sampler
+        .sample(Vec3::new(0.25, 0.25, 0.2))
+        .expect("sample exists");
+
+    assert!((sample.point - Vec3::new(0.25, 0.25, 0.0)).length() < 1.0e-5);
+    assert!((sample.distance - 0.2).abs() < 1.0e-5);
+    assert_eq!(sample.diagnostics.triangle_tests, surface.triangle_count());
+    assert_eq!(sampler.topology_key(), &surface.topology_key());
+}
+
+#[test]
+fn distance_sampler_prunes_dense_surface_queries() {
+    let surface = grid_surface(24, 24);
+    let sampler = surface
+        .distance_sampler(SurfaceDistanceSamplerConfig {
+            leaf_triangle_count: 6,
+            ..SurfaceDistanceSamplerConfig::default()
+        })
+        .expect("distance sampler builds");
+    let sample = sampler
+        .sample(Vec3::new(0.36, 0.72, 0.15))
+        .expect("sample exists");
+
+    assert_eq!(surface.triangle_count(), 1_152);
+    assert!(sampler.stats().node_count > 1);
+    assert!(sample.diagnostics.node_tests < sampler.stats().node_count);
+    assert!(
+        sample.diagnostics.triangle_tests < surface.triangle_count() / 8,
+        "expected BVH to test far fewer triangles, tested {} of {}",
+        sample.diagnostics.triangle_tests,
+        surface.triangle_count()
+    );
+    assert!((sample.distance - 0.15).abs() < 1.0e-4);
+}
+
+#[test]
 fn hand_validation_mesh_frame_reuses_generic_surface() {
     let surface = unit_square_surface();
     let mut frame = HandValidationMeshFrame::from_surface(
@@ -216,6 +285,7 @@ fn dynamic_collider_inflates_and_queries_surface() {
     assert_eq!(update.triangle_count, 2);
     assert!(update.convex_eligible);
     assert!(collider.diagnostic_shell().is_some());
+    assert!(collider.distance_sampler().is_some());
     assert!(contact.distance < 0.11);
     assert!(collider.overlaps_sphere(Vec3::new(0.25, 0.25, 0.2), 0.11));
 }
