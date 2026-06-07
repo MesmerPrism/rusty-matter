@@ -51,4 +51,20 @@ This writes `local-artifacts\hand-mesh-glb-smoke\summary.json` plus one
 uses a dependency-free GLB reader in `tools\extract_glb_mesh_surfaces.py`; it is
 not part of `check_all.ps1` because the GLB is an external local artifact.
 
+To test realtime deformation without headset access, extract an animated mesh
+surface sequence from the same GLB:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Invoke-HandMeshGlbSequenceSmoke.ps1 `
+  -GlbPath "<exported-hand-mesh.glb>" `
+  -Output "<output-hand-mesh-sequence.json>" `
+  -MeshIndex 0 `
+  -FrameCount 120
+```
+
+The sequence contains sampled skinned vertex positions and shared triangle
+topology only. It intentionally does not contain precomputed SDF grids,
+collider frames, or particles; those must be recomputed by the realtime
+simulation/preview path from the current mesh frame.
+
 Slow cross-repo validation should run only before a larger bundle push.
