@@ -118,8 +118,11 @@ policy, browser UI, command routing, or hand-mesh acquisition.
 The optional `rusty-matter-fields-wasm` crate is a thin browser export over the
 same Matter surface-field and planarian bioelectric runtimes used natively. It
 owns realtime stepping, edit application, revision reporting, and debug-value
-snapshots in browser smoke tests, but it does not own colors, playback
-controls, renderer policy, command routing, or visualization.
+snapshots in browser smoke tests. Its Planarian 3D path exposes Matter-owned
+scenario resets over the reviewed GLB-derived `TriangleMeshSurface`, sampled
+surface graph, conductance/current/gate configuration, and comparison readouts;
+it does not own colors, playback controls, renderer policy, command routing, or
+visualization.
 
 ## Module Map
 
@@ -166,7 +169,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   and perturbation-region frames/sequences for Optics and debug adapters.
 - `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
   and planarian bioelectric runtime adapter exposing packed topology, sparse
-  edges, perturbation or edit surfaces, state snapshots, and step diagnostics.
+  edges, perturbation or edit surfaces, Planarian 3D scenario resets, state
+  snapshots, and step diagnostics.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

@@ -257,34 +257,7 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// or runtime contracts fail validation.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue> {
-        let source_run = PlanarianBioelectricScenarioRun::build(
-            PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
-            PlanarianBioelectricPresetConfig {
-                sample_count: 128,
-                step_count: 240,
-                frame_stride: 12,
-                seed: 196_613,
-                ..PlanarianBioelectricPresetConfig::default()
-            },
-        )
-        .map_err(to_js_error)?;
-        let mut config = source_run.circuit_config.clone();
-        config.config_id.clear();
-        config
-            .config_id
-            .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
-        config.max_steps_per_run = u32::MAX;
-        let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
-        let initial_circuit = source_run.initial_circuit.clone();
-        Ok(Self {
-            runtime,
-            source_run,
-            circuit: initial_circuit.clone(),
-            initial_circuit,
-            step_index: 0,
-            last_step: BioelectricCircuitStepDiagnostics::empty(0),
-            last_edit: None,
-        })
+        Self::for_scenario(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory)
     }
 
     /// Resets circuit state and timestep to the deterministic initial state.
@@ -293,6 +266,23 @@ impl PlanarianBioelectricRealtimeRuntime {
         self.step_index = 0;
         self.last_step = BioelectricCircuitStepDiagnostics::empty(0);
         self.last_edit = None;
+    }
+
+    /// Rebuilds the runtime for a Matter-owned scenario code and returns stats.
+    ///
+    /// Codes are:
+    /// `0=baseline`, `1=transverse wound`, `2=gap block`,
+    /// `3=transient memory`, `4=no-memory control`.
+    pub fn reset_to_scenario(&mut self, scenario_code: u32) -> Result<Float32Array, JsValue> {
+        let next = Self::for_scenario(scenario_kind_from_code(scenario_code)?)?;
+        self.runtime = next.runtime;
+        self.source_run = next.source_run;
+        self.initial_circuit = next.initial_circuit;
+        self.circuit = next.circuit;
+        self.step_index = next.step_index;
+        self.last_step = next.last_step;
+        self.last_edit = next.last_edit;
+        Ok(self.stats())
     }
 
     /// Advances one or more Matter fixed steps and returns realtime stats.
@@ -535,7 +525,9 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// `[step, time_seconds, revision, node_count, edge_count, current_terms,
     /// active_current_terms, active_gates, clamped_voltage_nodes,
     /// max_voltage_delta, fixed_step_seconds, last_edit_accepted,
-    /// last_edit_revision_after]`.
+    /// last_edit_revision_after, scenario_code, posterior_memory_average,
+    /// posterior_head_identity_average, head_identity_at_head_average,
+    /// tail_identity_at_tail_average]`.
     #[must_use]
     pub fn stats(&self) -> Float32Array {
         let last_edit_accepted =
@@ -548,6 +540,22 @@ impl PlanarianBioelectricRealtimeRuntime {
             .map_or(self.circuit.revision as f32, |result| {
                 result.revision_after as f32
             });
+        let posterior_nodes = posterior_comparison_nodes(&self.source_run);
+        let head_nodes = self
+            .source_run
+            .axis_map
+            .nodes_in_region(PlanarianAxisRegion::Head);
+        let tail_nodes = self
+            .source_run
+            .axis_map
+            .nodes_in_region(PlanarianAxisRegion::Tail);
+        let memory = self
+            .circuit
+            .memory
+            .as_ref()
+            .map(|memory| memory.values.as_slice());
+        let head = readout_values(&self.circuit, "readout.planarian_ap.head_identity");
+        let tail = readout_values(&self.circuit, "readout.planarian_ap.tail_identity");
         Float32Array::from(
             &[
                 self.step_index as f32,
@@ -563,6 +571,11 @@ impl PlanarianBioelectricRealtimeRuntime {
                 self.runtime.config().fixed_step_seconds,
                 last_edit_accepted,
                 last_edit_revision_after,
+                scenario_code(self.source_run.scenario_kind) as f32,
+                memory.map_or(0.0, |values| average_nodes(values, &posterior_nodes)),
+                head.map_or(0.0, |values| average_nodes(values, &posterior_nodes)),
+                head.map_or(0.0, |values| average_nodes(values, &head_nodes)),
+                tail.map_or(0.0, |values| average_nodes(values, &tail_nodes)),
             ][..],
         )
     }
@@ -587,6 +600,29 @@ impl PlanarianBioelectricRealtimeRuntime {
 }
 
 impl PlanarianBioelectricRealtimeRuntime {
+    fn for_scenario(scenario_kind: PlanarianBioelectricScenarioKind) -> Result<Self, JsValue> {
+        let source_run =
+            PlanarianBioelectricScenarioRun::build(scenario_kind, planarian_wasm_config())
+                .map_err(to_js_error)?;
+        let mut config = source_run.circuit_config.clone();
+        config.config_id.clear();
+        config
+            .config_id
+            .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
+        config.max_steps_per_run = u32::MAX;
+        let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
+        let initial_circuit = source_run.initial_circuit.clone();
+        Ok(Self {
+            runtime,
+            source_run,
+            circuit: initial_circuit.clone(),
+            initial_circuit,
+            step_index: 0,
+            last_step: BioelectricCircuitStepDiagnostics::empty(0),
+            last_edit: None,
+        })
+    }
+
     fn apply_edit(
         &mut self,
         operation: BioelectricCircuitEditOperation,
@@ -708,6 +744,61 @@ fn dynamic_contracts() -> Result<
     coupling.duration_steps = 90;
 
     Ok((substrate, state, vec![wound, vmem, polarity, coupling]))
+}
+
+fn planarian_wasm_config() -> PlanarianBioelectricPresetConfig {
+    PlanarianBioelectricPresetConfig {
+        sample_count: 128,
+        step_count: 240,
+        frame_stride: 12,
+        seed: 196_613,
+        ..PlanarianBioelectricPresetConfig::default()
+    }
+}
+
+fn scenario_kind_from_code(code: u32) -> Result<PlanarianBioelectricScenarioKind, JsValue> {
+    match code {
+        0 => Ok(PlanarianBioelectricScenarioKind::Baseline),
+        1 => Ok(PlanarianBioelectricScenarioKind::TransverseCutWound),
+        2 => Ok(PlanarianBioelectricScenarioKind::GapBlock),
+        3 => Ok(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory),
+        4 => Ok(PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl),
+        _ => Err(JsValue::from_str("unknown planarian scenario code")),
+    }
+}
+
+fn scenario_code(kind: PlanarianBioelectricScenarioKind) -> u32 {
+    match kind {
+        PlanarianBioelectricScenarioKind::Baseline => 0,
+        PlanarianBioelectricScenarioKind::TransverseCutWound => 1,
+        PlanarianBioelectricScenarioKind::GapBlock => 2,
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory => 3,
+        PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl => 4,
+    }
+}
+
+fn posterior_comparison_nodes(source_run: &PlanarianBioelectricScenarioRun) -> Vec<usize> {
+    let mut nodes = source_run
+        .axis_map
+        .nodes_in_region(PlanarianAxisRegion::Tail);
+    nodes.extend(
+        source_run
+            .axis_map
+            .nodes_in_region(PlanarianAxisRegion::PostpharyngealTrunk),
+    );
+    nodes
+}
+
+fn average_nodes(values: &[f32], nodes: &[usize]) -> f32 {
+    if nodes.is_empty() {
+        return 0.0;
+    }
+    nodes
+        .iter()
+        .copied()
+        .filter_map(|node_index| values.get(node_index).copied())
+        .sum::<f32>()
+        / nodes.len() as f32
 }
 
 fn scalar_values<'a>(state: &'a SurfaceFieldState, field_id: &str) -> &'a [f32] {

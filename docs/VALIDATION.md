@@ -78,7 +78,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-SurfaceFieldWa
 The script builds `rusty-matter-fields-wasm` for `wasm32-unknown-unknown` and
 writes web-ready JS/Wasm artifacts under `local-artifacts\surface-field-wasm`.
 The exported package includes the Matter-owned surface-field runtime and the
-Matter-owned planarian bioelectric runtime/edit surface.
+Matter-owned planarian bioelectric runtime/edit surface. The Planarian 3D Wasm
+surface also exports scenario reset codes for baseline, wound, gap-block,
+transient-memory, and no-memory control presets over the reviewed GLB-derived
+body substrate.
 
 ## External Hand Mesh Validation
 
