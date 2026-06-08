@@ -1,7 +1,12 @@
+#![allow(clippy::cast_precision_loss)]
+
 use js_sys::{Float32Array, Uint32Array};
 use rusty_matter_fields::{
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
-    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldStepDiagnostics,
+    BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitEditResult,
+    BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricCircuitStepDiagnostics,
+    PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldStepDiagnostics,
     SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
     SurfaceVectorFieldKind,
 };
@@ -226,6 +231,381 @@ impl SurfaceFieldRealtimeRuntime {
     }
 }
 
+/// Realtime Matter planarian bioelectric runtime exported to browser Wasm.
+///
+/// Matter owns the source body surface, sampled substrate, circuit state,
+/// edit/revision semantics, and fixed-step dynamics. Browser code may render
+/// and request edits, but it does not compute bioelectric state.
+#[wasm_bindgen]
+pub struct PlanarianBioelectricRealtimeRuntime {
+    runtime: BioelectricCircuitRuntime,
+    source_run: PlanarianBioelectricScenarioRun,
+    initial_circuit: BioelectricCircuitState,
+    circuit: BioelectricCircuitState,
+    step_index: u32,
+    last_step: BioelectricCircuitStepDiagnostics,
+    last_edit: Option<BioelectricCircuitEditResult>,
+}
+
+#[wasm_bindgen]
+impl PlanarianBioelectricRealtimeRuntime {
+    /// Creates the deterministic synthetic planarian bioelectric runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns a JavaScript error when the Matter planarian scenario, circuit,
+    /// or runtime contracts fail validation.
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<Self, JsValue> {
+        let source_run = PlanarianBioelectricScenarioRun::build(
+            PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+            PlanarianBioelectricPresetConfig {
+                sample_count: 128,
+                step_count: 240,
+                frame_stride: 12,
+                seed: 196_613,
+                ..PlanarianBioelectricPresetConfig::default()
+            },
+        )
+        .map_err(to_js_error)?;
+        let mut config = source_run.circuit_config.clone();
+        config.config_id.clear();
+        config
+            .config_id
+            .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
+        config.max_steps_per_run = 4096;
+        let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
+        let initial_circuit = source_run.initial_circuit.clone();
+        Ok(Self {
+            runtime,
+            source_run,
+            circuit: initial_circuit.clone(),
+            initial_circuit,
+            step_index: 0,
+            last_step: BioelectricCircuitStepDiagnostics::empty(0),
+            last_edit: None,
+        })
+    }
+
+    /// Resets circuit state and timestep to the deterministic initial state.
+    pub fn reset(&mut self) {
+        self.circuit = self.initial_circuit.clone();
+        self.step_index = 0;
+        self.last_step = BioelectricCircuitStepDiagnostics::empty(0);
+        self.last_edit = None;
+    }
+
+    /// Advances one or more Matter fixed steps and returns realtime stats.
+    ///
+    /// The call is bounded to eight fixed steps so a browser frame cannot
+    /// request an unbounded simulation burst.
+    pub fn step(&mut self, requested_steps: u32) -> Result<Float32Array, JsValue> {
+        let steps = requested_steps.clamp(1, 8);
+        for _ in 0..steps {
+            self.last_step = self
+                .runtime
+                .step_fixed(
+                    &self.source_run.substrate,
+                    &mut self.circuit,
+                    self.step_index,
+                )
+                .map_err(to_js_error)?;
+            self.step_index += 1;
+        }
+        Ok(self.stats())
+    }
+
+    /// Returns source body vertices.
+    ///
+    /// The returned `Float32Array` layout is three floats per vertex:
+    /// `[x, y, z]`.
+    #[must_use]
+    pub fn body_vertices(&self) -> Float32Array {
+        let mut values = Vec::with_capacity(self.source_run.source_surface.positions.len() * 3);
+        for position in &self.source_run.source_surface.positions {
+            values.extend_from_slice(&[position.x, position.y, position.z]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns source body triangle indices.
+    ///
+    /// The returned `Uint32Array` layout is three indices per triangle.
+    #[must_use]
+    pub fn body_triangles(&self) -> Uint32Array {
+        let values = self
+            .source_run
+            .source_surface
+            .triangles
+            .iter()
+            .flat_map(|triangle| triangle.iter().copied())
+            .collect::<Vec<_>>();
+        Uint32Array::from(values.as_slice())
+    }
+
+    /// Returns sampled bioelectric node geometry and AP metadata.
+    ///
+    /// The returned `Float32Array` layout is nine floats per node:
+    /// `[x, y, z, nx, ny, nz, region_code, ap_coordinate, lateral_coordinate]`.
+    #[must_use]
+    pub fn nodes(&self) -> Float32Array {
+        let mut values = Vec::with_capacity(self.source_run.substrate.node_count() * 9);
+        for node in &self.source_run.substrate.nodes {
+            let region = &self.source_run.axis_map.node_regions[node.node_index];
+            values.extend_from_slice(&[
+                node.position.x,
+                node.position.y,
+                node.position.z,
+                node.normal.x,
+                node.normal.y,
+                node.normal.z,
+                region_code(region.region) as f32,
+                region.ap_coordinate,
+                region.lateral_coordinate,
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns conductance edge metadata.
+    ///
+    /// The returned `Uint32Array` layout is four unsigned integers per edge:
+    /// `[from_node, to_node, tier, has_gate]`.
+    #[must_use]
+    pub fn conductance_edges(&self) -> Uint32Array {
+        let values = self
+            .circuit
+            .conductance_edges
+            .iter()
+            .flat_map(|edge| {
+                [
+                    usize_to_u32(edge.from_node),
+                    usize_to_u32(edge.to_node),
+                    u32::from(edge.tier),
+                    u32::from(edge.gate.is_some()),
+                ]
+            })
+            .collect::<Vec<_>>();
+        Uint32Array::from(values.as_slice())
+    }
+
+    /// Returns dynamic conductance and gate values.
+    ///
+    /// The returned `Float32Array` layout is six floats per edge:
+    /// `[base_conductance, conductance, threshold, slope, min_multiplier,
+    /// max_multiplier]`. Missing gates use zeros for gate fields.
+    #[must_use]
+    pub fn conductance_values(&self) -> Float32Array {
+        let mut values = Vec::with_capacity(self.circuit.conductance_edges.len() * 6);
+        for edge in &self.circuit.conductance_edges {
+            if let Some(gate) = &edge.gate {
+                values.extend_from_slice(&[
+                    edge.base_conductance,
+                    edge.conductance,
+                    gate.threshold,
+                    gate.slope,
+                    gate.min_multiplier,
+                    gate.max_multiplier,
+                ]);
+            } else {
+                values.extend_from_slice(&[
+                    edge.base_conductance,
+                    edge.conductance,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ]);
+            }
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns current node state.
+    ///
+    /// The returned `Float32Array` layout is four floats per node:
+    /// `[voltage, memory, head_identity, tail_identity]`.
+    #[must_use]
+    pub fn snapshot(&self) -> Float32Array {
+        let memory = self
+            .circuit
+            .memory
+            .as_ref()
+            .map(|state| state.values.as_slice());
+        let head = readout_values(&self.circuit, "readout.planarian_ap.head_identity");
+        let tail = readout_values(&self.circuit, "readout.planarian_ap.tail_identity");
+        let mut values = Vec::with_capacity(self.circuit.node_count * 4);
+        for node_index in 0..self.circuit.node_count {
+            values.extend_from_slice(&[
+                self.circuit.voltage.values[node_index],
+                memory.map_or(0.0, |values| values[node_index]),
+                head.map_or(0.0, |values| values[node_index]),
+                tail.map_or(0.0, |values| values[node_index]),
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Sets one node voltage and returns edit-result stats.
+    pub fn set_node_voltage(
+        &mut self,
+        node_index: u32,
+        voltage: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::SetNodeVoltage {
+            node_index: u32_to_usize(node_index),
+            voltage,
+        })
+    }
+
+    /// Adds a voltage delta to one node and returns edit-result stats.
+    pub fn add_node_voltage(
+        &mut self,
+        node_index: u32,
+        delta: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::AddNodeVoltage {
+            node_index: u32_to_usize(node_index),
+            delta,
+        })
+    }
+
+    /// Sets one node memory value and returns edit-result stats.
+    pub fn set_node_memory(
+        &mut self,
+        node_index: u32,
+        memory_value: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::SetNodeMemory {
+            node_index: u32_to_usize(node_index),
+            memory_value,
+        })
+    }
+
+    /// Scales all conductance edges incident on a node and returns edit-result
+    /// stats.
+    pub fn scale_incident_conductance(
+        &mut self,
+        node_index: u32,
+        scale: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::ScaleIncidentConductance {
+            node_index: u32_to_usize(node_index),
+            scale,
+        })
+    }
+
+    /// Sets one edge gate threshold. A zero `slope` keeps the existing slope.
+    pub fn set_edge_gate_threshold(
+        &mut self,
+        edge_index: u32,
+        threshold: f32,
+        slope: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::SetEdgeGateThreshold {
+            edge_index: u32_to_usize(edge_index),
+            threshold,
+            slope: (slope != 0.0).then_some(slope),
+        })
+    }
+
+    /// Adds a transient constant current to one node beginning at the current
+    /// fixed step.
+    pub fn add_transient_current(
+        &mut self,
+        node_index: u32,
+        current: f32,
+        duration_steps: u32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(BioelectricCircuitEditOperation::AddTransientCurrent {
+            term_id: format!(
+                "current.planarian_wasm.node{}.{}",
+                node_index, self.circuit.revision
+            ),
+            target_node_indices: vec![u32_to_usize(node_index)],
+            current,
+            start_step: self.step_index,
+            duration_steps,
+        })
+    }
+
+    /// Returns latest runtime stats.
+    ///
+    /// The returned `Float32Array` layout is:
+    /// `[step, time_seconds, revision, node_count, edge_count, current_terms,
+    /// active_current_terms, active_gates, clamped_voltage_nodes,
+    /// max_voltage_delta, fixed_step_seconds, last_edit_accepted,
+    /// last_edit_revision_after]`.
+    #[must_use]
+    pub fn stats(&self) -> Float32Array {
+        let last_edit_accepted =
+            self.last_edit
+                .as_ref()
+                .map_or(0.0, |result| if result.accepted { 1.0 } else { 0.0 });
+        let last_edit_revision_after = self
+            .last_edit
+            .as_ref()
+            .map_or(self.circuit.revision as f32, |result| {
+                result.revision_after as f32
+            });
+        Float32Array::from(
+            &[
+                self.step_index as f32,
+                self.circuit.time_seconds,
+                self.circuit.revision as f32,
+                self.circuit.node_count as f32,
+                self.circuit.conductance_edges.len() as f32,
+                self.circuit.current_terms.len() as f32,
+                self.last_step.active_current_terms as f32,
+                self.last_step.active_gates as f32,
+                self.last_step.clamped_voltage_nodes as f32,
+                self.last_step.max_voltage_delta,
+                self.runtime.config().fixed_step_seconds,
+                last_edit_accepted,
+                last_edit_revision_after,
+            ][..],
+        )
+    }
+
+    /// Returns substrate node count.
+    #[must_use]
+    pub fn node_count(&self) -> usize {
+        self.source_run.substrate.node_count()
+    }
+
+    /// Returns source body vertex count.
+    #[must_use]
+    pub fn body_vertex_count(&self) -> usize {
+        self.source_run.source_surface.vertex_count()
+    }
+
+    /// Returns source body triangle count.
+    #[must_use]
+    pub fn body_triangle_count(&self) -> usize {
+        self.source_run.source_surface.triangle_count()
+    }
+}
+
+impl PlanarianBioelectricRealtimeRuntime {
+    fn apply_edit(
+        &mut self,
+        operation: BioelectricCircuitEditOperation,
+    ) -> Result<Float32Array, JsValue> {
+        let edit = BioelectricCircuitEdit::new(
+            format!("edit.planarian_wasm.{}", self.circuit.revision),
+            None,
+            operation,
+        );
+        let result = self
+            .runtime
+            .apply_edit(&self.source_run.substrate, &mut self.circuit, &edit)
+            .map_err(to_js_error)?;
+        let values = edit_result_values(&result);
+        self.last_edit = Some(result);
+        Ok(values)
+    }
+}
+
 fn dynamic_contracts() -> Result<
     (
         SurfaceFieldSubstrate,
@@ -399,10 +779,47 @@ fn target_code(target_field_id: Option<&str>) -> u32 {
     }
 }
 
+fn region_code(region: PlanarianAxisRegion) -> u32 {
+    match region {
+        PlanarianAxisRegion::Tail => 1,
+        PlanarianAxisRegion::PostpharyngealTrunk => 2,
+        PlanarianAxisRegion::PharyngealTrunk => 3,
+        PlanarianAxisRegion::PrepharyngealTrunk => 4,
+        PlanarianAxisRegion::Head => 5,
+    }
+}
+
+fn readout_values<'a>(state: &'a BioelectricCircuitState, layer_id: &str) -> Option<&'a [f32]> {
+    state
+        .readout_layers
+        .iter()
+        .find(|layer| layer.layer_id == layer_id)
+        .map(|layer| layer.values.as_slice())
+}
+
+fn edit_result_values(result: &BioelectricCircuitEditResult) -> Float32Array {
+    Float32Array::from(
+        &[
+            if result.accepted { 1.0 } else { 0.0 },
+            result.revision_before as f32,
+            result.revision_after as f32,
+            result.clamped_values as f32,
+            result.affected_node_indices.len() as f32,
+            result.affected_edge_indices.len() as f32,
+            result.affected_current_term_ids.len() as f32,
+        ][..],
+    )
+}
+
 fn usize_to_u32(value: usize) -> u32 {
     value.try_into().unwrap_or(u32::MAX)
 }
 
+fn u32_to_usize(value: u32) -> usize {
+    usize::try_from(value).unwrap_or(usize::MAX)
+}
+
+#[allow(clippy::needless_pass_by_value)]
 fn to_js_error(error: impl ToString) -> JsValue {
     JsValue::from_str(&error.to_string())
 }

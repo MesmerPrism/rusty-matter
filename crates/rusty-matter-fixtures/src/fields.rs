@@ -1,5 +1,6 @@
 use rusty_matter_fields::{
-    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
+    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
     BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
     BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
     BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
@@ -106,6 +107,31 @@ pub(crate) fn bioelectric_circuit_step_diagnostics(
         BioelectricCircuitRuntime::new(bioelectric_circuit_config()?).map_err(CliError::Field)?;
     runtime
         .step_fixed(&substrate, &mut circuit, 0)
+        .map_err(CliError::Field)
+}
+
+pub(crate) fn bioelectric_circuit_edit() -> Result<BioelectricCircuitEdit, CliError> {
+    let edit = BioelectricCircuitEdit::new(
+        "edit.fixture.set_node_voltage",
+        Some(0),
+        BioelectricCircuitEditOperation::SetNodeVoltage {
+            node_index: 0,
+            voltage: 1.25,
+        },
+    );
+    edit.validate(12, 72).map_err(CliError::Field)?;
+    Ok(edit)
+}
+
+pub(crate) fn bioelectric_circuit_edit_result(
+    surface: &TriangleMeshSurface,
+) -> Result<BioelectricCircuitEditResult, CliError> {
+    let (substrate, mut circuit) = bioelectric_circuit_contracts(surface)?;
+    let runtime =
+        BioelectricCircuitRuntime::new(bioelectric_circuit_config()?).map_err(CliError::Field)?;
+    let edit = bioelectric_circuit_edit()?;
+    runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
         .map_err(CliError::Field)
 }
 

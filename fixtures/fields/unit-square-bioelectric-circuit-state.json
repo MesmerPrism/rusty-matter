@@ -4,6 +4,7 @@
   "substrate_id": "fields.substrate.unit_square_fixture",
   "node_count": 12,
   "time_seconds": 0.016666668,
+  "revision": 1,
   "voltage": {
     "schema_id": "rusty.matter.fields.bioelectric_voltage_field.v1",
     "field_id": "field.bioelectric_voltage",

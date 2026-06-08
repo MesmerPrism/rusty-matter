@@ -19,6 +19,9 @@ Matter owns:
   membrane-voltage-like buffers, gap-junction-like conductance edges,
   configurable current terms, gated coupling, hysteresis memory, and
   voltage-driven readout layers;
+- interactive bioelectric circuit edit requests and accepted/rejected edit
+  results, including Matter-owned revision tracking for realtime control
+  surfaces;
 - policy-free bioelectric circuit debug frames/sequences and synthetic
   planarian AP axis/circuit presets for educational qualitative dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
@@ -82,6 +85,9 @@ The implemented foundation slices are intentionally CPU/data-only:
 - qualitative bioelectric circuit contracts and deterministic stepping over
   the same surface-field substrate, including voltage, conductance, current
   terms, gates, memory, and readouts;
+- bioelectric circuit edit contracts for selected-node voltage/memory changes,
+  incident conductance scaling, edge gate edits, transient current insertion,
+  rejected-result reporting, and revision tracking;
 - bioelectric circuit debug frame/sequence contracts plus a synthetic
   planarian anterior/posterior preset with AP region metadata, gap-block,
   wound, memory, and no-memory control scenarios;
@@ -108,9 +114,10 @@ the same Matter mesh distance sampler used natively. It does not own renderer
 policy, browser UI, command routing, or hand-mesh acquisition.
 
 The optional `rusty-matter-fields-wasm` crate is a thin browser export over the
-same Matter surface-field runtime used natively. It owns realtime stepping and
-debug-value snapshots in browser smoke tests, but it does not own colors,
-playback controls, renderer policy, command routing, or visualization.
+same Matter surface-field and planarian bioelectric runtimes used natively. It
+owns realtime stepping, edit application, revision reporting, and debug-value
+snapshots in browser smoke tests, but it does not own colors, playback
+controls, renderer policy, command routing, or visualization.
 
 ## Module Map
 
@@ -139,6 +146,9 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   contracts and deterministic stepping for voltage state, conductance edges,
   configurable current terms, gated coupling, hysteresis memory, readout
   layers, config, and diagnostics.
+- `rusty-matter-fields/src/circuit_edit.rs`: interactive bioelectric edit
+  requests/results and the runtime apply path for voltage, memory,
+  conductance, gate, and transient-current mutations.
 - `rusty-matter-fields/src/circuit_debug.rs`: policy-free bioelectric circuit
   frames/sequences over substrate nodes, neighbor edges, voltage, memory,
   readouts, and per-step diagnostics.
@@ -150,8 +160,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector
   and perturbation-region frames/sequences for Optics and debug adapters.
 - `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
-  runtime adapter exposing packed topology, sparse edges, perturbation regions,
-  state snapshots, and step diagnostics.
+  and planarian bioelectric runtime adapter exposing packed topology, sparse
+  edges, perturbation or edit surfaces, state snapshots, and step diagnostics.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

@@ -6,7 +6,8 @@ use serde::Serialize;
 use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
 use crate::fields::{
-    bioelectric_circuit_config, bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
+    bioelectric_circuit_config, bioelectric_circuit_edit, bioelectric_circuit_edit_result,
+    bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
     planarian_bioelectric_scenario_run, surface_field_contract_summary, surface_field_debug_frame,
     surface_field_debug_sequence,
 };
@@ -120,6 +121,14 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json",
         &bioelectric_circuit_step_diagnostics(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-edit.json",
+        &bioelectric_circuit_edit()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-edit-result.json",
+        &bioelectric_circuit_edit_result(&surface)?,
     )?);
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/planarian-ap-transient-memory-scenario-run.json",

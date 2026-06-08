@@ -6513,6 +6513,7 @@
     "substrate_id": "fields.substrate.planarian_ap.synthetic",
     "node_count": 80,
     "time_seconds": 0.0,
+    "revision": 0,
     "voltage": {
       "schema_id": "rusty.matter.fields.bioelectric_voltage_field.v1",
       "field_id": "field.planarian_ap.bioelectric_voltage",

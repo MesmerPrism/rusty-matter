@@ -206,6 +206,22 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_edit.v1",
+      "rust_type": "BioelectricCircuitEdit",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-edit.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_edit_result.v1",
+      "rust_type": "BioelectricCircuitEditResult",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-edit-result.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.fields.bioelectric_step_diagnostics.v1",
       "rust_type": "BioelectricCircuitStepDiagnostics",
       "fixture_paths": [

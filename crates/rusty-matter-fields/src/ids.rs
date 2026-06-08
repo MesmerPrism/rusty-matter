@@ -39,6 +39,12 @@ pub const BIOELECTRIC_CIRCUIT_CONFIG_SCHEMA_ID: &str =
 /// Schema ID for bioelectric circuit state bundles.
 pub const BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID: &str =
     "rusty.matter.fields.bioelectric_circuit_state.v1";
+/// Schema ID for interactive bioelectric circuit edit requests.
+pub const BIOELECTRIC_CIRCUIT_EDIT_SCHEMA_ID: &str =
+    "rusty.matter.fields.bioelectric_circuit_edit.v1";
+/// Schema ID for interactive bioelectric circuit edit results.
+pub const BIOELECTRIC_CIRCUIT_EDIT_RESULT_SCHEMA_ID: &str =
+    "rusty.matter.fields.bioelectric_circuit_edit_result.v1";
 /// Schema ID for per-step bioelectric circuit diagnostics.
 pub const BIOELECTRIC_STEP_DIAGNOSTICS_SCHEMA_ID: &str =
     "rusty.matter.fields.bioelectric_step_diagnostics.v1";

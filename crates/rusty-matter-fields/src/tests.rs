@@ -2,10 +2,11 @@ use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, Trian
 use rusty_matter_model::Vec3;
 
 use crate::{
-    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
-    BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
-    BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
-    BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError, PlanarianAxisRegion,
+    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
+    BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricConductanceEdge,
+    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
+    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
+    BioelectricVoltageUnit, MatterFieldError, PlanarianAxisRegion,
     PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
     SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
@@ -320,12 +321,9 @@ fn bioelectric_circuit_step_updates_voltage_gates_memory_and_readout() {
     assert!(diagnostics.active_gates > 0);
     assert!(diagnostics.max_voltage_delta > 0.0);
     assert_ne!(circuit.voltage.values, initial_voltage);
-    assert_ne!(
-        circuit.conductance_edges[0].conductance,
-        initial_conductance
-    );
+    assert!((circuit.conductance_edges[0].conductance - initial_conductance).abs() > 1.0e-6);
     assert!(circuit.memory.expect("memory").values[0] > 0.48);
-    assert_ne!(circuit.readout_layers[0].values[0], initial_readout);
+    assert!((circuit.readout_layers[0].values[0] - initial_readout).abs() > 1.0e-6);
 }
 
 #[test]
@@ -347,7 +345,171 @@ fn bioelectric_memory_hysteresis_persists_between_thresholds() {
     let held = circuit.memory.as_ref().expect("memory").values[0];
 
     assert!(activated > 0.0);
-    assert_eq!(held, activated);
+    assert_close(held, activated);
+}
+
+#[test]
+fn bioelectric_runtime_applies_interactive_edits_with_revisions() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.set_voltage",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetNodeVoltage {
+            node_index: 0,
+            voltage: 2.0,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("voltage edit validates");
+    assert!(result.accepted);
+    assert_eq!(result.revision_before, 0);
+    assert_eq!(result.revision_after, 1);
+    assert_eq!(result.clamped_values, 1);
+    assert_close(circuit.voltage.values[0], 1.0);
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.set_memory",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetNodeMemory {
+            node_index: 0,
+            memory_value: 0.72,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("memory edit validates");
+    assert!(result.accepted);
+    assert_close(circuit.memory.as_ref().expect("memory").values[0], 0.72);
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.gate_threshold",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetEdgeGateThreshold {
+            edge_index: 0,
+            threshold: 0.22,
+            slope: Some(0.04),
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("gate edit validates");
+    assert!(result.accepted);
+    let gate = circuit.conductance_edges[0].gate.as_ref().expect("gate");
+    assert_close(gate.threshold, 0.22);
+    assert_close(gate.slope, 0.04);
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.scale_conductance",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::ScaleIncidentConductance {
+            node_index: 0,
+            scale: 0.25,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("conductance edit validates");
+    assert!(result.accepted);
+    assert!(!result.affected_edge_indices.is_empty());
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.transient_current",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::AddTransientCurrent {
+            term_id: "current.interactive.node0".to_owned(),
+            target_node_indices: vec![0],
+            current: 0.5,
+            start_step: 0,
+            duration_steps: 3,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("current edit validates");
+    assert!(result.accepted);
+    assert_eq!(
+        result.affected_current_term_ids,
+        vec!["current.interactive.node0".to_owned()]
+    );
+
+    let revision_before_step = circuit.revision;
+    runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .expect("step after edits validates");
+    assert_eq!(circuit.revision, revision_before_step + 1);
+}
+
+#[test]
+fn damaged_bioelectric_edit_requests_are_rejected() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    let bad_target = BioelectricCircuitEdit::new(
+        "edit.bad_target",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetNodeVoltage {
+            node_index: substrate.node_count(),
+            voltage: 0.1,
+        },
+    );
+    let error = runtime
+        .apply_edit(&substrate, &mut circuit, &bad_target)
+        .expect_err("bad node target rejects");
+    assert!(matches!(
+        error,
+        MatterFieldError::InvalidPerturbationNode { .. }
+    ));
+
+    let non_finite = BioelectricCircuitEdit::new(
+        "edit.non_finite",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetNodeVoltage {
+            node_index: 0,
+            voltage: f32::INFINITY,
+        },
+    );
+    let error = runtime
+        .apply_edit(&substrate, &mut circuit, &non_finite)
+        .expect_err("non-finite voltage rejects");
+    assert!(matches!(error, MatterFieldError::InvalidField(_)));
+
+    let stale = BioelectricCircuitEdit::new(
+        "edit.stale_revision",
+        Some(circuit.revision + 1),
+        BioelectricCircuitEditOperation::AddNodeVoltage {
+            node_index: 0,
+            delta: 0.1,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &stale)
+        .expect("stale edit returns rejected result");
+    assert!(!result.accepted);
+    assert_eq!(result.revision_before, circuit.revision);
+    assert_eq!(result.revision_after, circuit.revision);
+
+    circuit.conductance_edges[0].gate = None;
+    let missing_gate = BioelectricCircuitEdit::new(
+        "edit.missing_gate",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::SetEdgeGateThreshold {
+            edge_index: 0,
+            threshold: 0.2,
+            slope: None,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &missing_gate)
+        .expect("missing gate returns rejected result");
+    assert!(!result.accepted);
+    assert_eq!(result.revision_after, circuit.revision);
 }
 
 #[test]
@@ -552,6 +714,36 @@ fn planarian_transient_memory_persists_after_perturbation() {
 }
 
 #[test]
+fn planarian_realtime_edit_changes_selected_node_voltage() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    let runtime =
+        BioelectricCircuitRuntime::new(run.circuit_config.clone()).expect("planarian runtime");
+    let mut circuit = run.initial_circuit.clone();
+    let posterior_node = run.axis_map.nodes_in_region(PlanarianAxisRegion::Tail)[0];
+    let before = circuit.voltage.values[posterior_node];
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.planarian.posterior_voltage",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::AddNodeVoltage {
+            node_index: posterior_node,
+            delta: 0.65,
+        },
+    );
+    let result = runtime
+        .apply_edit(&run.substrate, &mut circuit, &edit)
+        .expect("planarian voltage edit validates");
+
+    assert!(result.accepted);
+    assert_eq!(result.affected_node_indices, [posterior_node]);
+    assert!(circuit.voltage.values[posterior_node] > before + 0.60);
+    runtime
+        .step_fixed(&run.substrate, &mut circuit, 0)
+        .expect("edited planarian step validates");
+    assert_eq!(circuit.revision, result.revision_after + 1);
+}
+
+#[test]
 fn damaged_planarian_config_and_axis_map_are_rejected() {
     let bad_config = PlanarianBioelectricPresetConfig {
         sample_count: 0,
@@ -649,7 +841,7 @@ fn test_circuit_state(substrate: &SurfaceFieldSubstrate) -> BioelectricCircuitSt
         1.5,
     );
     let conductance_edges =
-        BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.18, 0.04, Some(gate))
+        BioelectricConductanceEdge::from_substrate_neighbors(substrate, 0.18, 0.04, Some(gate))
             .expect("conductance edges validate");
     let mut transient_source = BioelectricCurrentTerm::new(
         "current.transient_depolarizing_source",
@@ -780,7 +972,15 @@ fn average_values(values: &[f32], node_indices: &[usize]) -> f32 {
         .iter()
         .map(|node_index| values[*node_index])
         .sum::<f32>();
-    sum / node_indices.len() as f32
+    sum / test_count_to_f32(node_indices.len())
+}
+
+fn assert_close(actual: f32, expected: f32) {
+    assert!((actual - expected).abs() <= 1.0e-6);
+}
+
+fn test_count_to_f32(count: usize) -> f32 {
+    f32::from(u16::try_from(count).expect("test count fits f32"))
 }
 
 fn outside_nodes(node_count: usize, excluded: &[usize]) -> Vec<usize> {
@@ -800,7 +1000,7 @@ fn average_cross_cut_conductance(run: &PlanarianBioelectricScenarioRun, cut_z: f
             count += 1;
         }
     }
-    sum / count as f32
+    sum / test_count_to_f32(count)
 }
 
 fn posterior_nodes(run: &PlanarianBioelectricScenarioRun) -> Vec<usize> {

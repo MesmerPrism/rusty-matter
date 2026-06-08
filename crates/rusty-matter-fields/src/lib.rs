@@ -2,6 +2,7 @@
 
 mod circuit;
 mod circuit_debug;
+mod circuit_edit;
 mod config;
 mod debug_frame;
 mod dynamics;
@@ -16,6 +17,7 @@ mod summary;
 
 pub use circuit::*;
 pub use circuit_debug::*;
+pub use circuit_edit::*;
 pub use config::*;
 pub use debug_frame::*;
 pub use dynamics::*;

@@ -27,6 +27,10 @@ impl SchemaCatalog {
             &["fixtures/fields/unit-square-bioelectric-circuit-state.json"];
         let bioelectric_circuit_diagnostic_fixtures =
             &["fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json"];
+        let bioelectric_circuit_edit_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-edit.json"];
+        let bioelectric_circuit_edit_result_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-edit-result.json"];
         let planarian_bioelectric_scenario_fixtures =
             &["fixtures/fields/planarian-ap-transient-memory-scenario-run.json"];
         let mesh_coordinate_map_fixtures =
@@ -188,6 +192,16 @@ impl SchemaCatalog {
                     "rusty.matter.fields.bioelectric_circuit_state.v1",
                     "BioelectricCircuitState",
                     bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_edit.v1",
+                    "BioelectricCircuitEdit",
+                    bioelectric_circuit_edit_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_edit_result.v1",
+                    "BioelectricCircuitEditResult",
+                    bioelectric_circuit_edit_result_fixtures,
                 ),
                 entry(
                     "rusty.matter.fields.bioelectric_step_diagnostics.v1",

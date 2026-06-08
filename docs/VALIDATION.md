@@ -35,8 +35,9 @@ and vector buffer validation, perturbation descriptor validation, runtime
 config validation, sparse neighbor-plan construction, deterministic fixed-step
 field dynamics, qualitative bioelectric circuit voltage/conductance/current
 contracts, gated coupling, hysteresis memory, readout stepping,
-debug-sequence emission, synthetic planarian AP axis/circuit scenario behavior,
-and damaged neighbor/buffer/runtime inputs.
+realtime edit request/result/revision behavior, debug-sequence emission,
+synthetic planarian AP axis/circuit scenario behavior, and damaged
+neighbor/buffer/runtime/edit inputs.
 
 The committed dynamic surface-field and planarian bioelectric scenario fixtures
 are regenerated with the normal fixture route:
@@ -55,7 +56,8 @@ The script installs `wasm-bindgen` under `target\wasm-tools` when missing,
 builds `rusty-matter-handmesh-wasm` for `wasm32-unknown-unknown`, and writes
 web-ready JS/Wasm artifacts under `local-artifacts\handmesh-wasm`.
 
-To build the realtime surface-field WebAssembly adapter:
+To build the realtime surface-field and planarian bioelectric WebAssembly
+adapter:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-SurfaceFieldWasmRuntime.ps1
@@ -63,6 +65,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-SurfaceFieldWa
 
 The script builds `rusty-matter-fields-wasm` for `wasm32-unknown-unknown` and
 writes web-ready JS/Wasm artifacts under `local-artifacts\surface-field-wasm`.
+The exported package includes the Matter-owned surface-field runtime and the
+Matter-owned planarian bioelectric runtime/edit surface.
 
 ## External Hand Mesh Validation
 

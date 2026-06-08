@@ -838,6 +838,8 @@ pub struct BioelectricCircuitState {
     pub node_count: usize,
     /// State time in seconds.
     pub time_seconds: f32,
+    /// Monotonic Matter-owned state revision for steps and accepted edits.
+    pub revision: u64,
     /// Membrane-voltage-like state.
     pub voltage: BioelectricVoltageField,
     /// Directed gap-junction-like conductance edges.
@@ -873,6 +875,7 @@ impl BioelectricCircuitState {
             substrate_id: substrate.substrate_id.clone(),
             node_count: substrate.node_count(),
             time_seconds: 0.0,
+            revision: 0,
             voltage,
             conductance_edges,
             current_terms,
@@ -949,6 +952,13 @@ impl BioelectricCircuitState {
             layer.validate(self.node_count)?;
             push_unique_id(&mut readout_ids, &layer.layer_id)?;
         }
+        Ok(())
+    }
+
+    pub(crate) fn advance_revision(&mut self) -> Result<(), MatterFieldError> {
+        self.revision = self.revision.checked_add(1).ok_or({
+            MatterFieldError::InvalidRunSummary("bioelectric circuit revision overflow")
+        })?;
         Ok(())
     }
 }
@@ -1187,13 +1197,14 @@ impl BioelectricCircuitRuntime {
         diagnostics.readout_layers_updated = state.readout_layers.len();
 
         state.time_seconds += self.config.fixed_step_seconds;
+        state.advance_revision()?;
         state.validate()?;
         diagnostics.validate(node_count, state.conductance_edges.len())?;
         Ok(diagnostics)
     }
 }
 
-fn validate_circuit_for_substrate(
+pub(crate) fn validate_circuit_for_substrate(
     substrate: &SurfaceFieldSubstrate,
     state: &BioelectricCircuitState,
 ) -> Result<(), MatterFieldError> {

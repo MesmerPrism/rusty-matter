@@ -12,6 +12,7 @@ The SDF foundation bundle currently includes:
   debug frame sequences in `fixtures/fields`;
 - qualitative bioelectric circuit config, stepped state, and step diagnostics
   in `fixtures/fields`;
+- bioelectric circuit edit request/result fixtures in `fixtures/fields`;
 - synthetic planarian AP bioelectric scenario runs in `fixtures/fields`,
   including substrate nodes, AP-region metadata, circuit debug frames, voltage,
   memory, readouts, and diagnostics;
