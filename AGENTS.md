@@ -29,10 +29,16 @@ sockets, media stacks, or downstream app crates.
 - Optics owns view, projection, appearance policy, debug visualization, and
   visual scorecards. Matter may prepare deterministic render-neutral payloads
   for fixtures and interchange, but it does not own renderer policy.
+- Lattice owns situated relation snapshots: reference spaces, transforms,
+  tracked poses, view sets, spatial input roles, frame-state binding,
+  calibration, validity, confidence, and runtime capability evidence. Matter
+  artifacts may be referenced from Lattice, but Matter owns the computational
+  substance those relations point at.
 - Renderer adapters own GPU buffers, shaders, draw calls, texture atlases,
   platform frame lifecycle, and backend imports.
-- XR and device adapters own platform hand mesh acquisition and device runtime
-  lifecycle. They convert platform frames into Matter payloads.
+- XR/device adapters own platform hand mesh acquisition and device runtime
+  lifecycle. They convert platform frames into Matter payloads and Lattice
+  relation snapshots outside Matter core.
 - Keep Kuramoto, oscillator coupling, breath control, study defaults, and
   downstream visual-driver behavior out of Matter unless a later explicit
   generalization decision is recorded.
