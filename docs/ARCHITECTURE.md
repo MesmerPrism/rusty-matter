@@ -13,7 +13,8 @@ Matter owns:
 - surface-field graph substrates over mesh sample nodes and same-surface
   neighbor tiers;
 - scalar/vector surface-field state buffers, perturbation descriptors, runtime
-  config contracts, and deterministic run-summary contracts;
+  config contracts, deterministic run-summary contracts, and policy-free debug
+  frames;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -114,6 +115,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   validates F1 inputs and emits zero-step summaries.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
+- `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector
+  and perturbation-region frames for Optics and debug adapters.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

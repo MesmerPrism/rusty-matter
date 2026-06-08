@@ -66,7 +66,7 @@ Current crate-root maps:
 - `rusty-matter-model/src/lib.rs`: facade over `ids`, `vec3`,
   `bounds`, `mesh`, and `error`.
 - `rusty-matter-fields/src/lib.rs`: facade over `ids`, `substrate`, `state`,
-  `perturbation`, `config`, `runtime`, `summary`, and `error`.
+  `perturbation`, `config`, `runtime`, `summary`, `debug_frame`, and `error`.
 - `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `sampling`,
   `coordinate`, `hand`, `collider`, accelerated surface `distance`, `error`,
   and shared `math`.

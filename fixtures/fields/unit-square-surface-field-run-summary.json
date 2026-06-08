@@ -12,6 +12,6 @@
   "second_tier_edge_count": 36,
   "step_count": 0,
   "scalar_min": 0.0,
-  "scalar_max": 0.5,
+  "scalar_max": 1.0,
   "max_vector_length": 1.0
 }

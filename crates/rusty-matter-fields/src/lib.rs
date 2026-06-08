@@ -1,6 +1,7 @@
 //! Surface-field contracts over Matter mesh sample nodes.
 
 mod config;
+mod debug_frame;
 mod error;
 mod ids;
 mod perturbation;
@@ -10,6 +11,7 @@ mod substrate;
 mod summary;
 
 pub use config::*;
+pub use debug_frame::*;
 pub use error::*;
 pub use ids::*;
 pub use perturbation::*;

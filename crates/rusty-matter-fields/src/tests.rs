@@ -2,10 +2,10 @@ use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, Trian
 use rusty_matter_model::Vec3;
 
 use crate::{
-    MatterFieldError, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
-    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
-    SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
+    MatterFieldError, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    SurfaceVectorField, SurfaceVectorFieldKind, SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
 };
 
 #[test]
@@ -67,6 +67,35 @@ fn runtime_summary_validates_f1_contracts_without_dynamics() {
     assert_eq!(summary.scalar_min, Some(0.0));
     assert_eq!(summary.scalar_max, Some(0.5));
     assert_eq!(summary.max_vector_length, Some(1.0));
+}
+
+#[test]
+fn debug_frame_exposes_nodes_edges_fields_and_perturbations() {
+    let substrate = test_substrate();
+    let state = test_state(&substrate);
+    let perturbations = vec![SurfaceFieldPerturbation::new(
+        "perturbation.wound.center",
+        Some("field.wound_signal".to_owned()),
+        vec![0, 1, 2],
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    )];
+
+    let frame = SurfaceFieldDebugFrame::from_contracts(
+        "debug.fields.unit_square",
+        &substrate,
+        &state,
+        &perturbations,
+    )
+    .expect("debug frame validates");
+
+    assert_eq!(frame.nodes.len(), substrate.node_count());
+    assert_eq!(
+        frame.edges.len(),
+        substrate.first_tier_edge_count() + substrate.second_tier_edge_count()
+    );
+    assert_eq!(frame.scalar_layers.len(), 3);
+    assert_eq!(frame.vector_layers.len(), 1);
+    assert_eq!(frame.perturbation_regions.len(), 1);
 }
 
 #[test]

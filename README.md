@@ -9,7 +9,7 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 - `rusty-matter-model`: shared model primitives and schema IDs;
 - `rusty-matter-fields`: surface-field substrates, scalar/vector field
   contracts, perturbation descriptors, runtime config contracts, and
-  zero-step run summaries over mesh sample nodes;
+  zero-step run summaries plus policy-free debug frames over mesh sample nodes;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
