@@ -85,7 +85,8 @@ surface also exports scenario reset codes for baseline, wound, gap-block,
 transient-memory, and no-memory control presets over the reviewed GLB-derived
 body substrate, plus deterministic outcome traces for renderer-side comparison
 plots, including the Matter-owned comparison trace set used by Optics browser
-overlays.
+overlays and selected node/edge readout accessors used by browser inspector
+panels.
 
 ## External Hand Mesh Validation
 

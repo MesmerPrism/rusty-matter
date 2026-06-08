@@ -126,7 +126,8 @@ snapshots in browser smoke tests. Its Planarian 3D path exposes Matter-owned
 scenario resets over the reviewed GLB-derived `TriangleMeshSurface`, sampled
 surface graph, conductance/current/gate configuration, and comparison readouts;
 it also exports deterministic scenario outcome traces and comparison trace sets
-for renderer-side plots.
+for renderer-side plots, plus selected node and conductance-edge readouts for
+browser inspector panels.
 It does not own colors, playback controls, renderer policy, command routing, or
 visualization.
 
@@ -181,8 +182,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
   and planarian bioelectric runtime adapter exposing packed topology, sparse
   edges, perturbation or edit surfaces, Planarian 3D scenario resets, state
-  snapshots, outcome traces, comparison trace-set accessors, and step
-  diagnostics.
+  snapshots, outcome traces, comparison trace-set accessors, selected
+  node/edge readouts, and step diagnostics.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

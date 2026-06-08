@@ -419,6 +419,109 @@ impl PlanarianBioelectricRealtimeRuntime {
         Float32Array::from(values.as_slice())
     }
 
+    /// Returns a Matter-owned readout for one selected node.
+    ///
+    /// The returned `Float32Array` layout is:
+    /// `[node_index, region_code, ap_coordinate, lateral_coordinate, voltage,
+    /// memory, head_identity, tail_identity, incident_edge_count,
+    /// outgoing_edge_count]`.
+    pub fn node_state(&self, node_index: u32) -> Result<Float32Array, JsValue> {
+        let node_index = u32_to_usize(node_index);
+        let Some(region) = self.source_run.axis_map.node_regions.get(node_index) else {
+            return Err(JsValue::from_str(
+                "planarian node state target is unavailable",
+            ));
+        };
+        let Some(voltage) = self.circuit.voltage.values.get(node_index).copied() else {
+            return Err(JsValue::from_str(
+                "planarian node state voltage is unavailable",
+            ));
+        };
+        let memory = self
+            .circuit
+            .memory
+            .as_ref()
+            .and_then(|state| state.values.get(node_index))
+            .copied()
+            .unwrap_or(0.0);
+        let head = readout_values(&self.circuit, "readout.planarian_ap.head_identity")
+            .and_then(|values| values.get(node_index))
+            .copied()
+            .unwrap_or(0.0);
+        let tail = readout_values(&self.circuit, "readout.planarian_ap.tail_identity")
+            .and_then(|values| values.get(node_index))
+            .copied()
+            .unwrap_or(0.0);
+        let incident_edge_count = self
+            .circuit
+            .conductance_edges
+            .iter()
+            .filter(|edge| edge.from_node == node_index || edge.to_node == node_index)
+            .count();
+        let outgoing_edge_count = self
+            .circuit
+            .conductance_edges
+            .iter()
+            .filter(|edge| edge.from_node == node_index)
+            .count();
+        Ok(Float32Array::from(
+            &[
+                node_index as f32,
+                region_code(region.region) as f32,
+                region.ap_coordinate,
+                region.lateral_coordinate,
+                voltage,
+                memory,
+                head,
+                tail,
+                incident_edge_count as f32,
+                outgoing_edge_count as f32,
+            ][..],
+        ))
+    }
+
+    /// Returns a Matter-owned readout for one selected conductance edge.
+    ///
+    /// The returned `Float32Array` layout is:
+    /// `[edge_index, from_node, to_node, tier, has_gate, base_conductance,
+    /// conductance, gate_threshold, gate_slope, gate_min_multiplier,
+    /// gate_max_multiplier]`. Missing gates use zeros for gate fields.
+    pub fn conductance_edge_state(&self, edge_index: u32) -> Result<Float32Array, JsValue> {
+        let edge_index = u32_to_usize(edge_index);
+        let Some(edge) = self.circuit.conductance_edges.get(edge_index) else {
+            return Err(JsValue::from_str(
+                "planarian conductance edge state target is unavailable",
+            ));
+        };
+        let (has_gate, threshold, slope, min_multiplier, max_multiplier) = edge
+            .gate
+            .as_ref()
+            .map_or((0.0, 0.0, 0.0, 0.0, 0.0), |gate| {
+                (
+                    1.0,
+                    gate.threshold,
+                    gate.slope,
+                    gate.min_multiplier,
+                    gate.max_multiplier,
+                )
+            });
+        Ok(Float32Array::from(
+            &[
+                edge_index as f32,
+                edge.from_node as f32,
+                edge.to_node as f32,
+                f32::from(edge.tier),
+                has_gate,
+                edge.base_conductance,
+                edge.conductance,
+                threshold,
+                slope,
+                min_multiplier,
+                max_multiplier,
+            ][..],
+        ))
+    }
+
     /// Returns current node state.
     ///
     /// The returned `Float32Array` layout is four floats per node:
