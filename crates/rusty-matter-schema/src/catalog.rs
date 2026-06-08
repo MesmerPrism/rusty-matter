@@ -21,6 +21,12 @@ impl SchemaCatalog {
         let field_debug_fixtures = &["fixtures/fields/unit-square-surface-field-debug-frame.json"];
         let field_debug_sequence_fixtures =
             &["fixtures/fields/unit-square-surface-field-debug-sequence.json"];
+        let bioelectric_circuit_config_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-config.json"];
+        let bioelectric_circuit_state_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-state.json"];
+        let bioelectric_circuit_diagnostic_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -150,6 +156,41 @@ impl SchemaCatalog {
                     "rusty.matter.fields.debug_sequence.v1",
                     "SurfaceFieldDebugFrameSequence",
                     field_debug_sequence_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_voltage_field.v1",
+                    "BioelectricVoltageField",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_conductance_edge.v1",
+                    "BioelectricConductanceEdge",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_current_term.v1",
+                    "BioelectricCurrentTerm",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_readout_layer.v1",
+                    "BioelectricReadoutLayer",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_config.v1",
+                    "BioelectricCircuitConfig",
+                    bioelectric_circuit_config_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_state.v1",
+                    "BioelectricCircuitState",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_step_diagnostics.v1",
+                    "BioelectricCircuitStepDiagnostics",
+                    bioelectric_circuit_diagnostic_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

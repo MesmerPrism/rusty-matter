@@ -158,6 +158,62 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.bioelectric_voltage_field.v1",
+      "rust_type": "BioelectricVoltageField",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "rust_type": "BioelectricConductanceEdge",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "rust_type": "BioelectricCurrentTerm",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_readout_layer.v1",
+      "rust_type": "BioelectricReadoutLayer",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_config.v1",
+      "rust_type": "BioelectricCircuitConfig",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-config.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_state.v1",
+      "rust_type": "BioelectricCircuitState",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_step_diagnostics.v1",
+      "rust_type": "BioelectricCircuitStepDiagnostics",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [

@@ -2,10 +2,14 @@ use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, Trian
 use rusty_matter_model::Vec3;
 
 use crate::{
-    MatterFieldError, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
-    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
-    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
-    SurfaceVectorField, SurfaceVectorFieldKind, SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
+    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
+    BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
+    BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError, SurfaceFieldDebugFrame,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
+    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
+    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID, SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
 };
 
 #[test]
@@ -274,6 +278,147 @@ fn damaged_dynamic_perturbation_target_is_rejected() {
     assert!(matches!(error, MatterFieldError::InvalidPerturbation(_)));
 }
 
+#[test]
+fn bioelectric_circuit_contracts_validate_over_surface_nodes() {
+    let substrate = test_substrate();
+    let circuit = test_circuit_state(&substrate);
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    let diagnostics = runtime
+        .validate_contracts(&substrate, &circuit)
+        .expect("bioelectric contracts validate");
+
+    assert_eq!(circuit.schema_id, BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID);
+    assert_eq!(circuit.node_count, substrate.node_count());
+    assert_eq!(circuit.voltage.values.len(), substrate.node_count());
+    assert_eq!(diagnostics.updated_nodes, substrate.node_count());
+    assert_eq!(diagnostics.visited_edges, circuit.conductance_edges.len());
+}
+
+#[test]
+fn bioelectric_circuit_step_updates_voltage_gates_memory_and_readout() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    circuit.voltage.values[0] = 0.45;
+    circuit.voltage.values[1] = -0.1;
+    circuit.memory.as_mut().expect("memory").values[0] = 0.48;
+    let initial_voltage = circuit.voltage.values.clone();
+    let initial_conductance = circuit.conductance_edges[0].conductance;
+    let initial_readout = circuit.readout_layers[0].values[0];
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    let diagnostics = runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .expect("bioelectric step validates");
+
+    assert!(diagnostics.visited_edges > 0);
+    assert!(diagnostics.active_current_terms > 0);
+    assert!(diagnostics.active_gates > 0);
+    assert!(diagnostics.max_voltage_delta > 0.0);
+    assert_ne!(circuit.voltage.values, initial_voltage);
+    assert_ne!(
+        circuit.conductance_edges[0].conductance,
+        initial_conductance
+    );
+    assert!(circuit.memory.expect("memory").values[0] > 0.48);
+    assert_ne!(circuit.readout_layers[0].values[0], initial_readout);
+}
+
+#[test]
+fn bioelectric_memory_hysteresis_persists_between_thresholds() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    circuit.voltage.values[0] = 0.42;
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .expect("activation step validates");
+    let activated = circuit.memory.as_ref().expect("memory").values[0];
+    circuit.voltage.values[0] = 0.0;
+    runtime
+        .step_fixed(&substrate, &mut circuit, 1)
+        .expect("hold step validates");
+    let held = circuit.memory.as_ref().expect("memory").values[0];
+
+    assert!(activated > 0.0);
+    assert_eq!(held, activated);
+}
+
+#[test]
+fn damaged_bioelectric_voltage_count_is_rejected() {
+    let substrate = test_substrate();
+    let node_count = substrate.node_count();
+    let voltage = BioelectricVoltageField::constant(
+        "field.bioelectric_voltage",
+        BioelectricVoltageUnit::Normalized,
+        node_count.saturating_sub(1),
+        0.0,
+        0.0,
+    );
+    let edges = BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.2, 0.05, None)
+        .expect("edges validate");
+    let error = BioelectricCircuitState::new(
+        "circuit.invalid_voltage",
+        &substrate,
+        voltage,
+        edges,
+        Vec::new(),
+        None,
+        Vec::new(),
+    )
+    .expect_err("bad voltage length rejects");
+
+    assert!(matches!(error, MatterFieldError::NodeCountMismatch { .. }));
+}
+
+#[test]
+fn damaged_bioelectric_conductance_target_is_rejected() {
+    let substrate = test_substrate();
+    let node_count = substrate.node_count();
+    let voltage = BioelectricVoltageField::constant(
+        "field.bioelectric_voltage",
+        BioelectricVoltageUnit::Normalized,
+        node_count,
+        0.0,
+        0.0,
+    );
+    let bad_edge =
+        BioelectricConductanceEdge::new("conductance.invalid", 0, node_count, 1, 0.2, None);
+    let error = BioelectricCircuitState::new(
+        "circuit.invalid_edge",
+        &substrate,
+        voltage,
+        vec![bad_edge],
+        Vec::new(),
+        None,
+        Vec::new(),
+    )
+    .expect_err("bad conductance target rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidNeighbor { .. }));
+}
+
+#[test]
+fn damaged_bioelectric_current_target_is_rejected() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    circuit.current_terms.push(BioelectricCurrentTerm::new(
+        "current.invalid_target",
+        vec![substrate.node_count()],
+        BioelectricCurrentKind::Constant { current: 0.1 },
+    ));
+    let error = circuit.validate().expect_err("bad current target rejects");
+
+    assert!(matches!(
+        error,
+        MatterFieldError::InvalidPerturbationNode { .. }
+    ));
+}
+
 fn test_substrate() -> SurfaceFieldSubstrate {
     let surface = unit_square_surface();
     let config = MeshSurfaceSampleConfig {
@@ -327,6 +472,94 @@ fn test_state(substrate: &SurfaceFieldSubstrate) -> SurfaceFieldState {
         vectors,
     )
     .expect("state validates")
+}
+
+fn test_circuit_state(substrate: &SurfaceFieldSubstrate) -> BioelectricCircuitState {
+    let node_count = substrate.node_count();
+    let voltage_values = substrate
+        .nodes
+        .iter()
+        .map(|node| (node.position.x - 0.5) * 0.35)
+        .collect::<Vec<_>>();
+    let gate = BioelectricGate::new(
+        "gate.voltage_difference.opens",
+        BioelectricGateSource::VoltageDifference,
+        0.08,
+        0.02,
+        0.35,
+        1.5,
+    );
+    let conductance_edges =
+        BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.18, 0.04, Some(gate))
+            .expect("conductance edges validate");
+    let mut transient_source = BioelectricCurrentTerm::new(
+        "current.transient_depolarizing_source",
+        vec![0],
+        BioelectricCurrentKind::Constant { current: 0.75 },
+    );
+    transient_source.duration_steps = 3;
+    let current_terms = vec![
+        BioelectricCurrentTerm::new(
+            "current.leak_to_rest",
+            Vec::new(),
+            BioelectricCurrentKind::Leak {
+                conductance: 0.18,
+                reversal_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.pump_to_rest",
+            Vec::new(),
+            BioelectricCurrentKind::Pump {
+                rate: 0.12,
+                target_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.generic_voltage_gate",
+            Vec::new(),
+            BioelectricCurrentKind::VoltageGated {
+                max_conductance: 0.08,
+                reversal_voltage: -0.3,
+                threshold: 0.18,
+                slope: 0.06,
+            },
+        ),
+        transient_source,
+    ];
+    let memory = BioelectricMemoryState::zeroed(
+        "memory.hysteresis.synthetic",
+        node_count,
+        0.28,
+        -0.18,
+        2.4,
+        0.8,
+    );
+    let readout = BioelectricReadoutLayer::new(
+        "readout.morphogen_like_voltage",
+        vec![0.0; node_count],
+        0.75,
+        0.5,
+        0.1,
+        1.6,
+        -1.0,
+        1.0,
+    );
+    BioelectricCircuitState::new(
+        "circuit.bioelectric.unit_square",
+        substrate,
+        BioelectricVoltageField::new(
+            "field.bioelectric_voltage",
+            BioelectricVoltageUnit::Normalized,
+            0.0,
+            voltage_values,
+        ),
+        conductance_edges,
+        current_terms,
+        Some(memory),
+        vec![readout],
+    )
+    .expect("bioelectric circuit validates")
 }
 
 fn unit_square_surface() -> TriangleMeshSurface {

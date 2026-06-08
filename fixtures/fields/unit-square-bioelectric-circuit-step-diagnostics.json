@@ -1,0 +1,14 @@
+{
+  "schema_id": "rusty.matter.fields.bioelectric_step_diagnostics.v1",
+  "step_index": 1,
+  "updated_nodes": 12,
+  "visited_edges": 72,
+  "active_current_terms": 4,
+  "active_gates": 72,
+  "clamped_voltage_nodes": 0,
+  "clamped_conductance_edges": 0,
+  "memory_activated_nodes": 0,
+  "readout_layers_updated": 1,
+  "max_voltage_delta": 0.015214976,
+  "net_current_abs_sum": 4.62723
+}

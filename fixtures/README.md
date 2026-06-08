@@ -10,6 +10,8 @@ The SDF foundation bundle currently includes:
   in `fixtures/mesh`;
 - surface-field contract summaries, policy-free debug frames, and dynamic
   debug frame sequences in `fixtures/fields`;
+- qualitative bioelectric circuit config, stepped state, and step diagnostics
+  in `fixtures/fields`;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;

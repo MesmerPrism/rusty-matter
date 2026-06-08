@@ -6,6 +6,7 @@ use serde::Serialize;
 use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
 use crate::fields::{
+    bioelectric_circuit_config, bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
     surface_field_contract_summary, surface_field_debug_frame, surface_field_debug_sequence,
 };
 use crate::mesh::{
@@ -106,6 +107,18 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/unit-square-surface-field-debug-sequence.json",
         &surface_field_debug_sequence(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-config.json",
+        &bioelectric_circuit_config()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json",
+        &bioelectric_circuit_state(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json",
+        &bioelectric_circuit_step_diagnostics(&surface)?,
     )?);
 
     let hand_frame = synthetic_hand_validation_mesh_frame();

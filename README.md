@@ -10,7 +10,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 - `rusty-matter-fields`: surface-field substrates, scalar/vector field
   contracts, perturbation descriptors, runtime config contracts, sparse
   fixed-step dynamics, run summaries, diagnostics, and policy-free debug
-  frames/sequences over mesh sample nodes;
+  frames/sequences over mesh sample nodes, plus qualitative bioelectric
+  circuit contracts for voltage, conductance, current terms, gated coupling,
+  hysteresis memory, and voltage-driven readouts;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
@@ -28,7 +30,8 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 The root files are intentionally thin. Model code is split by IDs, vectors,
 bounds, mesh payloads, and errors. Field code is split by schema IDs,
 substrates, scalar/vector states, perturbations, runtime configs, sparse
-dynamics, summaries, debug frames, and errors. Mesh code is split by surface,
+dynamics, bioelectric circuit contracts, summaries, debug frames, and errors.
+Mesh code is split by surface,
 sampling/live updates, accelerated
 distance queries, coordinate maps, hand payloads, dynamic collider, and
 error/math helpers. SDF code is split by builder, config, packed grid, geometry

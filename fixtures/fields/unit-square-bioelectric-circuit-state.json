@@ -1,0 +1,1379 @@
+{
+  "schema_id": "rusty.matter.fields.bioelectric_circuit_state.v1",
+  "circuit_id": "circuit.fixture.bioelectric_unit_square",
+  "substrate_id": "fields.substrate.unit_square_fixture",
+  "node_count": 12,
+  "time_seconds": 0.016666668,
+  "voltage": {
+    "schema_id": "rusty.matter.fields.bioelectric_voltage_field.v1",
+    "field_id": "field.bioelectric_voltage",
+    "unit": "Normalized",
+    "resting_voltage": 0.0,
+    "values": [
+      0.047180515,
+      0.112051144,
+      -0.06635719,
+      -0.030995414,
+      0.04849117,
+      -0.06096893,
+      -0.025811147,
+      0.064375795,
+      0.12613042,
+      0.03412368,
+      0.047500994,
+      0.0016259858
+    ]
+  },
+  "conductance_edges": [
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.10.tier1",
+      "from_node": 0,
+      "to_node": 10,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.052441023,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.9.tier1",
+      "from_node": 0,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.06635967,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.7.tier1",
+      "from_node": 0,
+      "to_node": 7,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.053100817,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.4.tier2",
+      "from_node": 0,
+      "to_node": 4,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.014817231,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.1.tier2",
+      "from_node": 0,
+      "to_node": 1,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.040331684,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.0.8.tier2",
+      "from_node": 0,
+      "to_node": 8,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.052284833,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.8.tier1",
+      "from_node": 1,
+      "to_node": 8,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.05743719,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.7.tier1",
+      "from_node": 1,
+      "to_node": 7,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.13461697,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.0.tier1",
+      "from_node": 1,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.14340153,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.10.tier2",
+      "from_node": 1,
+      "to_node": 10,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.039953697,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.9.tier2",
+      "from_node": 1,
+      "to_node": 9,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.06101546,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.1.4.tier2",
+      "from_node": 1,
+      "to_node": 4,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.039145734,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.5.tier1",
+      "from_node": 2,
+      "to_node": 5,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.055019293,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.6.tier1",
+      "from_node": 2,
+      "to_node": 6,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.08383152,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.9.tier1",
+      "from_node": 2,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.20440555,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.3.tier2",
+      "from_node": 2,
+      "to_node": 3,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.017357863,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.10.tier2",
+      "from_node": 2,
+      "to_node": 10,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.06965335,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.2.4.tier2",
+      "from_node": 2,
+      "to_node": 4,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.069878824,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.11.tier1",
+      "from_node": 3,
+      "to_node": 11,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.072308,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.5.tier1",
+      "from_node": 3,
+      "to_node": 5,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.069628984,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.9.tier1",
+      "from_node": 3,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.14347704,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.7.tier2",
+      "from_node": 3,
+      "to_node": 7,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.062675126,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.2.tier2",
+      "from_node": 3,
+      "to_node": 2,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.017357863,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.3.0.tier2",
+      "from_node": 3,
+      "to_node": 0,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.061030116,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.10.tier1",
+      "from_node": 4,
+      "to_node": 10,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.052569088,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.0.tier1",
+      "from_node": 4,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.052683488,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.9.tier1",
+      "from_node": 4,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.06774134,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.6.tier2",
+      "from_node": 4,
+      "to_node": 6,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.048148133,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.7.tier2",
+      "from_node": 4,
+      "to_node": 7,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.014827269,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.4.8.tier2",
+      "from_node": 4,
+      "to_node": 8,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.05115711,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.2.tier1",
+      "from_node": 5,
+      "to_node": 2,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.055019293,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.3.tier1",
+      "from_node": 5,
+      "to_node": 3,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.069628984,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.9.tier1",
+      "from_node": 5,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.22329766,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.6.tier2",
+      "from_node": 5,
+      "to_node": 6,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.028447945,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.0.tier2",
+      "from_node": 5,
+      "to_node": 0,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.07129329,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.5.10.tier2",
+      "from_node": 5,
+      "to_node": 10,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.07136356,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.2.tier1",
+      "from_node": 6,
+      "to_node": 2,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.08383152,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.4.tier1",
+      "from_node": 6,
+      "to_node": 4,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.17119335,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.10.tier1",
+      "from_node": 6,
+      "to_node": 10,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.16830863,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.5.tier2",
+      "from_node": 6,
+      "to_node": 5,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.028447945,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.9.tier2",
+      "from_node": 6,
+      "to_node": 9,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.026419416,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.6.0.tier2",
+      "from_node": 6,
+      "to_node": 0,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.046957478,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.0.tier1",
+      "from_node": 7,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.053100817,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.9.tier1",
+      "from_node": 7,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.069364786,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.1.tier1",
+      "from_node": 7,
+      "to_node": 1,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.13461697,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.10.tier2",
+      "from_node": 7,
+      "to_node": 10,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.014899633,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.8.tier2",
+      "from_node": 7,
+      "to_node": 8,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.049894523,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.7.11.tier2",
+      "from_node": 7,
+      "to_node": 11,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.038212474,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.1.tier1",
+      "from_node": 8,
+      "to_node": 1,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.05743719,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.7.tier1",
+      "from_node": 8,
+      "to_node": 7,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.17740273,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.0.tier1",
+      "from_node": 8,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.18590161,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.10.tier2",
+      "from_node": 8,
+      "to_node": 10,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.051929235,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.9.tier2",
+      "from_node": 8,
+      "to_node": 9,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.06751036,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.8.4.tier2",
+      "from_node": 8,
+      "to_node": 4,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.05115711,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.0.tier1",
+      "from_node": 9,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.06635967,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.10.tier1",
+      "from_node": 9,
+      "to_node": 10,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.06678865,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.7.tier1",
+      "from_node": 9,
+      "to_node": 7,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.069364786,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.4.tier2",
+      "from_node": 9,
+      "to_node": 4,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.019052252,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.3.tier2",
+      "from_node": 9,
+      "to_node": 3,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.04035292,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.9.5.tier2",
+      "from_node": 9,
+      "to_node": 5,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.062802464,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.0.tier1",
+      "from_node": 10,
+      "to_node": 0,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.052441023,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.4.tier1",
+      "from_node": 10,
+      "to_node": 4,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.052569088,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.9.tier1",
+      "from_node": 10,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.06678865,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.7.tier2",
+      "from_node": 10,
+      "to_node": 7,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.014899633,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.1.tier2",
+      "from_node": 10,
+      "to_node": 1,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.039953697,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.10.6.tier2",
+      "from_node": 10,
+      "to_node": 6,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.047336806,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.3.tier1",
+      "from_node": 11,
+      "to_node": 3,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.072308,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.7.tier1",
+      "from_node": 11,
+      "to_node": 7,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.13586657,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.9.tier1",
+      "from_node": 11,
+      "to_node": 9,
+      "tier": 1,
+      "base_conductance": 0.16,
+      "conductance": 0.07248819,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.5.tier2",
+      "from_node": 11,
+      "to_node": 5,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.038290534,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.0.tier2",
+      "from_node": 11,
+      "to_node": 0,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.035808608,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_conductance_edge.v1",
+      "edge_id": "conductance.11.1.tier2",
+      "from_node": 11,
+      "to_node": 1,
+      "tier": 2,
+      "base_conductance": 0.045,
+      "conductance": 0.07165706,
+      "gate": {
+        "gate_id": "gate.voltage_difference.synthetic",
+        "source": "VoltageDifference",
+        "threshold": 0.07,
+        "slope": 0.018,
+        "min_multiplier": 0.3,
+        "max_multiplier": 1.65
+      }
+    }
+  ],
+  "current_terms": [
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "term_id": "current.fixture.leak",
+      "target_node_indices": [],
+      "start_step": 0,
+      "duration_steps": 4294967295,
+      "kind": {
+        "Leak": {
+          "conductance": 0.16,
+          "reversal_voltage": 0.0
+        }
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "term_id": "current.fixture.pump",
+      "target_node_indices": [],
+      "start_step": 0,
+      "duration_steps": 4294967295,
+      "kind": {
+        "Pump": {
+          "rate": 0.1,
+          "target_voltage": 0.0
+        }
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "term_id": "current.fixture.generic_voltage_gate",
+      "target_node_indices": [],
+      "start_step": 0,
+      "duration_steps": 4294967295,
+      "kind": {
+        "VoltageGated": {
+          "max_conductance": 0.06,
+          "reversal_voltage": -0.25,
+          "threshold": 0.16,
+          "slope": 0.05
+        }
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "term_id": "current.fixture.transient_source",
+      "target_node_indices": [
+        3,
+        9,
+        5,
+        7,
+        11
+      ],
+      "start_step": 0,
+      "duration_steps": 24,
+      "kind": {
+        "Constant": {
+          "current": 0.85
+        }
+      }
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_current_term.v1",
+      "term_id": "current.fixture.transient_sink",
+      "target_node_indices": [
+        4,
+        10,
+        0,
+        9,
+        6
+      ],
+      "start_step": 8,
+      "duration_steps": 40,
+      "kind": {
+        "Constant": {
+          "current": -0.35
+        }
+      }
+    }
+  ],
+  "memory": {
+    "memory_id": "memory.fixture.hysteresis",
+    "values": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "activation_threshold": 0.24,
+    "release_threshold": -0.16,
+    "activation_rate": 1.9,
+    "release_rate": 0.55
+  },
+  "readout_layers": [
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_readout_layer.v1",
+      "layer_id": "readout.fixture.voltage_to_morphogen",
+      "values": [
+        0.0024530087,
+        0.0035341857,
+        0.00056071347,
+        0.0011500765,
+        0.0024748528,
+        0.00065051776,
+        0.0012364809,
+        0.0027395966,
+        0.0037688403,
+        0.0022353947,
+        0.0024583498,
+        0.0016937664
+      ],
+      "voltage_weight": 0.8,
+      "memory_weight": 0.45,
+      "bias": 0.08,
+      "relaxation_rate": 1.25,
+      "clamp_min": -1.0,
+      "clamp_max": 1.0
+    }
+  ]
+}

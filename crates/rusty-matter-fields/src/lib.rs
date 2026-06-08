@@ -1,5 +1,6 @@
 //! Surface-field contracts over Matter mesh sample nodes.
 
+mod circuit;
 mod config;
 mod debug_frame;
 mod dynamics;
@@ -11,6 +12,7 @@ mod state;
 mod substrate;
 mod summary;
 
+pub use circuit::*;
 pub use config::*;
 pub use debug_frame::*;
 pub use dynamics::*;

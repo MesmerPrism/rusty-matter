@@ -33,8 +33,9 @@ cargo test -p rusty-matter-fields
 Those tests verify field substrates over `MeshSurfaceSampleSet` nodes, scalar
 and vector buffer validation, perturbation descriptor validation, runtime
 config validation, sparse neighbor-plan construction, deterministic fixed-step
-field dynamics, debug-sequence emission, and damaged neighbor/buffer/runtime
-inputs.
+field dynamics, qualitative bioelectric circuit voltage/conductance/current
+contracts, gated coupling, hysteresis memory, readout stepping,
+debug-sequence emission, and damaged neighbor/buffer/runtime inputs.
 
 The committed dynamic surface-field fixture is regenerated with the normal
 fixture route:

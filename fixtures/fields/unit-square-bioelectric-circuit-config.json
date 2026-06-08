@@ -1,0 +1,11 @@
+{
+  "schema_id": "rusty.matter.fields.bioelectric_circuit_config.v1",
+  "config_id": "fields.bioelectric_circuit.fixture",
+  "fixed_step_seconds": 0.016666668,
+  "max_steps_per_run": 180,
+  "voltage_clamp_min": -1.0,
+  "voltage_clamp_max": 1.0,
+  "conductance_clamp_min": 0.0,
+  "conductance_clamp_max": 3.0,
+  "current_clamp_absolute": 5.0
+}

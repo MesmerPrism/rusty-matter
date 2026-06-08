@@ -15,6 +15,10 @@ Matter owns:
 - scalar/vector surface-field state buffers, perturbation descriptors, runtime
   config contracts, sparse fixed-step dynamics, deterministic run-summary
   contracts, diagnostics, and policy-free debug frames/sequences;
+- qualitative bioelectric circuit state over surface nodes, including
+  membrane-voltage-like buffers, gap-junction-like conductance edges,
+  configurable current terms, gated coupling, hysteresis memory, and
+  voltage-driven readout layers;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -73,6 +77,9 @@ The implemented foundation slices are intentionally CPU/data-only:
   neighbor tiers;
 - sparse fixed-step surface-field dynamics for scalar diffusion/decay and
   bounded vector/polarity updates over those neighbor tiers;
+- qualitative bioelectric circuit contracts and deterministic stepping over
+  the same surface-field substrate, including voltage, conductance, current
+  terms, gates, memory, and readouts;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -123,6 +130,10 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/dynamics.rs`: sparse neighbor-plan construction,
   fixed-step scalar diffusion/decay, bounded vector updates, perturbation
   application, and dynamic debug-sequence emission.
+- `rusty-matter-fields/src/circuit.rs`: qualitative bioelectric circuit
+  contracts and deterministic stepping for voltage state, conductance edges,
+  configurable current terms, gated coupling, hysteresis memory, readout
+  layers, config, and diagnostics.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector

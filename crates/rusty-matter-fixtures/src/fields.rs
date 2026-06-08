@@ -1,4 +1,8 @@
 use rusty_matter_fields::{
+    BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
+    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
+    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
     SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
     SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary, SurfaceFieldRuntime,
     SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
@@ -62,6 +66,45 @@ pub(crate) fn surface_field_debug_sequence(
             120,
             3,
         )
+        .map_err(CliError::Field)
+}
+
+pub(crate) fn bioelectric_circuit_config() -> Result<BioelectricCircuitConfig, CliError> {
+    let config = BioelectricCircuitConfig {
+        config_id: "fields.bioelectric_circuit.fixture".to_owned(),
+        fixed_step_seconds: 1.0 / 60.0,
+        max_steps_per_run: 180,
+        voltage_clamp_min: -1.0,
+        voltage_clamp_max: 1.0,
+        conductance_clamp_min: 0.0,
+        conductance_clamp_max: 3.0,
+        current_clamp_absolute: 5.0,
+        ..BioelectricCircuitConfig::default()
+    };
+    config.validate().map_err(CliError::Field)?;
+    Ok(config)
+}
+
+pub(crate) fn bioelectric_circuit_state(
+    surface: &TriangleMeshSurface,
+) -> Result<BioelectricCircuitState, CliError> {
+    let (substrate, mut circuit) = bioelectric_circuit_contracts(surface)?;
+    let runtime =
+        BioelectricCircuitRuntime::new(bioelectric_circuit_config()?).map_err(CliError::Field)?;
+    runtime
+        .step_fixed(&substrate, &mut circuit, 0)
+        .map_err(CliError::Field)?;
+    Ok(circuit)
+}
+
+pub(crate) fn bioelectric_circuit_step_diagnostics(
+    surface: &TriangleMeshSurface,
+) -> Result<BioelectricCircuitStepDiagnostics, CliError> {
+    let (substrate, mut circuit) = bioelectric_circuit_contracts(surface)?;
+    let runtime =
+        BioelectricCircuitRuntime::new(bioelectric_circuit_config()?).map_err(CliError::Field)?;
+    runtime
+        .step_fixed(&substrate, &mut circuit, 0)
         .map_err(CliError::Field)
 }
 
@@ -239,6 +282,109 @@ fn surface_field_dynamic_contracts(
     coupling.duration_steps = 90;
 
     Ok((substrate, state, vec![wound, vmem, polarity, coupling]))
+}
+
+fn bioelectric_circuit_contracts(
+    surface: &TriangleMeshSurface,
+) -> Result<(SurfaceFieldSubstrate, BioelectricCircuitState), CliError> {
+    let substrate = surface_field_substrate(surface)?;
+    let node_count = substrate.node_count();
+    let voltage_values = substrate
+        .nodes
+        .iter()
+        .map(|node| 0.18 * (node.position.x - 0.5) + 0.10 * (node.position.y - 0.5))
+        .collect::<Vec<_>>();
+    let gate = BioelectricGate::new(
+        "gate.voltage_difference.synthetic",
+        BioelectricGateSource::VoltageDifference,
+        0.07,
+        0.018,
+        0.3,
+        1.65,
+    );
+    let conductance_edges =
+        BioelectricConductanceEdge::from_substrate_neighbors(&substrate, 0.16, 0.045, Some(gate))
+            .map_err(CliError::Field)?;
+
+    let source_nodes = nearest_nodes(&substrate, Vec3::new(0.28, 0.62, 0.0), 5);
+    let sink_nodes = nearest_nodes(&substrate, Vec3::new(0.76, 0.38, 0.0), 5);
+    let mut source = BioelectricCurrentTerm::new(
+        "current.fixture.transient_source",
+        source_nodes,
+        BioelectricCurrentKind::Constant { current: 0.85 },
+    );
+    source.duration_steps = 24;
+    let mut sink = BioelectricCurrentTerm::new(
+        "current.fixture.transient_sink",
+        sink_nodes,
+        BioelectricCurrentKind::Constant { current: -0.35 },
+    );
+    sink.start_step = 8;
+    sink.duration_steps = 40;
+    let current_terms = vec![
+        BioelectricCurrentTerm::new(
+            "current.fixture.leak",
+            Vec::new(),
+            BioelectricCurrentKind::Leak {
+                conductance: 0.16,
+                reversal_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.fixture.pump",
+            Vec::new(),
+            BioelectricCurrentKind::Pump {
+                rate: 0.10,
+                target_voltage: 0.0,
+            },
+        ),
+        BioelectricCurrentTerm::new(
+            "current.fixture.generic_voltage_gate",
+            Vec::new(),
+            BioelectricCurrentKind::VoltageGated {
+                max_conductance: 0.06,
+                reversal_voltage: -0.25,
+                threshold: 0.16,
+                slope: 0.05,
+            },
+        ),
+        source,
+        sink,
+    ];
+    let memory = BioelectricMemoryState::zeroed(
+        "memory.fixture.hysteresis",
+        node_count,
+        0.24,
+        -0.16,
+        1.9,
+        0.55,
+    );
+    let readout = BioelectricReadoutLayer::new(
+        "readout.fixture.voltage_to_morphogen",
+        vec![0.0; node_count],
+        0.8,
+        0.45,
+        0.08,
+        1.25,
+        -1.0,
+        1.0,
+    );
+    let state = BioelectricCircuitState::new(
+        "circuit.fixture.bioelectric_unit_square",
+        &substrate,
+        BioelectricVoltageField::new(
+            "field.bioelectric_voltage",
+            BioelectricVoltageUnit::Normalized,
+            0.0,
+            voltage_values,
+        ),
+        conductance_edges,
+        current_terms,
+        Some(memory),
+        vec![readout],
+    )
+    .map_err(CliError::Field)?;
+    Ok((substrate, state))
 }
 
 fn surface_field_substrate(
