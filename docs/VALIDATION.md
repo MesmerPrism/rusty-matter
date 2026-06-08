@@ -36,8 +36,20 @@ config validation, sparse neighbor-plan construction, deterministic fixed-step
 field dynamics, qualitative bioelectric circuit voltage/conductance/current
 contracts, gated coupling, hysteresis memory, readout stepping,
 realtime edit request/result/revision behavior, debug-sequence emission,
-synthetic planarian AP axis/circuit scenario behavior, and damaged
-neighbor/buffer/runtime/edit inputs.
+planarian AP circuit behavior over the reviewed GLB-derived educational mesh,
+synthetic fallback coverage, and damaged neighbor/buffer/runtime/edit inputs.
+
+The committed planarian mesh module is regenerated from a reviewed GLB with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Convert-PlanarianGlbSurface.ps1 `
+  -GlbPath "<reviewed-planaria.glb>"
+```
+
+The converter verifies the reviewed SHA-256 by default, normalizes the mesh
+into Matter coordinates, and writes
+`crates\rusty-matter-fields\src\planarian_mesh_asset.rs`. The generated data is
+a `TriangleMeshSurface` source, not a renderer asset or runtime GLB loader.
 
 The committed dynamic surface-field and planarian bioelectric scenario fixtures
 are regenerated with the normal fixture route:

@@ -13,7 +13,8 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   frames/sequences over mesh sample nodes, plus qualitative bioelectric
   circuit contracts for voltage, conductance, current terms, gated coupling,
   hysteresis memory, voltage-driven readouts, realtime edit requests/results,
-  circuit debug sequences, and synthetic planarian AP bioelectric presets;
+  circuit debug sequences, and planarian AP bioelectric presets over a
+  reviewed GLB-derived educational body mesh with synthetic fallback;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface;
@@ -33,8 +34,8 @@ The root files are intentionally thin. Model code is split by IDs, vectors,
 bounds, mesh payloads, and errors. Field code is split by schema IDs,
 substrates, scalar/vector states, perturbations, runtime configs, sparse
 dynamics, bioelectric circuit contracts, circuit edit requests/results,
-circuit debug frames, synthetic planarian presets, summaries, debug frames, and
-errors.
+circuit debug frames, GLB-derived and synthetic planarian presets, summaries,
+debug frames, and errors.
 Mesh code is split by surface,
 sampling/live updates, accelerated
 distance queries, coordinate maps, hand payloads, dynamic collider, and

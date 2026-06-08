@@ -1,6 +1,19 @@
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
 
+use crate::planarian_mesh_asset::{
+    sketchfab_planaria_surface, PLANARIA_SKETCHFAB_ATTRIBUTION, PLANARIA_SKETCHFAB_AXIS_MAPPING,
+    PLANARIA_SKETCHFAB_BOUNDS_MAX, PLANARIA_SKETCHFAB_BOUNDS_MIN,
+    PLANARIA_SKETCHFAB_CENTER_AFTER_SCALE, PLANARIA_SKETCHFAB_EVIDENCE_TYPE,
+    PLANARIA_SKETCHFAB_GENERATOR, PLANARIA_SKETCHFAB_GLTF_GENERATOR, PLANARIA_SKETCHFAB_LICENSE,
+    PLANARIA_SKETCHFAB_SCALE, PLANARIA_SKETCHFAB_SOURCE_BOUNDS_MAX,
+    PLANARIA_SKETCHFAB_SOURCE_BOUNDS_MIN, PLANARIA_SKETCHFAB_SOURCE_SHA256,
+    PLANARIA_SKETCHFAB_SOURCE_SIZE_BYTES, PLANARIA_SKETCHFAB_SOURCE_URL,
+    PLANARIA_SKETCHFAB_SOURCE_VERTEX_COUNT, PLANARIA_SKETCHFAB_SURFACE_ID,
+    PLANARIA_SKETCHFAB_TARGET_LENGTH, PLANARIA_SKETCHFAB_TOPOLOGY_INDEX_HASH,
+    PLANARIA_SKETCHFAB_TRIANGLE_COUNT, PLANARIA_SKETCHFAB_VERTEX_COUNT,
+    PLANARIA_SKETCHFAB_Y_OFFSET,
+};
 use crate::{
     BioelectricCircuitConfig, BioelectricCircuitDebugSequence, BioelectricCircuitRuntime,
     BioelectricCircuitState, BioelectricConductanceEdge, BioelectricCurrentKind,
@@ -149,19 +162,24 @@ pub struct PlanarianAxisNodeRegion {
 }
 
 impl PlanarianAxisNodeRegion {
-    fn from_node(node_index: usize, position: Vec3) -> Self {
-        let region = PlanarianAxisRegion::from_z(position.z);
-        let half_width = planarian_half_width_at_z(position.z).max(1.0e-6);
+    fn from_node(node_index: usize, position: Vec3, axis_frame: PlanarianAxisFrame) -> Self {
+        let normalized_z = axis_frame.normalized_z(position.z);
+        let region = PlanarianAxisRegion::from_z(normalized_z);
         Self {
             node_index,
             region,
             region_id: region.region_id().to_owned(),
-            ap_coordinate: ((position.z + 1.0) * 0.5).clamp(0.0, 1.0),
-            lateral_coordinate: (position.x / half_width).clamp(-1.5, 1.5),
+            ap_coordinate: axis_frame.ap_coordinate(position.z),
+            lateral_coordinate: (position.x / axis_frame.lateral_extent).clamp(-1.5, 1.5),
         }
     }
 
-    fn validate(&self, expected_index: usize) -> Result<(), MatterFieldError> {
+    fn validate(
+        &self,
+        expected_index: usize,
+        expected_position: Vec3,
+        axis_frame: PlanarianAxisFrame,
+    ) -> Result<(), MatterFieldError> {
         if self.node_index != expected_index {
             return Err(MatterFieldError::InvalidSubstrate(
                 "planarian axis node indices must match node order",
@@ -180,7 +198,60 @@ impl PlanarianAxisNodeRegion {
                 "planarian axis node coordinates must be finite",
             ));
         }
+        let expected_ap = axis_frame.ap_coordinate(expected_position.z);
+        if (self.ap_coordinate - expected_ap).abs() > 1.0e-4 {
+            return Err(MatterFieldError::InvalidField(
+                "planarian axis node AP coordinate must match substrate bounds",
+            ));
+        }
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct PlanarianAxisFrame {
+    z_min: f32,
+    z_span: f32,
+    lateral_extent: f32,
+}
+
+impl PlanarianAxisFrame {
+    fn from_substrate(substrate: &SurfaceFieldSubstrate) -> Result<Self, MatterFieldError> {
+        let Some(first) = substrate.nodes.first() else {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "planarian axis frame requires substrate nodes",
+            ));
+        };
+        let mut z_min = first.position.z;
+        let mut z_max = first.position.z;
+        let mut lateral_extent = first.position.x.abs();
+        for node in &substrate.nodes {
+            z_min = z_min.min(node.position.z);
+            z_max = z_max.max(node.position.z);
+            lateral_extent = lateral_extent.max(node.position.x.abs());
+        }
+        let z_span = z_max - z_min;
+        if !z_span.is_finite() || z_span <= 1.0e-6 {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "planarian AP axis span must be positive",
+            ));
+        }
+        if !lateral_extent.is_finite() || lateral_extent <= 1.0e-6 {
+            lateral_extent = 1.0;
+        }
+        Ok(Self {
+            z_min,
+            z_span,
+            lateral_extent,
+        })
+    }
+
+    fn ap_coordinate(self, z: f32) -> f32 {
+        ((z - self.z_min) / self.z_span).clamp(0.0, 1.0)
+    }
+
+    fn normalized_z(self, z: f32) -> f32 {
+        self.ap_coordinate(z) * 2.0 - 1.0
     }
 }
 
@@ -212,6 +283,7 @@ impl PlanarianAxisMap {
         substrate: &SurfaceFieldSubstrate,
     ) -> Result<Self, MatterFieldError> {
         substrate.validate()?;
+        let axis_frame = PlanarianAxisFrame::from_substrate(substrate)?;
         let map = Self {
             schema_id: PLANARIAN_AXIS_MAP_SCHEMA_ID.to_owned(),
             map_id: map_id.into(),
@@ -220,7 +292,9 @@ impl PlanarianAxisMap {
             node_regions: substrate
                 .nodes
                 .iter()
-                .map(|node| PlanarianAxisNodeRegion::from_node(node.node_index, node.position))
+                .map(|node| {
+                    PlanarianAxisNodeRegion::from_node(node.node_index, node.position, axis_frame)
+                })
                 .collect(),
         };
         map.validate(substrate)?;
@@ -249,6 +323,14 @@ impl PlanarianAxisMap {
                 ((z - center_z).abs() <= half_width).then_some(node.node_index)
             })
             .collect()
+    }
+
+    /// Returns a node's normalized AP z coordinate in -1..=1.
+    #[must_use]
+    pub fn node_normalized_z(&self, node_index: usize) -> Option<f32> {
+        self.node_regions
+            .get(node_index)
+            .map(|node| node.ap_coordinate * 2.0 - 1.0)
     }
 
     /// Validates the axis map against its substrate.
@@ -293,11 +375,13 @@ impl PlanarianAxisMap {
                 actual: self.node_regions.len(),
             });
         }
+        let axis_frame = PlanarianAxisFrame::from_substrate(substrate)?;
         let mut region_counts = [0_usize; 5];
         for (expected_index, node_region) in self.node_regions.iter().enumerate() {
-            node_region.validate(expected_index)?;
+            let expected_position = substrate.nodes[expected_index].position;
+            node_region.validate(expected_index, expected_position, axis_frame)?;
             let expected_region =
-                PlanarianAxisRegion::from_z(substrate.nodes[expected_index].position.z);
+                PlanarianAxisRegion::from_z(axis_frame.normalized_z(expected_position.z));
             if node_region.region != expected_region {
                 return Err(MatterFieldError::InvalidField(
                     "planarian axis node region must match substrate AP coordinate",
@@ -364,10 +448,150 @@ impl PlanarianBioelectricScenarioKind {
     }
 }
 
+/// Source surface used for the educational planarian bioelectric preset.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PlanarianBodySurfaceSource {
+    /// Reviewed Sketchfab Planaria GLB translated into a Matter triangle surface.
+    SketchfabEducationalGlb,
+    /// Procedural flat/tapered AP-axis surface retained as a deterministic fallback.
+    SyntheticAxis,
+}
+
+impl PlanarianBodySurfaceSource {
+    fn sample_suffix(self) -> &'static str {
+        match self {
+            Self::SketchfabEducationalGlb => "sketchfab_educational",
+            Self::SyntheticAxis => "synthetic",
+        }
+    }
+
+    fn run_evidence_type(self) -> &'static str {
+        match self {
+            Self::SketchfabEducationalGlb => "synthetic_bioelectric_over_educational_glb_mesh",
+            Self::SyntheticAxis => "synthetic_educational_abstraction",
+        }
+    }
+}
+
+/// Provenance for the surface mesh used by one planarian preset run.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianSurfaceProvenance {
+    /// Source selector used to build the surface.
+    pub source: PlanarianBodySurfaceSource,
+    /// Stable source asset identifier.
+    pub source_id: String,
+    /// Human-readable source label.
+    pub label: String,
+    /// Surface evidence type.
+    pub evidence_type: String,
+    /// Source URL, or a generated-source label for procedural fallbacks.
+    pub source_url: String,
+    /// License string for the source or generated surface.
+    pub license: String,
+    /// Attribution string required for the source.
+    pub attribution: String,
+    /// SHA-256 of the reviewed source GLB when external.
+    pub source_sha256: String,
+    /// Transformation summary applied during GLB-to-Matter conversion.
+    pub transform_summary: String,
+    /// Source vertex count before Matter conversion.
+    pub source_vertex_count: usize,
+    /// Matter surface vertex count.
+    pub vertex_count: usize,
+    /// Matter surface triangle count.
+    pub triangle_count: usize,
+}
+
+impl PlanarianSurfaceProvenance {
+    fn for_source(source: PlanarianBodySurfaceSource) -> Self {
+        match source {
+            PlanarianBodySurfaceSource::SketchfabEducationalGlb => Self {
+                source,
+                source_id: "geo_sketchfab_planaria_candidate".to_owned(),
+                label: "Sketchfab Planaria educational mesh".to_owned(),
+                evidence_type: PLANARIA_SKETCHFAB_EVIDENCE_TYPE.to_owned(),
+                source_url: PLANARIA_SKETCHFAB_SOURCE_URL.to_owned(),
+                license: PLANARIA_SKETCHFAB_LICENSE.to_owned(),
+                attribution: PLANARIA_SKETCHFAB_ATTRIBUTION.to_owned(),
+                source_sha256: PLANARIA_SKETCHFAB_SOURCE_SHA256.to_owned(),
+                transform_summary: format!(
+                    "axis_mapping={}, target_length={}, scale={}, center_after_scale={:?}, y_offset={}, generator={}, gltf_generator={}, source_size_bytes={}, topology_index_hash={}, source_bounds_min={:?}, source_bounds_max={:?}, bounds_min={:?}, bounds_max={:?}",
+                    PLANARIA_SKETCHFAB_AXIS_MAPPING,
+                    PLANARIA_SKETCHFAB_TARGET_LENGTH,
+                    PLANARIA_SKETCHFAB_SCALE,
+                    PLANARIA_SKETCHFAB_CENTER_AFTER_SCALE,
+                    PLANARIA_SKETCHFAB_Y_OFFSET,
+                    PLANARIA_SKETCHFAB_GENERATOR,
+                    PLANARIA_SKETCHFAB_GLTF_GENERATOR,
+                    PLANARIA_SKETCHFAB_SOURCE_SIZE_BYTES,
+                    PLANARIA_SKETCHFAB_TOPOLOGY_INDEX_HASH,
+                    PLANARIA_SKETCHFAB_SOURCE_BOUNDS_MIN,
+                    PLANARIA_SKETCHFAB_SOURCE_BOUNDS_MAX,
+                    PLANARIA_SKETCHFAB_BOUNDS_MIN,
+                    PLANARIA_SKETCHFAB_BOUNDS_MAX,
+                ),
+                source_vertex_count: PLANARIA_SKETCHFAB_SOURCE_VERTEX_COUNT,
+                vertex_count: PLANARIA_SKETCHFAB_VERTEX_COUNT,
+                triangle_count: PLANARIA_SKETCHFAB_TRIANGLE_COUNT,
+            },
+            PlanarianBodySurfaceSource::SyntheticAxis => Self {
+                source,
+                source_id: "geo_procedural_planarian_axis_surface".to_owned(),
+                label: "Procedural planarian AP-axis fallback surface".to_owned(),
+                evidence_type: "synthetic_educational_abstraction".to_owned(),
+                source_url: "generated:rusty-matter.planarian.synthetic_axis".to_owned(),
+                license: "MIT OR Apache-2.0 project code".to_owned(),
+                attribution: "Rusty Matter contributors".to_owned(),
+                source_sha256: String::new(),
+                transform_summary: "generated from normalized AP-axis width profile".to_owned(),
+                source_vertex_count: 0,
+                vertex_count: 0,
+                triangle_count: 0,
+            },
+        }
+    }
+
+    fn validate(&self, surface: &TriangleMeshSurface) -> Result<(), MatterFieldError> {
+        if self.source_id.trim().is_empty()
+            || self.label.trim().is_empty()
+            || self.evidence_type.trim().is_empty()
+            || self.license.trim().is_empty()
+            || self.attribution.trim().is_empty()
+            || self.transform_summary.trim().is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian surface provenance must be populated",
+            ));
+        }
+        if self.vertex_count != surface.vertex_count()
+            || self.triangle_count != surface.triangle_count()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian surface provenance counts must match source surface",
+            ));
+        }
+        if matches!(
+            self.source,
+            PlanarianBodySurfaceSource::SketchfabEducationalGlb
+        ) && (self.source_sha256 != PLANARIA_SKETCHFAB_SOURCE_SHA256
+            || surface.surface_id != PLANARIA_SKETCHFAB_SURFACE_ID)
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian GLB provenance must match reviewed Sketchfab asset",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Configuration for synthetic planarian bioelectric presets.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanarianBioelectricPresetConfig {
+    /// Source surface used to derive the body mesh and sampled field graph.
+    pub body_surface_source: PlanarianBodySurfaceSource,
     /// Number of surface sample nodes.
     pub sample_count: usize,
     /// Same-surface first-tier neighbor count.
@@ -395,6 +619,7 @@ pub struct PlanarianBioelectricPresetConfig {
 impl Default for PlanarianBioelectricPresetConfig {
     fn default() -> Self {
         Self {
+            body_surface_source: PlanarianBodySurfaceSource::SketchfabEducationalGlb,
             sample_count: 96,
             first_tier_neighbor_count: 4,
             second_tier_neighbor_count: 4,
@@ -483,7 +708,9 @@ pub struct PlanarianBioelectricScenarioRun {
     pub evidence_type: String,
     /// Expected qualitative behavior.
     pub expected_outcome: String,
-    /// Matter-owned synthetic body surface sampled by the field substrate.
+    /// Provenance for the Matter-owned source surface.
+    pub surface_provenance: PlanarianSurfaceProvenance,
+    /// Matter-owned body surface sampled by the field substrate.
     pub source_surface: TriangleMeshSurface,
     /// Source surface-field substrate.
     pub substrate: SurfaceFieldSubstrate,
@@ -511,10 +738,23 @@ impl PlanarianBioelectricScenarioRun {
         config: PlanarianBioelectricPresetConfig,
     ) -> Result<Self, MatterFieldError> {
         config.validate()?;
-        let surface = synthetic_planarian_axis_surface(&config)?;
+        let surface = planarian_body_surface(&config)?;
+        let mut surface_provenance =
+            PlanarianSurfaceProvenance::for_source(config.body_surface_source);
+        surface_provenance.vertex_count = surface.vertex_count();
+        surface_provenance.triangle_count = surface.triangle_count();
+        if surface_provenance.source_vertex_count == 0 {
+            surface_provenance.source_vertex_count = surface.vertex_count();
+        }
         let sample_config = MeshSurfaceSampleConfig {
-            sample_config_id: "mesh.surface_sample.planarian_ap.synthetic".to_owned(),
-            sample_set_id: "mesh.surface_samples.planarian_ap.synthetic".to_owned(),
+            sample_config_id: format!(
+                "mesh.surface_sample.planarian_ap.{}",
+                config.body_surface_source.sample_suffix()
+            ),
+            sample_set_id: format!(
+                "mesh.surface_samples.planarian_ap.{}",
+                config.body_surface_source.sample_suffix()
+            ),
             point_count: config.sample_count,
             first_tier_neighbor_count: config.first_tier_neighbor_count,
             second_tier_neighbor_count: config.second_tier_neighbor_count,
@@ -526,13 +766,24 @@ impl PlanarianBioelectricScenarioRun {
             MatterFieldError::InvalidSubstrate("planarian sample set must validate")
         })?;
         let substrate = SurfaceFieldSubstrate::from_sample_set(
-            "fields.substrate.planarian_ap.synthetic",
+            format!(
+                "fields.substrate.planarian_ap.{}",
+                config.body_surface_source.sample_suffix()
+            ),
             &samples,
         )?;
-        let axis_map =
-            PlanarianAxisMap::from_substrate("fields.planarian_ap.axis_map.synthetic", &substrate)?;
+        let axis_map = PlanarianAxisMap::from_substrate(
+            format!(
+                "fields.planarian_ap.axis_map.{}",
+                config.body_surface_source.sample_suffix()
+            ),
+            &substrate,
+        )?;
         let circuit_config = BioelectricCircuitConfig {
-            config_id: "fields.bioelectric_circuit.planarian_ap.synthetic".to_owned(),
+            config_id: format!(
+                "fields.bioelectric_circuit.planarian_ap.{}",
+                config.body_surface_source.sample_suffix()
+            ),
             fixed_step_seconds: config.fixed_step_seconds,
             max_steps_per_run: config.step_count,
             voltage_clamp_min: -1.0,
@@ -558,8 +809,9 @@ impl PlanarianBioelectricScenarioRun {
             run_id: format!("{}.run", scenario_kind.scenario_id()),
             scenario_id: scenario_kind.scenario_id().to_owned(),
             scenario_kind,
-            evidence_type: "synthetic_educational_abstraction".to_owned(),
+            evidence_type: config.body_surface_source.run_evidence_type().to_owned(),
             expected_outcome: scenario_kind.expected_outcome().to_owned(),
+            surface_provenance,
             source_surface: surface,
             substrate,
             axis_map,
@@ -597,6 +849,7 @@ impl PlanarianBioelectricScenarioRun {
         self.source_surface.validate().map_err(|_| {
             MatterFieldError::InvalidSubstrate("planarian source surface must validate")
         })?;
+        self.surface_provenance.validate(&self.source_surface)?;
         self.substrate.validate()?;
         if self.source_surface.surface_id != self.substrate.surface_id {
             return Err(MatterFieldError::InvalidSubstrate(
@@ -638,6 +891,19 @@ impl PlanarianBioelectricScenarioRun {
         }
         Ok(())
     }
+}
+
+/// Builds the reviewed Sketchfab Planaria GLB surface translated into Matter coordinates.
+///
+/// # Errors
+///
+/// Returns [`MatterFieldError`] when the generated surface does not validate.
+pub fn sketchfab_planarian_educational_surface() -> Result<TriangleMeshSurface, MatterFieldError> {
+    let surface = sketchfab_planaria_surface();
+    surface.validate().map_err(|_| {
+        MatterFieldError::InvalidSubstrate("Sketchfab planarian surface must validate")
+    })?;
+    Ok(surface)
 }
 
 /// Builds the synthetic tapered planarian AP surface used by the presets.
@@ -684,6 +950,17 @@ pub fn synthetic_planarian_axis_surface(
     Ok(surface)
 }
 
+fn planarian_body_surface(
+    config: &PlanarianBioelectricPresetConfig,
+) -> Result<TriangleMeshSurface, MatterFieldError> {
+    match config.body_surface_source {
+        PlanarianBodySurfaceSource::SketchfabEducationalGlb => {
+            sketchfab_planarian_educational_surface()
+        }
+        PlanarianBodySurfaceSource::SyntheticAxis => synthetic_planarian_axis_surface(config),
+    }
+}
+
 fn build_planarian_circuit(
     scenario_kind: PlanarianBioelectricScenarioKind,
     config: &PlanarianBioelectricPresetConfig,
@@ -708,7 +985,7 @@ fn build_planarian_circuit(
         BioelectricConductanceEdge::from_substrate_neighbors(substrate, 0.12, 0.03, Some(gate))?;
     if scenario_kind == PlanarianBioelectricScenarioKind::GapBlock {
         for edge in &mut conductance_edges {
-            if edge_crosses_cut(edge, substrate, config.cut_z) {
+            if edge_crosses_cut(edge, axis_map, config.cut_z) {
                 edge.base_conductance *= 0.08;
                 edge.conductance = edge.base_conductance;
             }
@@ -863,11 +1140,13 @@ fn mesh_grid_index(
 
 fn edge_crosses_cut(
     edge: &BioelectricConductanceEdge,
-    substrate: &SurfaceFieldSubstrate,
+    axis_map: &PlanarianAxisMap,
     cut_z: f32,
 ) -> bool {
-    let from_z = substrate.nodes[edge.from_node].position.z;
-    let to_z = substrate.nodes[edge.to_node].position.z;
+    let from_z = axis_map
+        .node_normalized_z(edge.from_node)
+        .unwrap_or(f32::NAN);
+    let to_z = axis_map.node_normalized_z(edge.to_node).unwrap_or(f32::NAN);
     (from_z < cut_z && to_z >= cut_z) || (to_z < cut_z && from_z >= cut_z)
 }
 

@@ -612,6 +612,23 @@ fn planarian_scenario_preserves_source_surface_topology() {
 }
 
 #[test]
+fn planarian_default_surface_uses_reviewed_glb_mesh() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+
+    assert_eq!(
+        run.source_surface.surface_id,
+        "mesh.planarian_ap.sketchfab_educational_surface"
+    );
+    assert_eq!(run.source_surface.vertex_count(), 13_663);
+    assert_eq!(run.source_surface.triangle_count(), 23_468);
+    assert_eq!(run.surface_provenance.license, "CC-BY-4.0");
+    assert_eq!(
+        run.surface_provenance.source_sha256,
+        "a170a62ba705a81e73dd7fcfb5808431ff1a0b5c0da6322742c1e2c6ce480dda"
+    );
+}
+
+#[test]
 fn planarian_baseline_separates_head_and_tail_readouts() {
     let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
     let final_frame = run.sequence.frames.last().expect("final frame");
@@ -655,7 +672,10 @@ fn planarian_wound_current_is_localized_to_cut_band() {
     let target_nodes = &wound.target_node_indices;
     assert!(!target_nodes.is_empty());
     assert!(target_nodes.iter().all(|node_index| {
-        let z = run.substrate.nodes[*node_index].position.z;
+        let z = run
+            .axis_map
+            .node_normalized_z(*node_index)
+            .expect("node has AP coordinate");
         (z - 0.16).abs() <= 0.11 + 1.0e-5
     }));
 
@@ -767,7 +787,7 @@ fn damaged_planarian_config_and_axis_map_are_rejected() {
     run.source_surface.surface_id = "mesh.planarian_ap.damaged_surface".to_owned();
     let error = run.validate().expect_err("bad source surface rejects");
 
-    assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
 }
 
 fn test_substrate() -> SurfaceFieldSubstrate {
@@ -993,8 +1013,14 @@ fn average_cross_cut_conductance(run: &PlanarianBioelectricScenarioRun, cut_z: f
     let mut sum = 0.0;
     let mut count = 0_usize;
     for edge in &run.initial_circuit.conductance_edges {
-        let from_z = run.substrate.nodes[edge.from_node].position.z;
-        let to_z = run.substrate.nodes[edge.to_node].position.z;
+        let from_z = run
+            .axis_map
+            .node_normalized_z(edge.from_node)
+            .expect("from node has AP coordinate");
+        let to_z = run
+            .axis_map
+            .node_normalized_z(edge.to_node)
+            .expect("to node has AP coordinate");
         if (from_z < cut_z && to_z >= cut_z) || (to_z < cut_z && from_z >= cut_z) {
             sum += edge.base_conductance;
             count += 1;

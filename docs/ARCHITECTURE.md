@@ -22,8 +22,9 @@ Matter owns:
 - interactive bioelectric circuit edit requests and accepted/rejected edit
   results, including Matter-owned revision tracking for realtime control
   surfaces;
-- policy-free bioelectric circuit debug frames/sequences and synthetic
-  planarian AP axis/circuit presets for educational qualitative dynamics;
+- policy-free bioelectric circuit debug frames/sequences and planarian AP
+  circuit presets over a reviewed GLB-derived educational body mesh, with a
+  synthetic AP-axis fallback, for educational qualitative dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -88,9 +89,10 @@ The implemented foundation slices are intentionally CPU/data-only:
 - bioelectric circuit edit contracts for selected-node voltage/memory changes,
   incident conductance scaling, edge gate edits, transient current insertion,
   rejected-result reporting, and revision tracking;
-- bioelectric circuit debug frame/sequence contracts plus a synthetic
-  planarian anterior/posterior preset with AP region metadata, gap-block,
-  wound, memory, and no-memory control scenarios;
+- bioelectric circuit debug frame/sequence contracts plus a planarian
+  anterior/posterior preset with GLB-derived body-surface provenance,
+  mesh-normalized AP region metadata, gap-block, wound, memory, and no-memory
+  control scenarios;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -152,9 +154,12 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/circuit_debug.rs`: policy-free bioelectric circuit
   frames/sequences over substrate nodes, neighbor edges, voltage, memory,
   readouts, and per-step diagnostics.
-- `rusty-matter-fields/src/planarian.rs`: synthetic planarian AP surface,
-  AP-region metadata, qualitative bioelectric preset scenarios, and validated
-  scenario-run contracts.
+- `rusty-matter-fields/src/planarian.rs`: planarian body-surface source
+  selection, provenance, mesh-normalized AP-region metadata, qualitative
+  bioelectric preset scenarios, and validated scenario-run contracts.
+- `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated reviewed
+  Sketchfab Planaria GLB derivative translated into Matter `TriangleMeshSurface`
+  positions, triangle indices, normalized bounds, and provenance constants.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector

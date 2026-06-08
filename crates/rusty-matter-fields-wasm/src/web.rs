@@ -273,7 +273,7 @@ impl PlanarianBioelectricRealtimeRuntime {
         config
             .config_id
             .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
-        config.max_steps_per_run = 4096;
+        config.max_steps_per_run = u32::MAX;
         let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
         let initial_circuit = source_run.initial_circuit.clone();
         Ok(Self {

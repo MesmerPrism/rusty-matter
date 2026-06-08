@@ -10,6 +10,7 @@ mod error;
 mod ids;
 mod perturbation;
 mod planarian;
+mod planarian_mesh_asset;
 mod runtime;
 mod state;
 mod substrate;

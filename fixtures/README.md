@@ -13,9 +13,10 @@ The SDF foundation bundle currently includes:
 - qualitative bioelectric circuit config, stepped state, and step diagnostics
   in `fixtures/fields`;
 - bioelectric circuit edit request/result fixtures in `fixtures/fields`;
-- synthetic planarian AP bioelectric scenario runs in `fixtures/fields`,
-  including substrate nodes, AP-region metadata, circuit debug frames, voltage,
-  memory, readouts, and diagnostics;
+- planarian AP bioelectric scenario runs in `fixtures/fields`, including the
+  reviewed GLB-derived educational source-surface provenance, substrate nodes,
+  mesh-normalized AP-region metadata, circuit debug frames, voltage, memory,
+  readouts, and diagnostics;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
@@ -39,7 +40,10 @@ cargo run -p rusty-matter-fixtures -- validate
 
 External real hand-mesh captures and exported GLB files are intentionally not
 committed here. Use them as local validation inputs for mesh scripts, then keep
-the deterministic repo fixtures generic and small.
+the deterministic repo fixtures generic and small. The exception is the
+reviewed Planaria educational GLB derivative in the planarian bioelectric
+fixture and generated Rust module; it is committed as Matter triangle-surface
+data with attribution in `THIRD_PARTY_NOTICES.md`.
 
 For exported GLB captures, run:
 
