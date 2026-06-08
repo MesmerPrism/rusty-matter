@@ -1,5 +1,6 @@
 use crate::{
-    MatterFieldError, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricPresetConfig,
+    planarian_comparison_scenario_kinds, MatterFieldError, PlanarianBioelectricOutcomeTrace,
+    PlanarianBioelectricOutcomeTraceSet, PlanarianBioelectricPresetConfig,
     PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun,
 };
 
@@ -65,16 +66,67 @@ fn damaged_planarian_outcome_trace_is_rejected() {
     assert!(matches!(error, MatterFieldError::InvalidField(_)));
 }
 
-fn planarian_run(kind: PlanarianBioelectricScenarioKind) -> PlanarianBioelectricScenarioRun {
-    PlanarianBioelectricScenarioRun::build(
-        kind,
-        PlanarianBioelectricPresetConfig {
-            sample_count: 80,
-            step_count: 150,
-            frame_stride: 15,
-            seed: 130_363,
-            ..PlanarianBioelectricPresetConfig::default()
-        },
+#[test]
+fn planarian_outcome_trace_set_captures_comparison_family() {
+    let trace_set = PlanarianBioelectricOutcomeTraceSet::from_preset_config(
+        "trace_set.planarian.comparison",
+        &planarian_comparison_scenario_kinds(),
+        test_planarian_config(),
     )
-    .expect("planarian scenario validates")
+    .expect("trace set validates");
+
+    assert_eq!(trace_set.traces.len(), 5);
+    assert_eq!(trace_set.sample_columns.len(), 7);
+    assert!(trace_set
+        .trace_for_scenario(PlanarianBioelectricScenarioKind::Baseline)
+        .is_some());
+    let memory = trace_set
+        .trace_for_scenario(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory)
+        .expect("memory trace");
+    let control = trace_set
+        .trace_for_scenario(
+            PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl,
+        )
+        .expect("control trace");
+    let memory_final = memory.samples.last().expect("memory final");
+    let control_final = control.samples.last().expect("control final");
+
+    assert!(memory_final.posterior_memory_average > 0.35);
+    assert!(
+        memory_final.posterior_head_identity_average
+            > control_final.posterior_head_identity_average + 0.20
+    );
+}
+
+#[test]
+fn damaged_planarian_outcome_trace_set_is_rejected() {
+    let mut trace_set = PlanarianBioelectricOutcomeTraceSet::from_preset_config(
+        "trace_set.planarian.damaged",
+        &planarian_comparison_scenario_kinds(),
+        test_planarian_config(),
+    )
+    .expect("trace set validates before damage");
+
+    let duplicate = trace_set.traces[0].clone();
+    trace_set.traces.push(duplicate);
+    let error = trace_set
+        .validate()
+        .expect_err("duplicate scenario trace rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+}
+
+fn planarian_run(kind: PlanarianBioelectricScenarioKind) -> PlanarianBioelectricScenarioRun {
+    PlanarianBioelectricScenarioRun::build(kind, test_planarian_config())
+        .expect("planarian scenario validates")
+}
+
+fn test_planarian_config() -> PlanarianBioelectricPresetConfig {
+    PlanarianBioelectricPresetConfig {
+        sample_count: 80,
+        step_count: 150,
+        frame_stride: 15,
+        seed: 130_363,
+        ..PlanarianBioelectricPresetConfig::default()
+    }
 }

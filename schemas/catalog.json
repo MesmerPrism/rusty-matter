@@ -270,6 +270,14 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.planarian_bioelectric_outcome_trace_set.v1",
+      "rust_type": "PlanarianBioelectricOutcomeTraceSet",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-comparison-outcome-trace-set.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [

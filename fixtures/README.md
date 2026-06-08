@@ -19,7 +19,9 @@ The SDF foundation bundle currently includes:
   readouts, and diagnostics;
 - compact planarian AP outcome traces in `fixtures/fields`, including
   posterior memory/head readout, head/tail readout, cut-band voltage, and
-  cross-cut conductance metrics derived from Matter scenario runs;
+  cross-cut conductance metrics derived from Matter scenario runs, plus the
+  comparison trace set fixture that keeps baseline, wound, gap-block, memory,
+  and no-memory traces on shared timing and metric columns;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
@@ -47,6 +49,10 @@ the deterministic repo fixtures generic and small. The exception is the
 reviewed Planaria educational GLB derivative in the planarian bioelectric
 fixture and generated Rust module; it is committed as Matter triangle-surface
 data with attribution in `THIRD_PARTY_NOTICES.md`.
+
+`fixtures/fields/planarian-ap-comparison-outcome-trace-set.json` is the compact
+comparison bundle for browser overlays and educational checks. It is generated
+from Matter scenario runs, not from Optics or browser-side metric code.
 
 For exported GLB captures, run:
 

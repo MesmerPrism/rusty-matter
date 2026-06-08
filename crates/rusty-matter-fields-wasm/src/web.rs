@@ -2,9 +2,10 @@
 
 use js_sys::{Float32Array, Uint32Array};
 use rusty_matter_fields::{
-    BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitEditResult,
-    BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricCircuitStepDiagnostics,
-    PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricPresetConfig,
+    planarian_comparison_scenario_kinds, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
+    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricCircuitStepDiagnostics, PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace,
+    PlanarianBioelectricOutcomeTraceSet, PlanarianBioelectricPresetConfig,
     PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation,
     SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
     SurfaceFieldState, SurfaceFieldStepDiagnostics, SurfaceFieldSubstrate, SurfaceScalarField,
@@ -241,6 +242,7 @@ pub struct PlanarianBioelectricRealtimeRuntime {
     runtime: BioelectricCircuitRuntime,
     source_run: PlanarianBioelectricScenarioRun,
     outcome_trace: PlanarianBioelectricOutcomeTrace,
+    outcome_trace_set: PlanarianBioelectricOutcomeTraceSet,
     initial_circuit: BioelectricCircuitState,
     circuit: BioelectricCircuitState,
     step_index: u32,
@@ -275,10 +277,14 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// `0=baseline`, `1=transverse wound`, `2=gap block`,
     /// `3=transient memory`, `4=no-memory control`.
     pub fn reset_to_scenario(&mut self, scenario_code: u32) -> Result<Float32Array, JsValue> {
-        let next = Self::for_scenario(scenario_kind_from_code(scenario_code)?)?;
+        let next = Self::for_scenario_with_trace_set(
+            scenario_kind_from_code(scenario_code)?,
+            self.outcome_trace_set.clone(),
+        )?;
         self.runtime = next.runtime;
         self.source_run = next.source_run;
         self.outcome_trace = next.outcome_trace;
+        self.outcome_trace_set = next.outcome_trace_set;
         self.initial_circuit = next.initial_circuit;
         self.circuit = next.circuit;
         self.step_index = next.step_index;
@@ -446,19 +452,7 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// tail_identity_at_tail_average, cut_band_voltage_average]`.
     #[must_use]
     pub fn outcome_trace(&self) -> Float32Array {
-        let mut values = Vec::with_capacity(self.outcome_trace.samples.len() * 7);
-        for sample in &self.outcome_trace.samples {
-            values.extend_from_slice(&[
-                sample.step_index as f32,
-                sample.time_seconds,
-                sample.posterior_memory_average,
-                sample.posterior_head_identity_average,
-                sample.head_identity_at_head_average,
-                sample.tail_identity_at_tail_average,
-                sample.cut_band_voltage_average,
-            ]);
-        }
-        Float32Array::from(values.as_slice())
+        outcome_trace_values(&self.outcome_trace)
     }
 
     /// Returns the number of floats per `outcome_trace()` sample.
@@ -477,6 +471,43 @@ impl PlanarianBioelectricRealtimeRuntime {
     #[must_use]
     pub fn outcome_trace_cross_cut_conductance(&self) -> f32 {
         self.outcome_trace.cross_cut_base_conductance_average
+    }
+
+    /// Returns scenario codes available in the Matter comparison trace set.
+    #[must_use]
+    pub fn comparison_scenario_codes(&self) -> Uint32Array {
+        let values = self
+            .outcome_trace_set
+            .traces
+            .iter()
+            .map(|trace| scenario_code(trace.scenario_kind))
+            .collect::<Vec<_>>();
+        Uint32Array::from(values.as_slice())
+    }
+
+    /// Returns a Matter-owned deterministic outcome trace for a scenario code.
+    pub fn outcome_trace_for_scenario(&self, scenario_code: u32) -> Result<Float32Array, JsValue> {
+        Ok(outcome_trace_values(
+            self.trace_for_scenario_code(scenario_code)?,
+        ))
+    }
+
+    /// Returns the cross-cut conductance average for a comparison scenario.
+    pub fn outcome_trace_cross_cut_conductance_for_scenario(
+        &self,
+        scenario_code: u32,
+    ) -> Result<f32, JsValue> {
+        Ok(self
+            .trace_for_scenario_code(scenario_code)?
+            .cross_cut_base_conductance_average)
+    }
+
+    /// Returns the number of samples for a comparison scenario trace.
+    pub fn outcome_trace_sample_count_for_scenario(
+        &self,
+        scenario_code: u32,
+    ) -> Result<usize, JsValue> {
+        Ok(self.trace_for_scenario_code(scenario_code)?.samples.len())
     }
 
     /// Sets one node voltage and returns edit-result stats.
@@ -644,6 +675,13 @@ impl PlanarianBioelectricRealtimeRuntime {
 
 impl PlanarianBioelectricRealtimeRuntime {
     fn for_scenario(scenario_kind: PlanarianBioelectricScenarioKind) -> Result<Self, JsValue> {
+        Self::for_scenario_with_trace_set(scenario_kind, planarian_wasm_outcome_trace_set()?)
+    }
+
+    fn for_scenario_with_trace_set(
+        scenario_kind: PlanarianBioelectricScenarioKind,
+        outcome_trace_set: PlanarianBioelectricOutcomeTraceSet,
+    ) -> Result<Self, JsValue> {
         let source_run =
             PlanarianBioelectricScenarioRun::build(scenario_kind, planarian_wasm_config())
                 .map_err(to_js_error)?;
@@ -654,16 +692,16 @@ impl PlanarianBioelectricRealtimeRuntime {
             .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
         config.max_steps_per_run = u32::MAX;
         let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
-        let outcome_trace = PlanarianBioelectricOutcomeTrace::from_scenario_run(
-            format!("{}.wasm_outcome_trace", source_run.scenario_id),
-            &source_run,
-        )
-        .map_err(to_js_error)?;
+        let outcome_trace = outcome_trace_set
+            .trace_for_scenario(scenario_kind)
+            .ok_or_else(|| JsValue::from_str("missing planarian outcome trace for scenario"))?
+            .clone();
         let initial_circuit = source_run.initial_circuit.clone();
         Ok(Self {
             runtime,
             source_run,
             outcome_trace,
+            outcome_trace_set,
             circuit: initial_circuit.clone(),
             initial_circuit,
             step_index: 0,
@@ -688,6 +726,16 @@ impl PlanarianBioelectricRealtimeRuntime {
         let values = edit_result_values(&result);
         self.last_edit = Some(result);
         Ok(values)
+    }
+
+    fn trace_for_scenario_code(
+        &self,
+        scenario_code_value: u32,
+    ) -> Result<&PlanarianBioelectricOutcomeTrace, JsValue> {
+        let scenario_kind = scenario_kind_from_code(scenario_code_value)?;
+        self.outcome_trace_set
+            .trace_for_scenario(scenario_kind)
+            .ok_or_else(|| JsValue::from_str("missing planarian outcome trace for scenario"))
     }
 }
 
@@ -805,6 +853,15 @@ fn planarian_wasm_config() -> PlanarianBioelectricPresetConfig {
     }
 }
 
+fn planarian_wasm_outcome_trace_set() -> Result<PlanarianBioelectricOutcomeTraceSet, JsValue> {
+    PlanarianBioelectricOutcomeTraceSet::from_preset_config(
+        "fields.planarian_ap.wasm_comparison_outcome_trace_set",
+        &planarian_comparison_scenario_kinds(),
+        planarian_wasm_config(),
+    )
+    .map_err(to_js_error)
+}
+
 fn scenario_kind_from_code(code: u32) -> Result<PlanarianBioelectricScenarioKind, JsValue> {
     match code {
         0 => Ok(PlanarianBioelectricScenarioKind::Baseline),
@@ -848,6 +905,22 @@ fn average_nodes(values: &[f32], nodes: &[usize]) -> f32 {
         .filter_map(|node_index| values.get(node_index).copied())
         .sum::<f32>()
         / nodes.len() as f32
+}
+
+fn outcome_trace_values(trace: &PlanarianBioelectricOutcomeTrace) -> Float32Array {
+    let mut values = Vec::with_capacity(trace.samples.len() * 7);
+    for sample in &trace.samples {
+        values.extend_from_slice(&[
+            sample.step_index as f32,
+            sample.time_seconds,
+            sample.posterior_memory_average,
+            sample.posterior_head_identity_average,
+            sample.head_identity_at_head_average,
+            sample.tail_identity_at_tail_average,
+            sample.cut_band_voltage_average,
+        ]);
+    }
+    Float32Array::from(values.as_slice())
 }
 
 fn scalar_values<'a>(state: &'a SurfaceFieldState, field_id: &str) -> &'a [f32] {

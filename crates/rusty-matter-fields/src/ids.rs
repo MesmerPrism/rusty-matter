@@ -62,3 +62,6 @@ pub const PLANARIAN_BIOELECTRIC_SCENARIO_RUN_SCHEMA_ID: &str =
 /// Schema ID for compact planarian bioelectric scenario outcome traces.
 pub const PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID: &str =
     "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1";
+/// Schema ID for planarian bioelectric outcome trace comparison sets.
+pub const PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_bioelectric_outcome_trace_set.v1";

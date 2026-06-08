@@ -1,7 +1,8 @@
 use crate::{
     BioelectricCircuitDebugFrame, BioelectricConductanceEdge, MatterFieldError, PlanarianAxisMap,
-    PlanarianAxisRegion, PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun,
-    PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID,
+    PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID,
+    PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID,
 };
 
 const HEAD_IDENTITY_READOUT_ID: &str = "readout.planarian_ap.head_identity";
@@ -230,6 +231,169 @@ impl PlanarianBioelectricOutcomeTrace {
         }
         Ok(())
     }
+}
+
+/// Matter-owned comparison bundle over several deterministic planarian traces.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianBioelectricOutcomeTraceSet {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable comparison-set identifier.
+    pub trace_set_id: String,
+    /// Shared source substrate identifier.
+    pub substrate_id: String,
+    /// Shared source surface identifier.
+    pub surface_id: String,
+    /// Shared evidence type.
+    pub evidence_type: String,
+    /// Fixed-step duration in seconds shared by all traces.
+    pub fixed_step_seconds: f32,
+    /// Scenario frame stride shared by all traces.
+    pub frame_stride: u32,
+    /// Sample columns exported to browser Wasm in order.
+    pub sample_columns: Vec<String>,
+    /// Scenario traces included in this comparison bundle.
+    pub traces: Vec<PlanarianBioelectricOutcomeTrace>,
+}
+
+impl PlanarianBioelectricOutcomeTraceSet {
+    /// Builds traces for a scenario family using one shared preset config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when any generated run or trace is invalid,
+    /// or when traces cannot be compared as one bundle.
+    pub fn from_preset_config(
+        trace_set_id: impl Into<String>,
+        scenario_kinds: &[PlanarianBioelectricScenarioKind],
+        config: PlanarianBioelectricPresetConfig,
+    ) -> Result<Self, MatterFieldError> {
+        config.validate()?;
+        if scenario_kinds.is_empty() {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian outcome trace set must include scenarios",
+            ));
+        }
+        let traces = scenario_kinds
+            .iter()
+            .copied()
+            .map(|scenario_kind| {
+                let run = PlanarianBioelectricScenarioRun::build(scenario_kind, config.clone())?;
+                PlanarianBioelectricOutcomeTrace::from_scenario_run(
+                    format!("{}.outcome_trace", run.scenario_id),
+                    &run,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let Some(first_trace) = traces.first() else {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian outcome trace set must include traces",
+            ));
+        };
+        let trace_set = Self {
+            schema_id: PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID.to_owned(),
+            trace_set_id: trace_set_id.into(),
+            substrate_id: first_trace.substrate_id.clone(),
+            surface_id: first_trace.surface_id.clone(),
+            evidence_type: first_trace.evidence_type.clone(),
+            fixed_step_seconds: first_trace.fixed_step_seconds,
+            frame_stride: first_trace.frame_stride,
+            sample_columns: first_trace.sample_columns.clone(),
+            traces,
+        };
+        trace_set.validate()?;
+        Ok(trace_set)
+    }
+
+    /// Returns a trace by scenario kind.
+    #[must_use]
+    pub fn trace_for_scenario(
+        &self,
+        scenario_kind: PlanarianBioelectricScenarioKind,
+    ) -> Option<&PlanarianBioelectricOutcomeTrace> {
+        self.traces
+            .iter()
+            .find(|trace| trace.scenario_kind == scenario_kind)
+    }
+
+    /// Validates the comparison-bundle contract.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when metadata, trace identity, shared timing,
+    /// or scenario uniqueness is invalid.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.trace_set_id.trim().is_empty()
+            || self.substrate_id.trim().is_empty()
+            || self.surface_id.trim().is_empty()
+            || self.evidence_type.trim().is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian outcome trace set metadata must be populated",
+            ));
+        }
+        if !self.fixed_step_seconds.is_finite() || self.fixed_step_seconds <= 0.0 {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "planarian outcome trace set fixed step must be positive",
+            ));
+        }
+        if self.frame_stride == 0 {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian outcome trace set frame stride must be positive",
+            ));
+        }
+        if self.sample_columns.len() != 7 || self.sample_columns.iter().any(|id| id.is_empty()) {
+            return Err(MatterFieldError::InvalidField(
+                "planarian outcome trace set columns must match the exported layout",
+            ));
+        }
+        if self.traces.is_empty() {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian outcome trace set must include traces",
+            ));
+        }
+        let mut scenario_kinds = Vec::with_capacity(self.traces.len());
+        for trace in &self.traces {
+            trace.validate()?;
+            if trace.substrate_id != self.substrate_id
+                || trace.surface_id != self.surface_id
+                || trace.evidence_type != self.evidence_type
+                || (trace.fixed_step_seconds - self.fixed_step_seconds).abs() > f32::EPSILON
+                || trace.frame_stride != self.frame_stride
+                || trace.sample_columns != self.sample_columns
+            {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "planarian outcome trace set traces must share source, timing, and columns",
+                ));
+            }
+            if scenario_kinds.contains(&trace.scenario_kind) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "planarian outcome trace set must not repeat scenarios",
+                ));
+            }
+            scenario_kinds.push(trace.scenario_kind);
+        }
+        Ok(())
+    }
+}
+
+/// Returns the default educational comparison scenario order.
+#[must_use]
+pub const fn planarian_comparison_scenario_kinds() -> [PlanarianBioelectricScenarioKind; 5] {
+    [
+        PlanarianBioelectricScenarioKind::Baseline,
+        PlanarianBioelectricScenarioKind::TransverseCutWound,
+        PlanarianBioelectricScenarioKind::GapBlock,
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+        PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl,
+    ]
 }
 
 fn outcome_sample_from_frame(

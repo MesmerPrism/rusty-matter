@@ -1,15 +1,15 @@
 use rusty_matter_fields::{
-    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
-    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
-    BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
-    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
-    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
-    PlanarianBioelectricOutcomeTrace, PlanarianBioelectricPresetConfig,
-    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame,
-    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRunSummary, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
-    SurfaceVectorFieldKind,
+    planarian_comparison_scenario_kinds, BioelectricCircuitConfig, BioelectricCircuitEdit,
+    BioelectricCircuitEditOperation, BioelectricCircuitEditResult, BioelectricCircuitRuntime,
+    BioelectricCircuitState, BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge,
+    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
+    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
+    BioelectricVoltageUnit, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
+    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -138,16 +138,9 @@ pub(crate) fn bioelectric_circuit_edit_result(
 
 pub(crate) fn planarian_bioelectric_scenario_run(
 ) -> Result<PlanarianBioelectricScenarioRun, CliError> {
-    let config = PlanarianBioelectricPresetConfig {
-        sample_count: 80,
-        step_count: 150,
-        frame_stride: 15,
-        seed: 130_363,
-        ..PlanarianBioelectricPresetConfig::default()
-    };
     PlanarianBioelectricScenarioRun::build(
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
-        config,
+        planarian_fixture_config(),
     )
     .map_err(CliError::Field)
 }
@@ -160,6 +153,26 @@ pub(crate) fn planarian_bioelectric_outcome_trace(
         &run,
     )
     .map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_bioelectric_outcome_trace_set(
+) -> Result<PlanarianBioelectricOutcomeTraceSet, CliError> {
+    PlanarianBioelectricOutcomeTraceSet::from_preset_config(
+        "fixture.fields.planarian_ap.comparison_outcome_trace_set",
+        &planarian_comparison_scenario_kinds(),
+        planarian_fixture_config(),
+    )
+    .map_err(CliError::Field)
+}
+
+fn planarian_fixture_config() -> PlanarianBioelectricPresetConfig {
+    PlanarianBioelectricPresetConfig {
+        sample_count: 80,
+        step_count: 150,
+        frame_stride: 15,
+        seed: 130_363,
+        ..PlanarianBioelectricPresetConfig::default()
+    }
 }
 
 fn surface_field_contracts(
