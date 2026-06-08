@@ -483,6 +483,8 @@ pub struct PlanarianBioelectricScenarioRun {
     pub evidence_type: String,
     /// Expected qualitative behavior.
     pub expected_outcome: String,
+    /// Matter-owned synthetic body surface sampled by the field substrate.
+    pub source_surface: TriangleMeshSurface,
     /// Source surface-field substrate.
     pub substrate: SurfaceFieldSubstrate,
     /// AP-region metadata over the substrate.
@@ -558,6 +560,7 @@ impl PlanarianBioelectricScenarioRun {
             scenario_kind,
             evidence_type: "synthetic_educational_abstraction".to_owned(),
             expected_outcome: scenario_kind.expected_outcome().to_owned(),
+            source_surface: surface,
             substrate,
             axis_map,
             circuit_config,
@@ -591,7 +594,20 @@ impl PlanarianBioelectricScenarioRun {
                 "planarian scenario metadata must be populated and consistent",
             ));
         }
+        self.source_surface.validate().map_err(|_| {
+            MatterFieldError::InvalidSubstrate("planarian source surface must validate")
+        })?;
         self.substrate.validate()?;
+        if self.source_surface.surface_id != self.substrate.surface_id {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "planarian source surface id must match substrate surface id",
+            ));
+        }
+        if self.source_surface.topology_key() != self.substrate.topology_key {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "planarian source surface topology must match substrate topology key",
+            ));
+        }
         self.axis_map.validate(&self.substrate)?;
         self.circuit_config.validate()?;
         self.initial_circuit.validate()?;

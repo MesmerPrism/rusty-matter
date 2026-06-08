@@ -436,6 +436,20 @@ fn planarian_axis_map_assigns_every_node_to_one_region() {
 }
 
 #[test]
+fn planarian_scenario_preserves_source_surface_topology() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+
+    assert_eq!(run.source_surface.surface_id, run.substrate.surface_id);
+    assert_eq!(
+        run.source_surface.topology_key(),
+        run.substrate.topology_key
+    );
+    assert!(run.source_surface.vertex_count() > 0);
+    assert!(run.source_surface.triangle_count() > 0);
+    run.validate().expect("planarian run validates");
+}
+
+#[test]
 fn planarian_baseline_separates_head_and_tail_readouts() {
     let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
     let final_frame = run.sequence.frames.last().expect("final frame");
@@ -554,6 +568,12 @@ fn damaged_planarian_config_and_axis_map_are_rejected() {
     let mut run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
     run.axis_map.node_regions[0].node_index = run.substrate.node_count();
     let error = run.validate().expect_err("bad axis map rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
+
+    let mut run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    run.source_surface.surface_id = "mesh.planarian_ap.damaged_surface".to_owned();
+    let error = run.validate().expect_err("bad source surface rejects");
 
     assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
 }
