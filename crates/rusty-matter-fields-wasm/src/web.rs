@@ -4,11 +4,11 @@ use js_sys::{Float32Array, Uint32Array};
 use rusty_matter_fields::{
     BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitEditResult,
     BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricCircuitStepDiagnostics,
-    PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
-    PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldStepDiagnostics,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
-    SurfaceVectorFieldKind,
+    PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricPresetConfig,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
+    SurfaceFieldState, SurfaceFieldStepDiagnostics, SurfaceFieldSubstrate, SurfaceScalarField,
+    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -240,6 +240,7 @@ impl SurfaceFieldRealtimeRuntime {
 pub struct PlanarianBioelectricRealtimeRuntime {
     runtime: BioelectricCircuitRuntime,
     source_run: PlanarianBioelectricScenarioRun,
+    outcome_trace: PlanarianBioelectricOutcomeTrace,
     initial_circuit: BioelectricCircuitState,
     circuit: BioelectricCircuitState,
     step_index: u32,
@@ -277,6 +278,7 @@ impl PlanarianBioelectricRealtimeRuntime {
         let next = Self::for_scenario(scenario_kind_from_code(scenario_code)?)?;
         self.runtime = next.runtime;
         self.source_run = next.source_run;
+        self.outcome_trace = next.outcome_trace;
         self.initial_circuit = next.initial_circuit;
         self.circuit = next.circuit;
         self.step_index = next.step_index;
@@ -434,6 +436,47 @@ impl PlanarianBioelectricRealtimeRuntime {
             ]);
         }
         Float32Array::from(values.as_slice())
+    }
+
+    /// Returns the Matter-owned deterministic outcome trace for this scenario.
+    ///
+    /// The returned `Float32Array` layout is seven floats per sample:
+    /// `[step_index, time_seconds, posterior_memory_average,
+    /// posterior_head_identity_average, head_identity_at_head_average,
+    /// tail_identity_at_tail_average, cut_band_voltage_average]`.
+    #[must_use]
+    pub fn outcome_trace(&self) -> Float32Array {
+        let mut values = Vec::with_capacity(self.outcome_trace.samples.len() * 7);
+        for sample in &self.outcome_trace.samples {
+            values.extend_from_slice(&[
+                sample.step_index as f32,
+                sample.time_seconds,
+                sample.posterior_memory_average,
+                sample.posterior_head_identity_average,
+                sample.head_identity_at_head_average,
+                sample.tail_identity_at_tail_average,
+                sample.cut_band_voltage_average,
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns the number of floats per `outcome_trace()` sample.
+    #[must_use]
+    pub fn outcome_trace_stride(&self) -> usize {
+        7
+    }
+
+    /// Returns the number of samples in the current deterministic outcome trace.
+    #[must_use]
+    pub fn outcome_trace_sample_count(&self) -> usize {
+        self.outcome_trace.samples.len()
+    }
+
+    /// Returns the initial cross-cut conductance average for this scenario.
+    #[must_use]
+    pub fn outcome_trace_cross_cut_conductance(&self) -> f32 {
+        self.outcome_trace.cross_cut_base_conductance_average
     }
 
     /// Sets one node voltage and returns edit-result stats.
@@ -611,10 +654,16 @@ impl PlanarianBioelectricRealtimeRuntime {
             .push_str("fields.bioelectric_circuit.planarian_wasm_realtime");
         config.max_steps_per_run = u32::MAX;
         let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
+        let outcome_trace = PlanarianBioelectricOutcomeTrace::from_scenario_run(
+            format!("{}.wasm_outcome_trace", source_run.scenario_id),
+            &source_run,
+        )
+        .map_err(to_js_error)?;
         let initial_circuit = source_run.initial_circuit.clone();
         Ok(Self {
             runtime,
             source_run,
+            outcome_trace,
             circuit: initial_circuit.clone(),
             initial_circuit,
             step_index: 0,

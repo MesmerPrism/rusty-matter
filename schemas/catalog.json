@@ -262,6 +262,14 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1",
+      "rust_type": "PlanarianBioelectricOutcomeTrace",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-transient-memory-outcome-trace.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [

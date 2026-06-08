@@ -59,3 +59,6 @@ pub const PLANARIAN_AXIS_MAP_SCHEMA_ID: &str = "rusty.matter.fields.planarian_ax
 /// Schema ID for synthetic planarian bioelectric scenario runs.
 pub const PLANARIAN_BIOELECTRIC_SCENARIO_RUN_SCHEMA_ID: &str =
     "rusty.matter.fields.planarian_bioelectric_scenario_run.v1";
+/// Schema ID for compact planarian bioelectric scenario outcome traces.
+pub const PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1";

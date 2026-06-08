@@ -33,6 +33,8 @@ impl SchemaCatalog {
             &["fixtures/fields/unit-square-bioelectric-circuit-edit-result.json"];
         let planarian_bioelectric_scenario_fixtures =
             &["fixtures/fields/planarian-ap-transient-memory-scenario-run.json"];
+        let planarian_bioelectric_outcome_fixtures =
+            &["fixtures/fields/planarian-ap-transient-memory-outcome-trace.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -227,6 +229,11 @@ impl SchemaCatalog {
                     "rusty.matter.fields.planarian_bioelectric_scenario_run.v1",
                     "PlanarianBioelectricScenarioRun",
                     planarian_bioelectric_scenario_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1",
+                    "PlanarianBioelectricOutcomeTrace",
+                    planarian_bioelectric_outcome_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

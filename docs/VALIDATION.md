@@ -37,7 +37,8 @@ field dynamics, qualitative bioelectric circuit voltage/conductance/current
 contracts, gated coupling, hysteresis memory, readout stepping,
 realtime edit request/result/revision behavior, debug-sequence emission,
 planarian AP circuit behavior over the reviewed GLB-derived educational mesh,
-synthetic fallback coverage, and damaged neighbor/buffer/runtime/edit inputs.
+scenario outcome trace contracts, synthetic fallback coverage, and damaged
+neighbor/buffer/runtime/edit/trace inputs.
 
 The committed planarian mesh module is regenerated from a reviewed GLB with:
 
@@ -52,7 +53,8 @@ into Matter coordinates, and writes
 a `TriangleMeshSurface` source, not a renderer asset or runtime GLB loader.
 
 The committed dynamic surface-field and planarian bioelectric scenario fixtures
-are regenerated with the normal fixture route:
+plus planarian outcome-trace fixtures are regenerated with the normal fixture
+route:
 
 ```powershell
 cargo run -p rusty-matter-fixtures -- write
@@ -81,7 +83,8 @@ The exported package includes the Matter-owned surface-field runtime and the
 Matter-owned planarian bioelectric runtime/edit surface. The Planarian 3D Wasm
 surface also exports scenario reset codes for baseline, wound, gap-block,
 transient-memory, and no-memory control presets over the reviewed GLB-derived
-body substrate.
+body substrate, plus deterministic outcome traces for renderer-side comparison
+plots.
 
 ## External Hand Mesh Validation
 

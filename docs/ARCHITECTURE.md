@@ -25,6 +25,8 @@ Matter owns:
 - policy-free bioelectric circuit debug frames/sequences and planarian AP
   circuit presets over a reviewed GLB-derived educational body mesh, with a
   synthetic AP-axis fallback, for educational qualitative dynamics;
+- compact planarian scenario outcome traces that summarize Matter-owned
+  memory, readout, cut-band voltage, and cross-cut conductance metrics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -92,7 +94,7 @@ The implemented foundation slices are intentionally CPU/data-only:
 - bioelectric circuit debug frame/sequence contracts plus a planarian
   anterior/posterior preset with GLB-derived body-surface provenance,
   mesh-normalized AP region metadata, gap-block, wound, memory, and no-memory
-  control scenarios;
+  control scenarios, plus compact outcome traces for educational comparison;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -121,7 +123,8 @@ owns realtime stepping, edit application, revision reporting, and debug-value
 snapshots in browser smoke tests. Its Planarian 3D path exposes Matter-owned
 scenario resets over the reviewed GLB-derived `TriangleMeshSurface`, sampled
 surface graph, conductance/current/gate configuration, and comparison readouts;
-it does not own colors, playback controls, renderer policy, command routing, or
+it also exports deterministic scenario outcome traces for renderer-side plots.
+It does not own colors, playback controls, renderer policy, command routing, or
 visualization.
 
 ## Module Map
@@ -160,6 +163,10 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/planarian.rs`: planarian body-surface source
   selection, provenance, mesh-normalized AP-region metadata, qualitative
   bioelectric preset scenarios, and validated scenario-run contracts.
+- `rusty-matter-fields/src/planarian_metrics.rs`: compact planarian
+  bioelectric outcome traces over scenario debug sequences, including
+  posterior memory/head readout, head/tail readouts, cut-band voltage, and
+  cross-cut conductance metrics.
 - `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated reviewed
   Sketchfab Planaria GLB derivative translated into Matter `TriangleMeshSurface`
   positions, triangle indices, normalized bounds, and provenance constants.
@@ -170,7 +177,7 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
   and planarian bioelectric runtime adapter exposing packed topology, sparse
   edges, perturbation or edit surfaces, Planarian 3D scenario resets, state
-  snapshots, and step diagnostics.
+  snapshots, outcome traces, and step diagnostics.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

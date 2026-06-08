@@ -17,6 +17,9 @@ The SDF foundation bundle currently includes:
   reviewed GLB-derived educational source-surface provenance, substrate nodes,
   mesh-normalized AP-region metadata, circuit debug frames, voltage, memory,
   readouts, and diagnostics;
+- compact planarian AP outcome traces in `fixtures/fields`, including
+  posterior memory/head readout, head/tail readout, cut-band voltage, and
+  cross-cut conductance metrics derived from Matter scenario runs;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
