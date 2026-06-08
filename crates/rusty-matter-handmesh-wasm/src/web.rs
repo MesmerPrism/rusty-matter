@@ -191,11 +191,11 @@ impl HandMeshParticleRuntime {
 
     /// Returns the latest particle snapshot.
     ///
-    /// The returned `Float32Array` layout is 9 floats per particle:
-    /// `[x, y, z, vx, vy, vz, radius, speed, last_distance]`.
+    /// The returned `Float32Array` layout is 10 floats per particle:
+    /// `[x, y, z, vx, vy, vz, radius, speed, age_seconds, last_distance]`.
     #[must_use]
     pub fn snapshot(&self) -> Float32Array {
-        let mut values = Vec::with_capacity(self.runtime.particles().len() * 9);
+        let mut values = Vec::with_capacity(self.runtime.particles().len() * 10);
         for (index, particle) in self.runtime.particles().particles.iter().enumerate() {
             values.extend_from_slice(&[
                 particle.position.x,
@@ -206,6 +206,7 @@ impl HandMeshParticleRuntime {
                 particle.velocity.z,
                 particle.radius,
                 particle.velocity.length(),
+                particle.age_seconds,
                 *self.last_distances.get(index).unwrap_or(&f32::NAN),
             ]);
         }
