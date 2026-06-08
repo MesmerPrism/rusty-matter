@@ -86,7 +86,8 @@ transient-memory, and no-memory control presets over the reviewed GLB-derived
 body substrate, plus deterministic outcome traces for renderer-side comparison
 plots, including the Matter-owned comparison trace set used by Optics browser
 overlays and selected node/edge readout accessors used by browser inspector
-panels.
+panels. It also exposes a bounded recent edit-event history for browser live
+feedback; browsers format that history but do not own the event semantics.
 
 ## External Hand Mesh Validation
 

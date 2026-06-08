@@ -15,6 +15,9 @@ use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, Trian
 use rusty_matter_model::Vec3;
 use wasm_bindgen::prelude::*;
 
+const PLANARIAN_WASM_EDIT_EVENT_CAPACITY: usize = 12;
+const PLANARIAN_WASM_EDIT_EVENT_STRIDE: usize = 15;
+
 /// Realtime Matter surface-field runtime exported to browser Wasm.
 ///
 /// The browser owns controls and drawing. This runtime owns the substrate,
@@ -232,6 +235,79 @@ impl SurfaceFieldRealtimeRuntime {
     }
 }
 
+#[derive(Clone, Debug)]
+struct PlanarianWasmEditEvent {
+    event_index: u64,
+    step_index: u32,
+    time_seconds: f32,
+    operation_code: u32,
+    target_kind_code: u32,
+    target_index: Option<usize>,
+    value_a: f32,
+    value_b: f32,
+    result: BioelectricCircuitEditResult,
+}
+
+impl PlanarianWasmEditEvent {
+    fn from_operation(
+        event_index: u64,
+        step_index: u32,
+        time_seconds: f32,
+        operation: &BioelectricCircuitEditOperation,
+        result: BioelectricCircuitEditResult,
+    ) -> Self {
+        let (operation_code, target_kind_code, target_index, value_a, value_b) = match operation {
+            BioelectricCircuitEditOperation::SetNodeVoltage {
+                node_index,
+                voltage,
+            } => (1, 1, Some(*node_index), *voltage, 0.0),
+            BioelectricCircuitEditOperation::AddNodeVoltage { node_index, delta } => {
+                (2, 1, Some(*node_index), *delta, 0.0)
+            }
+            BioelectricCircuitEditOperation::SetNodeMemory {
+                node_index,
+                memory_value,
+            } => (3, 1, Some(*node_index), *memory_value, 0.0),
+            BioelectricCircuitEditOperation::ScaleIncidentConductance { node_index, scale } => {
+                (4, 1, Some(*node_index), *scale, 0.0)
+            }
+            BioelectricCircuitEditOperation::SetEdgeGateThreshold {
+                edge_index,
+                threshold,
+                slope,
+            } => (5, 2, Some(*edge_index), *threshold, slope.unwrap_or(0.0)),
+            BioelectricCircuitEditOperation::SetEdgeGateMultiplierBounds {
+                edge_index,
+                min_multiplier,
+                max_multiplier,
+            } => (6, 2, Some(*edge_index), *min_multiplier, *max_multiplier),
+            BioelectricCircuitEditOperation::AddTransientCurrent {
+                target_node_indices,
+                current,
+                duration_steps,
+                ..
+            } => (
+                7,
+                if target_node_indices.is_empty() { 3 } else { 1 },
+                target_node_indices.first().copied(),
+                *current,
+                *duration_steps as f32,
+            ),
+        };
+        Self {
+            event_index,
+            step_index,
+            time_seconds,
+            operation_code,
+            target_kind_code,
+            target_index,
+            value_a,
+            value_b,
+            result,
+        }
+    }
+}
+
 /// Realtime Matter planarian bioelectric runtime exported to browser Wasm.
 ///
 /// Matter owns the source body surface, sampled substrate, circuit state,
@@ -248,6 +324,8 @@ pub struct PlanarianBioelectricRealtimeRuntime {
     step_index: u32,
     last_step: BioelectricCircuitStepDiagnostics,
     last_edit: Option<BioelectricCircuitEditResult>,
+    edit_events: Vec<PlanarianWasmEditEvent>,
+    edit_event_sequence: u64,
 }
 
 #[wasm_bindgen]
@@ -269,6 +347,8 @@ impl PlanarianBioelectricRealtimeRuntime {
         self.step_index = 0;
         self.last_step = BioelectricCircuitStepDiagnostics::empty(0);
         self.last_edit = None;
+        self.edit_events.clear();
+        self.edit_event_sequence = 0;
     }
 
     /// Rebuilds the runtime for a Matter-owned scenario code and returns stats.
@@ -290,6 +370,8 @@ impl PlanarianBioelectricRealtimeRuntime {
         self.step_index = next.step_index;
         self.last_step = next.last_step;
         self.last_edit = next.last_edit;
+        self.edit_events = next.edit_events;
+        self.edit_event_sequence = next.edit_event_sequence;
         Ok(self.stats())
     }
 
@@ -696,6 +778,56 @@ impl PlanarianBioelectricRealtimeRuntime {
         })
     }
 
+    /// Returns the compact layout width for recent edit events.
+    ///
+    /// `edit_event_history()` uses this stride so browser adapters can decode
+    /// the bounded Matter-owned feedback stream without hard-coding the width.
+    #[must_use]
+    pub fn edit_event_history_stride(&self) -> usize {
+        PLANARIAN_WASM_EDIT_EVENT_STRIDE
+    }
+
+    /// Returns a bounded recent edit event history owned by Matter.
+    ///
+    /// The returned `Float32Array` layout is 15 floats per event:
+    /// `[event_index, step, time_seconds, operation_code, target_kind,
+    /// target_index, value_a, value_b, accepted, revision_before,
+    /// revision_after, clamped_values, affected_node_count,
+    /// affected_edge_count, affected_current_term_count]`.
+    ///
+    /// Operation codes are:
+    /// `1=set node voltage`, `2=add node voltage`, `3=set node memory`,
+    /// `4=scale incident conductance`, `5=set edge gate threshold`,
+    /// `6=set edge gate multiplier bounds`, `7=add transient current`.
+    ///
+    /// Target kind codes are:
+    /// `1=surface node`, `2=conductance edge`, `3=current term`, `0=none`.
+    #[must_use]
+    pub fn edit_event_history(&self) -> Float32Array {
+        let mut values =
+            Vec::with_capacity(self.edit_events.len() * PLANARIAN_WASM_EDIT_EVENT_STRIDE);
+        for event in &self.edit_events {
+            values.extend_from_slice(&[
+                event.event_index as f32,
+                event.step_index as f32,
+                event.time_seconds,
+                event.operation_code as f32,
+                event.target_kind_code as f32,
+                event.target_index.map_or(-1.0, |index| index as f32),
+                event.value_a,
+                event.value_b,
+                if event.result.accepted { 1.0 } else { 0.0 },
+                event.result.revision_before as f32,
+                event.result.revision_after as f32,
+                event.result.clamped_values as f32,
+                event.result.affected_node_indices.len() as f32,
+                event.result.affected_edge_indices.len() as f32,
+                event.result.affected_current_term_ids.len() as f32,
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
     /// Returns latest runtime stats.
     ///
     /// The returned `Float32Array` layout is:
@@ -810,6 +942,8 @@ impl PlanarianBioelectricRealtimeRuntime {
             step_index: 0,
             last_step: BioelectricCircuitStepDiagnostics::empty(0),
             last_edit: None,
+            edit_events: Vec::new(),
+            edit_event_sequence: 0,
         })
     }
 
@@ -820,15 +954,35 @@ impl PlanarianBioelectricRealtimeRuntime {
         let edit = BioelectricCircuitEdit::new(
             format!("edit.planarian_wasm.{}", self.circuit.revision),
             None,
-            operation,
+            operation.clone(),
         );
         let result = self
             .runtime
             .apply_edit(&self.source_run.substrate, &mut self.circuit, &edit)
             .map_err(to_js_error)?;
         let values = edit_result_values(&result);
+        self.record_edit_event(&operation, &result);
         self.last_edit = Some(result);
         Ok(values)
+    }
+
+    fn record_edit_event(
+        &mut self,
+        operation: &BioelectricCircuitEditOperation,
+        result: &BioelectricCircuitEditResult,
+    ) {
+        let event = PlanarianWasmEditEvent::from_operation(
+            self.edit_event_sequence,
+            self.step_index,
+            self.circuit.time_seconds,
+            operation,
+            result.clone(),
+        );
+        self.edit_event_sequence = self.edit_event_sequence.saturating_add(1);
+        if self.edit_events.len() == PLANARIAN_WASM_EDIT_EVENT_CAPACITY {
+            self.edit_events.remove(0);
+        }
+        self.edit_events.push(event);
     }
 
     fn trace_for_scenario_code(
