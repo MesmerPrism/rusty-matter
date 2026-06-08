@@ -17,6 +17,7 @@ use wasm_bindgen::prelude::*;
 
 const PLANARIAN_WASM_EDIT_EVENT_CAPACITY: usize = 12;
 const PLANARIAN_WASM_EDIT_EVENT_STRIDE: usize = 15;
+const PLANARIAN_WASM_EDIT_TARGET_STRIDE: usize = 8;
 
 /// Realtime Matter surface-field runtime exported to browser Wasm.
 ///
@@ -828,6 +829,44 @@ impl PlanarianBioelectricRealtimeRuntime {
         Float32Array::from(values.as_slice())
     }
 
+    /// Returns the compact layout width for recent affected edit targets.
+    ///
+    /// `edit_event_targets()` uses this stride so browser adapters can draw
+    /// Matter-owned feedback highlights without hard-coding the width.
+    #[must_use]
+    pub fn edit_event_targets_stride(&self) -> usize {
+        PLANARIAN_WASM_EDIT_TARGET_STRIDE
+    }
+
+    /// Returns affected node and edge targets for the bounded edit history.
+    ///
+    /// The returned `Float32Array` layout is eight floats per target:
+    /// `[event_index, step, time_seconds, operation_code, target_kind,
+    /// target_index, accepted, revision_after]`.
+    ///
+    /// Target kind codes are:
+    /// `1=surface node`, `2=conductance edge`.
+    #[must_use]
+    pub fn edit_event_targets(&self) -> Float32Array {
+        let target_count = self
+            .edit_events
+            .iter()
+            .map(|event| {
+                event.result.affected_node_indices.len() + event.result.affected_edge_indices.len()
+            })
+            .sum::<usize>();
+        let mut values = Vec::with_capacity(target_count * PLANARIAN_WASM_EDIT_TARGET_STRIDE);
+        for event in &self.edit_events {
+            for node_index in &event.result.affected_node_indices {
+                push_edit_target_values(&mut values, event, 1, *node_index);
+            }
+            for edge_index in &event.result.affected_edge_indices {
+                push_edit_target_values(&mut values, event, 2, *edge_index);
+            }
+        }
+        Float32Array::from(values.as_slice())
+    }
+
     /// Returns latest runtime stats.
     ///
     /// The returned `Float32Array` layout is:
@@ -1265,6 +1304,24 @@ fn readout_values<'a>(state: &'a BioelectricCircuitState, layer_id: &str) -> Opt
         .iter()
         .find(|layer| layer.layer_id == layer_id)
         .map(|layer| layer.values.as_slice())
+}
+
+fn push_edit_target_values(
+    values: &mut Vec<f32>,
+    event: &PlanarianWasmEditEvent,
+    target_kind_code: u32,
+    target_index: usize,
+) {
+    values.extend_from_slice(&[
+        event.event_index as f32,
+        event.step_index as f32,
+        event.time_seconds,
+        event.operation_code as f32,
+        target_kind_code as f32,
+        target_index as f32,
+        if event.result.accepted { 1.0 } else { 0.0 },
+        event.result.revision_after as f32,
+    ]);
 }
 
 fn edit_result_values(result: &BioelectricCircuitEditResult) -> Float32Array {

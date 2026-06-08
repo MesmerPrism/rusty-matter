@@ -87,7 +87,8 @@ body substrate, plus deterministic outcome traces for renderer-side comparison
 plots, including the Matter-owned comparison trace set used by Optics browser
 overlays and selected node/edge readout accessors used by browser inspector
 panels. It also exposes a bounded recent edit-event history for browser live
-feedback; browsers format that history but do not own the event semantics.
+feedback, plus affected node/edge target rows for renderer highlights;
+browsers format and draw those rows but do not own the event semantics.
 
 ## External Hand Mesh Validation
 
