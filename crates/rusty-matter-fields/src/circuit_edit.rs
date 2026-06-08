@@ -3,6 +3,7 @@ use crate::{
     BioelectricCurrentKind, BioelectricCurrentTerm, MatterFieldError, SurfaceFieldSubstrate,
     BIOELECTRIC_CIRCUIT_EDIT_RESULT_SCHEMA_ID, BIOELECTRIC_CIRCUIT_EDIT_SCHEMA_ID,
 };
+use std::collections::BTreeMap;
 
 /// Interactive bioelectric circuit mutation requested by a UI, agent, or later
 /// command surface.
@@ -75,6 +76,20 @@ pub enum BioelectricCircuitEditOperation {
         /// Requested voltage delta.
         delta: f32,
     },
+    /// Add a runtime-clamped voltage delta to a node neighborhood.
+    ///
+    /// The target node receives the full delta. Direct conductance neighbors
+    /// with `tier <= max_tier` receive `delta * neighbor_falloff.powi(tier)`.
+    AddNodeVoltageNeighborhood {
+        /// Target node index.
+        node_index: usize,
+        /// Requested target-node voltage delta.
+        delta: f32,
+        /// Maximum conductance-neighbor tier to include.
+        max_tier: u8,
+        /// Per-tier neighbor falloff in `0..=1`.
+        neighbor_falloff: f32,
+    },
     /// Set one node's hysteresis memory value to a 0..=1 clamped value.
     SetNodeMemory {
         /// Target node index.
@@ -122,6 +137,18 @@ pub enum BioelectricCircuitEditOperation {
     },
 }
 
+/// One node targeted by a tiered neighborhood voltage edit.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BioelectricNeighborhoodTarget {
+    /// Target node index.
+    pub node_index: usize,
+    /// Conductance-neighbor tier from the selected node; `0` is the selected
+    /// node itself.
+    pub tier: u8,
+    /// Delta multiplier applied to the requested target-node voltage delta.
+    pub weight: f32,
+}
+
 impl BioelectricCircuitEditOperation {
     fn validate(&self, node_count: usize, edge_count: usize) -> Result<(), MatterFieldError> {
         match self {
@@ -135,6 +162,16 @@ impl BioelectricCircuitEditOperation {
             Self::AddNodeVoltage { node_index, delta } => {
                 validate_node_index(*node_index, node_count)?;
                 validate_finite(*delta, "bioelectric edit voltage delta must be finite")?;
+            }
+            Self::AddNodeVoltageNeighborhood {
+                node_index,
+                delta,
+                max_tier,
+                neighbor_falloff,
+            } => {
+                validate_node_index(*node_index, node_count)?;
+                validate_finite(*delta, "bioelectric edit voltage delta must be finite")?;
+                validate_neighborhood_shape(*max_tier, *neighbor_falloff)?;
             }
             Self::SetNodeMemory {
                 node_index,
@@ -206,6 +243,67 @@ impl BioelectricCircuitEditOperation {
         }
         Ok(())
     }
+}
+
+/// Resolves Matter-owned node targets for a tiered neighborhood voltage edit.
+///
+/// The selected node is always included at tier `0` with weight `1`. Direct
+/// conductance neighbors with `edge.tier <= max_tier` are included with
+/// `neighbor_falloff.powi(edge.tier)`. When multiple incident edges reach the
+/// same neighbor, the smallest tier and largest resulting weight are kept.
+///
+/// # Errors
+///
+/// Returns [`MatterFieldError`] when the state or neighborhood parameters are
+/// invalid.
+pub fn bioelectric_node_voltage_neighborhood_targets(
+    state: &BioelectricCircuitState,
+    node_index: usize,
+    max_tier: u8,
+    neighbor_falloff: f32,
+) -> Result<Vec<BioelectricNeighborhoodTarget>, MatterFieldError> {
+    state.validate()?;
+    validate_node_index(node_index, state.node_count)?;
+    validate_neighborhood_shape(max_tier, neighbor_falloff)?;
+
+    let mut targets = BTreeMap::new();
+    targets.insert(node_index, (0_u8, 1.0_f32));
+    for edge in &state.conductance_edges {
+        if edge.tier > max_tier {
+            continue;
+        }
+        let neighbor = if edge.from_node == node_index {
+            edge.to_node
+        } else if edge.to_node == node_index {
+            edge.from_node
+        } else {
+            continue;
+        };
+        let weight = neighbor_falloff.powi(i32::from(edge.tier));
+        if weight <= 0.0 {
+            continue;
+        }
+        targets
+            .entry(neighbor)
+            .and_modify(|(tier, existing_weight)| {
+                if edge.tier < *tier || (edge.tier == *tier && weight > *existing_weight) {
+                    *tier = edge.tier;
+                    *existing_weight = weight;
+                }
+            })
+            .or_insert((edge.tier, weight));
+    }
+
+    Ok(targets
+        .into_iter()
+        .map(
+            |(node_index, (tier, weight))| BioelectricNeighborhoodTarget {
+                node_index,
+                tier,
+                weight,
+            },
+        )
+        .collect())
 }
 
 /// Result of one attempted bioelectric circuit edit.
@@ -401,6 +499,15 @@ impl AppliedEdit {
         }
     }
 
+    fn node_list(node_indices: Vec<usize>, clamped_values: usize) -> Self {
+        Self {
+            clamped_values,
+            affected_node_indices: node_indices,
+            affected_edge_indices: Vec::new(),
+            affected_current_term_ids: Vec::new(),
+        }
+    }
+
     fn edges(edge_indices: Vec<usize>, clamped_values: usize) -> Self {
         Self {
             clamped_values,
@@ -438,6 +545,19 @@ fn apply_operation(
         BioelectricCircuitEditOperation::AddNodeVoltage { node_index, delta } => Ok(Some(
             apply_add_node_voltage(runtime, state, *node_index, *delta),
         )),
+        BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+            node_index,
+            delta,
+            max_tier,
+            neighbor_falloff,
+        } => Ok(Some(apply_add_node_voltage_neighborhood(
+            runtime,
+            state,
+            *node_index,
+            *delta,
+            *max_tier,
+            *neighbor_falloff,
+        )?)),
         BioelectricCircuitEditOperation::SetNodeMemory {
             node_index,
             memory_value,
@@ -514,6 +634,36 @@ fn apply_add_node_voltage(
     );
     state.voltage.values[node_index] = clamped;
     AppliedEdit::nodes(node_index, clamped_count(next, clamped))
+}
+
+fn apply_add_node_voltage_neighborhood(
+    runtime: &BioelectricCircuitRuntime,
+    state: &mut BioelectricCircuitState,
+    node_index: usize,
+    delta: f32,
+    max_tier: u8,
+    neighbor_falloff: f32,
+) -> Result<AppliedEdit, MatterFieldError> {
+    let targets = bioelectric_node_voltage_neighborhood_targets(
+        state,
+        node_index,
+        max_tier,
+        neighbor_falloff,
+    )?;
+    let mut clamped_values = 0;
+    let mut affected_nodes = Vec::with_capacity(targets.len());
+    for target in targets {
+        let applied_delta = delta * target.weight;
+        let next = state.voltage.values[target.node_index] + applied_delta;
+        let clamped = next.clamp(
+            runtime.config().voltage_clamp_min,
+            runtime.config().voltage_clamp_max,
+        );
+        state.voltage.values[target.node_index] = clamped;
+        clamped_values += clamped_count(next, clamped);
+        affected_nodes.push(target.node_index);
+    }
+    Ok(AppliedEdit::node_list(affected_nodes, clamped_values))
 }
 
 fn apply_set_node_memory(
@@ -627,6 +777,23 @@ fn validate_finite(value: f32, reason: &'static str) -> Result<(), MatterFieldEr
     } else {
         Err(MatterFieldError::InvalidField(reason))
     }
+}
+
+fn validate_neighborhood_shape(
+    max_tier: u8,
+    neighbor_falloff: f32,
+) -> Result<(), MatterFieldError> {
+    if max_tier == 0 {
+        return Err(MatterFieldError::InvalidField(
+            "bioelectric edit neighborhood max tier must be non-zero",
+        ));
+    }
+    if !neighbor_falloff.is_finite() || !(0.0..=1.0).contains(&neighbor_falloff) {
+        return Err(MatterFieldError::InvalidField(
+            "bioelectric edit neighborhood falloff must be finite and in 0..=1",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_node_index(node_index: usize, node_count: usize) -> Result<(), MatterFieldError> {

@@ -2,12 +2,12 @@ use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, Trian
 use rusty_matter_model::Vec3;
 
 use crate::{
-    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
-    BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricConductanceEdge,
-    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
-    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
-    BioelectricVoltageUnit, MatterFieldError, PlanarianAxisRegion,
-    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    bioelectric_node_voltage_neighborhood_targets, BioelectricCircuitConfig,
+    BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitRuntime,
+    BioelectricCircuitState, BioelectricConductanceEdge, BioelectricCurrentKind,
+    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
+    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError,
+    PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
     SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
     SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
@@ -445,6 +445,49 @@ fn bioelectric_runtime_applies_interactive_edits_with_revisions() {
 }
 
 #[test]
+fn bioelectric_runtime_applies_tiered_neighborhood_voltage_edit() {
+    let substrate = test_substrate();
+    let mut circuit = test_circuit_state(&substrate);
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+    let voltage_before = circuit.voltage.values.clone();
+    let targets = bioelectric_node_voltage_neighborhood_targets(&circuit, 0, 1, 0.5)
+        .expect("neighborhood targets validate");
+
+    assert!(targets.len() > 1);
+    assert!(targets.iter().any(|target| {
+        target.node_index == 0 && target.tier == 0 && (target.weight - 1.0).abs() <= 1.0e-6
+    }));
+    assert!(targets.iter().any(|target| {
+        target.node_index != 0 && target.tier == 1 && (target.weight - 0.5).abs() <= 1.0e-6
+    }));
+
+    let edit = BioelectricCircuitEdit::new(
+        "edit.neighborhood_voltage",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+            node_index: 0,
+            delta: 0.2,
+            max_tier: 1,
+            neighbor_falloff: 0.5,
+        },
+    );
+    let result = runtime
+        .apply_edit(&substrate, &mut circuit, &edit)
+        .expect("neighborhood edit validates");
+
+    assert!(result.accepted);
+    assert_eq!(result.affected_node_indices.len(), targets.len());
+    for target in targets {
+        assert!(result.affected_node_indices.contains(&target.node_index));
+        assert_close(
+            circuit.voltage.values[target.node_index],
+            voltage_before[target.node_index] + 0.2 * target.weight,
+        );
+    }
+}
+
+#[test]
 fn damaged_bioelectric_edit_requests_are_rejected() {
     let substrate = test_substrate();
     let mut circuit = test_circuit_state(&substrate);
@@ -510,6 +553,36 @@ fn damaged_bioelectric_edit_requests_are_rejected() {
         .expect("missing gate returns rejected result");
     assert!(!result.accepted);
     assert_eq!(result.revision_after, circuit.revision);
+
+    let bad_neighborhood_tier = BioelectricCircuitEdit::new(
+        "edit.bad_neighborhood_tier",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+            node_index: 0,
+            delta: 0.1,
+            max_tier: 0,
+            neighbor_falloff: 0.5,
+        },
+    );
+    let error = runtime
+        .apply_edit(&substrate, &mut circuit, &bad_neighborhood_tier)
+        .expect_err("zero neighborhood tier rejects");
+    assert!(matches!(error, MatterFieldError::InvalidField(_)));
+
+    let bad_neighborhood_falloff = BioelectricCircuitEdit::new(
+        "edit.bad_neighborhood_falloff",
+        Some(circuit.revision),
+        BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+            node_index: 0,
+            delta: 0.1,
+            max_tier: 1,
+            neighbor_falloff: 1.25,
+        },
+    );
+    let error = runtime
+        .apply_edit(&substrate, &mut circuit, &bad_neighborhood_falloff)
+        .expect_err("out-of-range neighborhood falloff rejects");
+    assert!(matches!(error, MatterFieldError::InvalidField(_)));
 }
 
 #[test]

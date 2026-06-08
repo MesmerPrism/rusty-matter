@@ -90,6 +90,10 @@ barycentric_b, barycentric_c]`. It also exports `node_activity()` rows as
 `[absolute_voltage_delta, normalized_voltage_delta]` from the latest Matter
 step or accepted voltage-changing edit so renderers can display realtime
 activity without deriving circuit deltas from geometry. It also exports
+`node_voltage_neighborhood()` rows as `[node_index, tier, weight]` so renderers
+can preview the exact tiered voltage-brush targets before requesting the
+matching `add_node_voltage_neighborhood()` mutation.
+It also exports
 deterministic outcome traces for renderer-side comparison plots, including the
 Matter-owned comparison trace set used by Optics browser overlays and selected
 node/edge readout accessors used by browser inspector panels. It also exposes

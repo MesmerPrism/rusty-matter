@@ -91,7 +91,8 @@ The implemented foundation slices are intentionally CPU/data-only:
   the same surface-field substrate, including voltage, conductance, current
   terms, gates, memory, and readouts;
 - bioelectric circuit edit contracts for selected-node voltage/memory changes,
-  incident conductance scaling, edge gate edits, transient current insertion,
+  Matter-resolved tiered node-neighborhood voltage deltas, incident
+  conductance scaling, edge gate edits, transient current insertion,
   rejected-result reporting, and revision tracking;
 - bioelectric circuit debug frame/sequence contracts plus a planarian
   anterior/posterior preset with GLB-derived body-surface provenance,
@@ -129,7 +130,8 @@ surface graph, per-node triangle/barycentric anchors,
 conductance/current/gate configuration, per-node activity deltas, and
 comparison readouts; it also exports deterministic scenario outcome traces and
 comparison trace sets for renderer-side plots, plus selected node and
-conductance-edge readouts for browser inspector panels and bounded recent
+conductance-edge readouts for browser inspector panels, a read-only tiered
+node-neighborhood target resolver for brush previews, and bounded recent
 edit-event summaries for live feedback, including affected node/edge target
 rows for renderer highlights.
 It does not own colors, playback controls, renderer policy, command routing, or

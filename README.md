@@ -21,8 +21,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
   reviewed GLB-derived planarian body substrate, GLB surface-anchor readouts,
-  selected node/edge readout accessors, bounded recent edit-event readouts,
-  and affected-target readouts;
+  selected node/edge readout accessors, tiered voltage-neighborhood previews
+  and mutations, bounded recent edit-event readouts, and affected-target
+  readouts;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
@@ -41,8 +42,8 @@ substrates, scalar/vector states, perturbations, runtime configs, sparse
 dynamics, bioelectric circuit contracts, circuit edit requests/results,
 circuit debug frames, GLB-derived and synthetic planarian presets,
 Planarian 3D realtime scenario switching, scenario outcome traces and trace
-sets, selected readouts, recent edit-event and affected-target readouts,
-summaries, debug frames, and errors.
+sets, selected readouts, tiered voltage-neighborhood edit targets, recent
+edit-event and affected-target readouts, summaries, debug frames, and errors.
 Mesh code is split by surface,
 sampling/live updates, accelerated
 distance queries, coordinate maps, hand payloads, dynamic collider, and

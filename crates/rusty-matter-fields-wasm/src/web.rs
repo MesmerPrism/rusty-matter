@@ -2,14 +2,15 @@
 
 use js_sys::{Float32Array, Uint32Array};
 use rusty_matter_fields::{
-    planarian_comparison_scenario_kinds, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
-    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
-    BioelectricCircuitStepDiagnostics, PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace,
-    PlanarianBioelectricOutcomeTraceSet, PlanarianBioelectricPresetConfig,
-    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation,
-    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
-    SurfaceFieldState, SurfaceFieldStepDiagnostics, SurfaceFieldSubstrate, SurfaceScalarField,
-    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    bioelectric_node_voltage_neighborhood_targets, planarian_comparison_scenario_kinds,
+    BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitEditResult,
+    BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricCircuitStepDiagnostics,
+    PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
+    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldStepDiagnostics,
+    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
+    SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -18,6 +19,7 @@ use wasm_bindgen::prelude::*;
 const PLANARIAN_WASM_EDIT_EVENT_CAPACITY: usize = 12;
 const PLANARIAN_WASM_EDIT_EVENT_STRIDE: usize = 15;
 const PLANARIAN_WASM_EDIT_TARGET_STRIDE: usize = 8;
+const PLANARIAN_WASM_NEIGHBORHOOD_TARGET_STRIDE: usize = 3;
 
 /// Realtime Matter surface-field runtime exported to browser Wasm.
 ///
@@ -265,6 +267,12 @@ impl PlanarianWasmEditEvent {
             BioelectricCircuitEditOperation::AddNodeVoltage { node_index, delta } => {
                 (2, 1, Some(*node_index), *delta, 0.0)
             }
+            BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+                node_index,
+                delta,
+                max_tier,
+                ..
+            } => (8, 1, Some(*node_index), *delta, f32::from(*max_tier)),
             BioelectricCircuitEditOperation::SetNodeMemory {
                 node_index,
                 memory_value,
@@ -790,6 +798,25 @@ impl PlanarianBioelectricRealtimeRuntime {
         })
     }
 
+    /// Adds a voltage delta to a Matter-owned tiered node neighborhood and
+    /// returns edit-result stats.
+    pub fn add_node_voltage_neighborhood(
+        &mut self,
+        node_index: u32,
+        delta: f32,
+        max_tier: u32,
+        neighbor_falloff: f32,
+    ) -> Result<Float32Array, JsValue> {
+        self.apply_edit(
+            BioelectricCircuitEditOperation::AddNodeVoltageNeighborhood {
+                node_index: u32_to_usize(node_index),
+                delta,
+                max_tier: u32_to_u8(max_tier)?,
+                neighbor_falloff,
+            },
+        )
+    }
+
     /// Sets one node memory value and returns edit-result stats.
     pub fn set_node_memory(
         &mut self,
@@ -849,6 +876,46 @@ impl PlanarianBioelectricRealtimeRuntime {
         })
     }
 
+    /// Returns the compact layout width for a Matter-owned voltage
+    /// neighborhood preview.
+    ///
+    /// `node_voltage_neighborhood()` uses this stride so browser adapters can
+    /// decode target previews without duplicating circuit traversal.
+    #[must_use]
+    pub fn node_voltage_neighborhood_stride(&self) -> usize {
+        PLANARIAN_WASM_NEIGHBORHOOD_TARGET_STRIDE
+    }
+
+    /// Resolves a Matter-owned tiered node neighborhood without mutating
+    /// circuit state.
+    ///
+    /// The returned `Float32Array` layout is three floats per target:
+    /// `[node_index, tier, weight]`.
+    pub fn node_voltage_neighborhood(
+        &self,
+        node_index: u32,
+        max_tier: u32,
+        neighbor_falloff: f32,
+    ) -> Result<Float32Array, JsValue> {
+        let targets = bioelectric_node_voltage_neighborhood_targets(
+            &self.circuit,
+            u32_to_usize(node_index),
+            u32_to_u8(max_tier)?,
+            neighbor_falloff,
+        )
+        .map_err(to_js_error)?;
+        let mut values =
+            Vec::with_capacity(targets.len() * PLANARIAN_WASM_NEIGHBORHOOD_TARGET_STRIDE);
+        for target in targets {
+            values.extend_from_slice(&[
+                target.node_index as f32,
+                f32::from(target.tier),
+                target.weight,
+            ]);
+        }
+        Ok(Float32Array::from(values.as_slice()))
+    }
+
     /// Returns the compact layout width for recent edit events.
     ///
     /// `edit_event_history()` uses this stride so browser adapters can decode
@@ -869,7 +936,8 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// Operation codes are:
     /// `1=set node voltage`, `2=add node voltage`, `3=set node memory`,
     /// `4=scale incident conductance`, `5=set edge gate threshold`,
-    /// `6=set edge gate multiplier bounds`, `7=add transient current`.
+    /// `6=set edge gate multiplier bounds`, `7=add transient current`,
+    /// `8=add node voltage neighborhood`.
     ///
     /// Target kind codes are:
     /// `1=surface node`, `2=conductance edge`, `3=current term`, `0=none`.
@@ -1447,6 +1515,12 @@ fn usize_to_u32(value: usize) -> u32 {
 
 fn u32_to_usize(value: u32) -> usize {
     usize::try_from(value).unwrap_or(usize::MAX)
+}
+
+fn u32_to_u8(value: u32) -> Result<u8, JsValue> {
+    value
+        .try_into()
+        .map_err(|_| JsValue::from_str("planarian neighborhood max tier is too large"))
 }
 
 #[allow(clippy::needless_pass_by_value)]
