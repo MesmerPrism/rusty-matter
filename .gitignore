@@ -1,4 +1,5 @@
 /target/
+/local-artifacts/
 /.idea/
 /.vscode/
 *.rs.bk
