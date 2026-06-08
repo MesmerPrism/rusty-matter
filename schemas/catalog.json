@@ -150,6 +150,14 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.debug_sequence.v1",
+      "rust_type": "SurfaceFieldDebugFrameSequence",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-debug-sequence.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [

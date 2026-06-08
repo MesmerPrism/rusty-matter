@@ -2,6 +2,7 @@
 
 mod config;
 mod debug_frame;
+mod dynamics;
 mod error;
 mod ids;
 mod perturbation;
@@ -12,6 +13,7 @@ mod summary;
 
 pub use config::*;
 pub use debug_frame::*;
+pub use dynamics::*;
 pub use error::*;
 pub use ids::*;
 pub use perturbation::*;

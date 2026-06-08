@@ -19,6 +19,8 @@ impl SchemaCatalog {
         let field_contract_fixtures =
             &["fixtures/fields/unit-square-surface-field-run-summary.json"];
         let field_debug_fixtures = &["fixtures/fields/unit-square-surface-field-debug-frame.json"];
+        let field_debug_sequence_fixtures =
+            &["fixtures/fields/unit-square-surface-field-debug-sequence.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -143,6 +145,11 @@ impl SchemaCatalog {
                     "rusty.matter.fields.debug_frame.v1",
                     "SurfaceFieldDebugFrame",
                     field_debug_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.debug_sequence.v1",
+                    "SurfaceFieldDebugFrameSequence",
+                    field_debug_sequence_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

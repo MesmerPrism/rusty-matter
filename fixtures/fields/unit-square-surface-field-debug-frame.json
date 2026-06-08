@@ -5,6 +5,8 @@
   "state_id": "fields.state.unit_square_contract",
   "surface_id": "mesh.unit_square_surface",
   "topology_index_hash": 16112794849697168423,
+  "step_index": 0,
+  "time_seconds": 0.0,
   "nodes": [
     {
       "node_id": "fields.substrate.unit_square_fixture.node.0000",

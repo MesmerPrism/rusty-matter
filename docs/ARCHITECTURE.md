@@ -13,8 +13,8 @@ Matter owns:
 - surface-field graph substrates over mesh sample nodes and same-surface
   neighbor tiers;
 - scalar/vector surface-field state buffers, perturbation descriptors, runtime
-  config contracts, deterministic run-summary contracts, and policy-free debug
-  frames;
+  config contracts, sparse fixed-step dynamics, deterministic run-summary
+  contracts, diagnostics, and policy-free debug frames/sequences;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -71,6 +71,8 @@ The implemented foundation slices are intentionally CPU/data-only:
 - deterministic surface sampling with same-surface neighbor tiers;
 - surface-field contracts over mesh surface sample nodes and first/second
   neighbor tiers;
+- sparse fixed-step surface-field dynamics for scalar diffusion/decay and
+  bounded vector/polarity updates over those neighbor tiers;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -110,13 +112,16 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   descriptors for polarity initialization, wound/scalar region edits, coupling
   multiplier changes, and polarity inversion.
 - `rusty-matter-fields/src/config.rs`: fixed-step runtime configuration
-  contracts for later field dynamics.
+  contracts for surface-field dynamics.
 - `rusty-matter-fields/src/runtime.rs`: contract-only runtime wrapper that
-  validates F1 inputs and emits zero-step summaries.
+  validates inputs and owns the public surface-field runtime entrypoints.
+- `rusty-matter-fields/src/dynamics.rs`: sparse neighbor-plan construction,
+  fixed-step scalar diffusion/decay, bounded vector updates, perturbation
+  application, and dynamic debug-sequence emission.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector
-  and perturbation-region frames for Optics and debug adapters.
+  and perturbation-region frames/sequences for Optics and debug adapters.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

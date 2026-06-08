@@ -19,3 +19,5 @@ pub const SURFACE_FIELD_STEP_DIAGNOSTICS_SCHEMA_ID: &str =
 pub const SURFACE_FIELD_RUN_SUMMARY_SCHEMA_ID: &str = "rusty.matter.fields.run_summary.v1";
 /// Schema ID for policy-free surface-field debug frames.
 pub const SURFACE_FIELD_DEBUG_FRAME_SCHEMA_ID: &str = "rusty.matter.fields.debug_frame.v1";
+/// Schema ID for a policy-free surface-field debug frame sequence.
+pub const SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID: &str = "rusty.matter.fields.debug_sequence.v1";

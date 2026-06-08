@@ -20,6 +20,12 @@ pub struct SurfaceFieldStepDiagnostics {
     pub updated_nodes: usize,
     /// Number of scalar values clamped.
     pub clamped_scalars: usize,
+    /// Number of vector values clamped.
+    pub clamped_vectors: usize,
+    /// Number of active perturbations applied before this step.
+    pub active_perturbations: usize,
+    /// Number of sparse neighbor links visited by update kernels.
+    pub neighbor_links_visited: usize,
     /// Number of node updates rejected.
     pub rejected_nodes: usize,
 }
@@ -35,6 +41,9 @@ impl SurfaceFieldStepDiagnostics {
             vector_field_count: 0,
             updated_nodes: 0,
             clamped_scalars: 0,
+            clamped_vectors: 0,
+            active_perturbations: 0,
+            neighbor_links_visited: 0,
             rejected_nodes: 0,
         }
     }
@@ -145,6 +154,27 @@ impl SurfaceFieldRunSummary {
             scalar_max,
             max_vector_length: max_vector_length(state),
         };
+        summary.validate()?;
+        Ok(summary)
+    }
+
+    /// Creates a run summary from a final state and executed step count.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when contracts or the resulting summary are
+    /// invalid.
+    pub fn from_run(
+        summary_id: impl Into<String>,
+        substrate: &SurfaceFieldSubstrate,
+        final_state: &SurfaceFieldState,
+        config: &SurfaceFieldRuntimeConfig,
+        perturbations: &[SurfaceFieldPerturbation],
+        step_count: u32,
+    ) -> Result<Self, MatterFieldError> {
+        let mut summary =
+            Self::from_contracts(summary_id, substrate, final_state, config, perturbations)?;
+        summary.step_count = step_count;
         summary.validate()?;
         Ok(summary)
     }

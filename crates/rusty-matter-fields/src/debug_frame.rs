@@ -1,9 +1,10 @@
 use rusty_matter_model::Vec3;
 
 use crate::{
-    MatterFieldError, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceVectorField,
-    SURFACE_FIELD_DEBUG_FRAME_SCHEMA_ID,
+    MatterFieldError, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRunSummary, SurfaceFieldState, SurfaceFieldStepDiagnostics, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceVectorField, SURFACE_FIELD_DEBUG_FRAME_SCHEMA_ID,
+    SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID,
 };
 
 /// One surface-field node record for debug and visualization adapters.
@@ -94,6 +95,10 @@ pub struct SurfaceFieldDebugFrame {
     pub surface_id: String,
     /// Source topology hash.
     pub topology_index_hash: u64,
+    /// Fixed-step index represented by this frame.
+    pub step_index: u32,
+    /// State time in seconds represented by this frame.
+    pub time_seconds: f32,
     /// Surface-field nodes.
     pub nodes: Vec<SurfaceFieldDebugNode>,
     /// Directed same-surface neighbor edges.
@@ -143,6 +148,8 @@ impl SurfaceFieldDebugFrame {
             state_id: state.state_id.clone(),
             surface_id: substrate.surface_id.clone(),
             topology_index_hash: substrate.topology_key.index_hash,
+            step_index: 0,
+            time_seconds: state.time_seconds,
             nodes: debug_nodes(substrate),
             edges: debug_edges(substrate),
             scalar_layers: state
@@ -160,6 +167,26 @@ impl SurfaceFieldDebugFrame {
                 .map(debug_perturbation_region)
                 .collect(),
         };
+        frame.validate()?;
+        Ok(frame)
+    }
+
+    /// Creates a debug frame from a state at a specific fixed-step index.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when substrate, state, or perturbations are
+    /// invalid.
+    pub fn from_state_at_step(
+        frame_id: impl Into<String>,
+        substrate: &SurfaceFieldSubstrate,
+        state: &SurfaceFieldState,
+        perturbations: &[SurfaceFieldPerturbation],
+        step_index: u32,
+    ) -> Result<Self, MatterFieldError> {
+        let mut frame = Self::from_contracts(frame_id, substrate, state, perturbations)?;
+        frame.step_index = step_index;
+        frame.time_seconds = state.time_seconds;
         frame.validate()?;
         Ok(frame)
     }
@@ -191,6 +218,11 @@ impl SurfaceFieldDebugFrame {
         if self.surface_id.trim().is_empty() {
             return Err(MatterFieldError::InvalidSubstrate(
                 "surface id must not be empty",
+            ));
+        }
+        if !self.time_seconds.is_finite() || self.time_seconds < 0.0 {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug frame time must be finite and non-negative",
             ));
         }
         let node_count = self.nodes.len();
@@ -398,4 +430,152 @@ fn validate_vector_layer(
         ));
     }
     Ok(())
+}
+
+/// Policy-free debug sequence over a fixed-step surface-field run.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct SurfaceFieldDebugFrameSequence {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable sequence identifier.
+    pub sequence_id: String,
+    /// Source substrate identifier.
+    pub substrate_id: String,
+    /// Source surface identifier.
+    pub surface_id: String,
+    /// Initial state identifier.
+    pub initial_state_id: String,
+    /// Fixed step duration in seconds.
+    pub fixed_step_seconds: f32,
+    /// Total executed fixed steps.
+    pub step_count: u32,
+    /// Step interval between emitted debug frames.
+    pub frame_stride: u32,
+    /// Per-step diagnostics for the full run.
+    pub diagnostics: Vec<SurfaceFieldStepDiagnostics>,
+    /// Summary over the final state.
+    pub summary: SurfaceFieldRunSummary,
+    /// Emitted debug frames.
+    pub frames: Vec<SurfaceFieldDebugFrame>,
+}
+
+impl SurfaceFieldDebugFrameSequence {
+    /// Creates and validates a debug frame sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when the sequence contract is invalid.
+    pub fn new(
+        sequence_id: impl Into<String>,
+        fixed_step_seconds: f32,
+        step_count: u32,
+        frame_stride: u32,
+        diagnostics: Vec<SurfaceFieldStepDiagnostics>,
+        summary: SurfaceFieldRunSummary,
+        frames: Vec<SurfaceFieldDebugFrame>,
+    ) -> Result<Self, MatterFieldError> {
+        let Some(first_frame) = frames.first() else {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence must contain at least one frame",
+            ));
+        };
+        let sequence = Self {
+            schema_id: SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID.to_owned(),
+            sequence_id: sequence_id.into(),
+            substrate_id: first_frame.substrate_id.clone(),
+            surface_id: first_frame.surface_id.clone(),
+            initial_state_id: first_frame.state_id.clone(),
+            fixed_step_seconds,
+            step_count,
+            frame_stride,
+            diagnostics,
+            summary,
+            frames,
+        };
+        sequence.validate()?;
+        Ok(sequence)
+    }
+
+    /// Validates the debug sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when schema, IDs, frame ordering, or
+    /// diagnostics are invalid.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: SURFACE_FIELD_DEBUG_SEQUENCE_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.sequence_id.trim().is_empty() {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence id must not be empty",
+            ));
+        }
+        if self.substrate_id.trim().is_empty() {
+            return Err(MatterFieldError::EmptySubstrateId);
+        }
+        if self.surface_id.trim().is_empty() {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "debug sequence surface id must not be empty",
+            ));
+        }
+        if self.initial_state_id.trim().is_empty() {
+            return Err(MatterFieldError::EmptyStateId);
+        }
+        if !self.fixed_step_seconds.is_finite() || self.fixed_step_seconds <= 0.0 {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence fixed step must be finite and positive",
+            ));
+        }
+        if self.frame_stride == 0 {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence frame stride must be non-zero",
+            ));
+        }
+        if self.diagnostics.len() != self.step_count as usize {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence diagnostics must match step count",
+            ));
+        }
+        self.summary.validate()?;
+        if self.summary.step_count != self.step_count {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence summary step count must match",
+            ));
+        }
+        if self.frames.is_empty() {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "debug sequence must contain frames",
+            ));
+        }
+        let node_count = self.summary.node_count;
+        for diagnostic in &self.diagnostics {
+            diagnostic.validate(node_count)?;
+        }
+        let mut previous_step = None::<u32>;
+        for frame in &self.frames {
+            frame.validate()?;
+            if frame.substrate_id != self.substrate_id || frame.surface_id != self.surface_id {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "debug sequence frame source must match sequence",
+                ));
+            }
+            if frame.step_index > self.step_count {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "debug sequence frame step must not exceed step count",
+                ));
+            }
+            if previous_step.is_some_and(|step| frame.step_index <= step) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "debug sequence frame steps must be increasing",
+                ));
+            }
+            previous_step = Some(frame.step_index);
+        }
+        Ok(())
+    }
 }

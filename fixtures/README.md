@@ -8,8 +8,8 @@ The SDF foundation bundle currently includes:
 - mesh payload fixtures in `fixtures/mesh`;
 - dynamic mesh surface, sample, coordinate-map, and dynamic-collider summaries
   in `fixtures/mesh`;
-- surface-field contract summaries and policy-free debug frames in
-  `fixtures/fields`;
+- surface-field contract summaries, policy-free debug frames, and dynamic
+  debug frame sequences in `fixtures/fields`;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;

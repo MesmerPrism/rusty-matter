@@ -1,7 +1,8 @@
 use rusty_matter_fields::{
-    SurfaceFieldDebugFrame, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRunSummary, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
-    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary, SurfaceFieldRuntime,
+    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
+    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -34,6 +35,34 @@ pub(crate) fn surface_field_debug_frame(
         &perturbations,
     )
     .map_err(CliError::Field)
+}
+
+pub(crate) fn surface_field_debug_sequence(
+    surface: &TriangleMeshSurface,
+) -> Result<SurfaceFieldDebugFrameSequence, CliError> {
+    let (substrate, state, perturbations) = surface_field_dynamic_contracts(surface)?;
+    let config = SurfaceFieldRuntimeConfig {
+        config_id: "fields.runtime.dynamic_fixture".to_owned(),
+        fixed_step_seconds: 1.0 / 30.0,
+        max_steps_per_run: 240,
+        scalar_diffusion_rate: 2.8,
+        scalar_decay_rate: 0.18,
+        second_tier_coupling_weight: 0.42,
+        vector_alignment_rate: 3.2,
+        vector_gradient_rate: 1.9,
+        ..SurfaceFieldRuntimeConfig::default()
+    };
+    let runtime = SurfaceFieldRuntime::new(config).map_err(CliError::Field)?;
+    runtime
+        .run_debug_sequence(
+            "fixture.fields.unit_square_debug_sequence.v1",
+            &substrate,
+            &state,
+            &perturbations,
+            120,
+            3,
+        )
+        .map_err(CliError::Field)
 }
 
 fn surface_field_contracts(
@@ -115,6 +144,103 @@ fn surface_field_contracts(
     Ok((substrate, state, perturbations))
 }
 
+fn surface_field_dynamic_contracts(
+    surface: &TriangleMeshSurface,
+) -> Result<
+    (
+        SurfaceFieldSubstrate,
+        SurfaceFieldState,
+        Vec<SurfaceFieldPerturbation>,
+    ),
+    CliError,
+> {
+    let substrate = surface_field_dynamic_substrate(surface)?;
+    let node_count = substrate.node_count();
+    let vmem_values = substrate
+        .nodes
+        .iter()
+        .map(|node| 0.16 + (node.position.y - 0.5) * 0.18)
+        .collect::<Vec<_>>();
+    let morphogen_values = substrate
+        .nodes
+        .iter()
+        .map(|node| node.position.x.clamp(0.0, 1.0))
+        .collect::<Vec<_>>();
+    let polarity_vectors = substrate
+        .nodes
+        .iter()
+        .map(|node| normalize(Vec3::new(1.0, (node.position.y - 0.5) * 0.45, 0.0)))
+        .collect::<Vec<_>>();
+    let state = SurfaceFieldState::new(
+        "fields.state.unit_square_dynamic",
+        &substrate,
+        vec![
+            SurfaceScalarField::new(
+                "field.vmem_like",
+                SurfaceScalarFieldKind::VmemLike,
+                vmem_values,
+            ),
+            SurfaceScalarField::constant(
+                "field.wound_signal",
+                SurfaceScalarFieldKind::WoundSignal,
+                node_count,
+                0.0,
+            ),
+            SurfaceScalarField::new(
+                "field.morphogen",
+                SurfaceScalarFieldKind::Morphogen,
+                morphogen_values,
+            ),
+        ],
+        vec![SurfaceVectorField::new(
+            "field.polarity",
+            SurfaceVectorFieldKind::Polarity,
+            polarity_vectors,
+        )],
+    )
+    .map_err(CliError::Field)?;
+
+    let wound_nodes = nearest_nodes(&substrate, Vec3::new(0.28, 0.64, 0.0), 6);
+    let vmem_nodes = nearest_nodes(&substrate, Vec3::new(0.50, 0.48, 0.0), 10);
+    let polarity_nodes = nearest_nodes(&substrate, Vec3::new(0.72, 0.34, 0.0), 8);
+    let coupling_nodes = nearest_nodes(&substrate, Vec3::new(0.36, 0.58, 0.0), 14);
+
+    let mut wound = SurfaceFieldPerturbation::new(
+        "perturbation.wound.dynamic_center",
+        Some("field.wound_signal".to_owned()),
+        wound_nodes,
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    );
+    wound.duration_steps = 30;
+
+    let mut vmem = SurfaceFieldPerturbation::new(
+        "perturbation.vmem.dynamic_offset",
+        Some("field.vmem_like".to_owned()),
+        vmem_nodes,
+        SurfaceFieldPerturbationEffect::DepolarizeRegion { delta: 0.12 },
+    );
+    vmem.start_step = 10;
+    vmem.duration_steps = 36;
+
+    let mut polarity = SurfaceFieldPerturbation::new(
+        "perturbation.polarity.dynamic_inversion",
+        Some("field.polarity".to_owned()),
+        polarity_nodes,
+        SurfaceFieldPerturbationEffect::PolarityInversion,
+    );
+    polarity.start_step = 18;
+
+    let mut coupling = SurfaceFieldPerturbation::new(
+        "perturbation.coupling.dynamic_wound_shell",
+        None,
+        coupling_nodes,
+        SurfaceFieldPerturbationEffect::CouplingMultiplierChange { multiplier: 1.45 },
+    );
+    coupling.duration_steps = 90;
+
+    Ok((substrate, state, vec![wound, vmem, polarity, coupling]))
+}
+
 fn surface_field_substrate(
     surface: &TriangleMeshSurface,
 ) -> Result<SurfaceFieldSubstrate, CliError> {
@@ -131,4 +257,45 @@ fn surface_field_substrate(
     let samples = surface.sample_points(&config).map_err(CliError::Mesh)?;
     SurfaceFieldSubstrate::from_sample_set("fields.substrate.unit_square_fixture", &samples)
         .map_err(CliError::Field)
+}
+
+fn surface_field_dynamic_substrate(
+    surface: &TriangleMeshSurface,
+) -> Result<SurfaceFieldSubstrate, CliError> {
+    let config = MeshSurfaceSampleConfig {
+        sample_config_id: "mesh.surface_sample.field_dynamic_fixture".to_owned(),
+        sample_set_id: "mesh.surface_samples.field_dynamic_fixture".to_owned(),
+        point_count: 64,
+        first_tier_neighbor_count: 4,
+        second_tier_neighbor_count: 4,
+        seed: 65_537,
+        pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = surface.sample_points(&config).map_err(CliError::Mesh)?;
+    SurfaceFieldSubstrate::from_sample_set("fields.substrate.unit_square_dynamic", &samples)
+        .map_err(CliError::Field)
+}
+
+fn nearest_nodes(substrate: &SurfaceFieldSubstrate, center: Vec3, count: usize) -> Vec<usize> {
+    let mut nodes = substrate
+        .nodes
+        .iter()
+        .map(|node| (node.node_index, node.position.distance_squared(center)))
+        .collect::<Vec<_>>();
+    nodes.sort_by(|left, right| left.1.total_cmp(&right.1));
+    nodes
+        .into_iter()
+        .take(count.min(substrate.node_count()))
+        .map(|(node_index, _)| node_index)
+        .collect()
+}
+
+fn normalize(vector: Vec3) -> Vec3 {
+    let length = vector.length();
+    if length > 1.0e-6 {
+        vector / length
+    } else {
+        Vec3::new(1.0, 0.0, 0.0)
+    }
 }

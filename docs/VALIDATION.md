@@ -24,7 +24,7 @@ Those tests verify exact closest-point behavior and that dense-surface queries
 prune exact triangle tests through the Matter-owned sampler that browser Wasm
 and Makepad/native adapters should share.
 
-For surface-field contract work, the narrow test route is:
+For surface-field contract and dynamics work, the narrow test route is:
 
 ```powershell
 cargo test -p rusty-matter-fields
@@ -32,8 +32,16 @@ cargo test -p rusty-matter-fields
 
 Those tests verify field substrates over `MeshSurfaceSampleSet` nodes, scalar
 and vector buffer validation, perturbation descriptor validation, runtime
-config validation, and damaged neighbor/buffer inputs without advancing field
-dynamics.
+config validation, sparse neighbor-plan construction, deterministic fixed-step
+field dynamics, debug-sequence emission, and damaged neighbor/buffer/runtime
+inputs.
+
+The committed dynamic surface-field fixture is regenerated with the normal
+fixture route:
+
+```powershell
+cargo run -p rusty-matter-fixtures -- write
+```
 
 To build the browser WebAssembly adapter over the same Matter sampler:
 

@@ -8,8 +8,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 
 - `rusty-matter-model`: shared model primitives and schema IDs;
 - `rusty-matter-fields`: surface-field substrates, scalar/vector field
-  contracts, perturbation descriptors, runtime config contracts, and
-  zero-step run summaries plus policy-free debug frames over mesh sample nodes;
+  contracts, perturbation descriptors, runtime config contracts, sparse
+  fixed-step dynamics, run summaries, diagnostics, and policy-free debug
+  frames/sequences over mesh sample nodes;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
@@ -24,8 +25,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 
 The root files are intentionally thin. Model code is split by IDs, vectors,
 bounds, mesh payloads, and errors. Field code is split by schema IDs,
-substrates, scalar/vector states, perturbations, runtime configs, summaries,
-and errors. Mesh code is split by surface, sampling/live updates, accelerated
+substrates, scalar/vector states, perturbations, runtime configs, sparse
+dynamics, summaries, debug frames, and errors. Mesh code is split by surface,
+sampling/live updates, accelerated
 distance queries, coordinate maps, hand payloads, dynamic collider, and
 error/math helpers. SDF code is split by builder, config, packed grid, geometry
 helpers, and errors. Particle code is split by IDs, state, render-neutral

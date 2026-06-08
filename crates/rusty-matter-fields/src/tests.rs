@@ -171,6 +171,109 @@ fn damaged_runtime_config_is_rejected() {
     assert!(matches!(error, MatterFieldError::InvalidRuntimeConfig(_)));
 }
 
+#[test]
+fn dynamics_plan_uses_sparse_neighbor_links() {
+    let substrate = test_substrate();
+    let runtime =
+        SurfaceFieldRuntime::new(SurfaceFieldRuntimeConfig::default()).expect("runtime config");
+
+    let plan = runtime
+        .dynamics_plan(&substrate)
+        .expect("sparse plan validates");
+
+    assert_eq!(plan.node_count, substrate.node_count());
+    assert_eq!(
+        plan.directed_link_count,
+        substrate.first_tier_edge_count() + substrate.second_tier_edge_count()
+    );
+    assert!(plan.links.iter().all(|links| links.len() <= 6));
+}
+
+#[test]
+fn runtime_debug_sequence_diffuses_scalars_and_bounds_vectors() {
+    let substrate = test_substrate();
+    let state = test_state(&substrate);
+    let runtime =
+        SurfaceFieldRuntime::new(SurfaceFieldRuntimeConfig::default()).expect("runtime config");
+    let mut wound = SurfaceFieldPerturbation::new(
+        "perturbation.wound.dynamic_test",
+        Some("field.wound_signal".to_owned()),
+        vec![0, 1, 2],
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    );
+    wound.duration_steps = 6;
+
+    let sequence = runtime
+        .run_debug_sequence(
+            "sequence.surface_field.dynamic_test",
+            &substrate,
+            &state,
+            &[wound],
+            18,
+            3,
+        )
+        .expect("dynamic sequence validates");
+
+    assert_eq!(sequence.step_count, 18);
+    assert_eq!(sequence.frames.len(), 7);
+    assert_eq!(sequence.diagnostics.len(), 18);
+    assert!(sequence
+        .diagnostics
+        .iter()
+        .all(|diagnostic| diagnostic.neighbor_links_visited > 0));
+
+    let initial_wound_count = wound_signal_count(&sequence.frames[0], 0.01);
+    let final_wound_count = wound_signal_count(sequence.frames.last().expect("final frame"), 0.01);
+    assert_eq!(initial_wound_count, 0);
+    assert!(final_wound_count > 3);
+    assert!(sequence
+        .summary
+        .max_vector_length
+        .is_some_and(|length| length <= 1.0));
+}
+
+#[test]
+fn damaged_dynamic_step_count_is_rejected() {
+    let substrate = test_substrate();
+    let state = test_state(&substrate);
+    let config = SurfaceFieldRuntimeConfig {
+        max_steps_per_run: 4,
+        ..SurfaceFieldRuntimeConfig::default()
+    };
+    let runtime = SurfaceFieldRuntime::new(config).expect("runtime config");
+    let error = runtime
+        .run_debug_sequence("sequence.invalid", &substrate, &state, &[], 5, 1)
+        .expect_err("too many steps reject");
+
+    assert!(matches!(error, MatterFieldError::InvalidRuntimeConfig(_)));
+}
+
+#[test]
+fn damaged_dynamic_perturbation_target_is_rejected() {
+    let substrate = test_substrate();
+    let state = test_state(&substrate);
+    let runtime =
+        SurfaceFieldRuntime::new(SurfaceFieldRuntimeConfig::default()).expect("runtime config");
+    let perturbation = SurfaceFieldPerturbation::new(
+        "perturbation.missing_target",
+        Some("field.missing".to_owned()),
+        vec![0],
+        SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+    );
+    let error = runtime
+        .run_debug_sequence(
+            "sequence.invalid",
+            &substrate,
+            &state,
+            &[perturbation],
+            2,
+            1,
+        )
+        .expect_err("missing target rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidPerturbation(_)));
+}
+
 fn test_substrate() -> SurfaceFieldSubstrate {
     let surface = unit_square_surface();
     let config = MeshSurfaceSampleConfig {
@@ -237,4 +340,16 @@ fn unit_square_surface() -> TriangleMeshSurface {
         ],
         vec![[0, 1, 2], [0, 2, 3]],
     )
+}
+
+fn wound_signal_count(frame: &SurfaceFieldDebugFrame, threshold: f32) -> usize {
+    frame
+        .scalar_layers
+        .iter()
+        .find(|layer| layer.field_id == "field.wound_signal")
+        .expect("wound layer")
+        .values
+        .iter()
+        .filter(|value| **value > threshold)
+        .count()
 }

@@ -20,6 +20,16 @@ pub struct SurfaceFieldRuntimeConfig {
     pub scalar_clamp_max: f32,
     /// Maximum allowed vector length after clamping.
     pub vector_clamp_length: f32,
+    /// Scalar diffusion coefficient over the sparse surface-neighbor graph.
+    pub scalar_diffusion_rate: f32,
+    /// Scalar decay coefficient toward zero.
+    pub scalar_decay_rate: f32,
+    /// Weight applied to second-tier neighbors relative to first-tier links.
+    pub second_tier_coupling_weight: f32,
+    /// Vector alignment coefficient over the sparse surface-neighbor graph.
+    pub vector_alignment_rate: f32,
+    /// Vector response coefficient to the active scalar gradient.
+    pub vector_gradient_rate: f32,
 }
 
 impl Default for SurfaceFieldRuntimeConfig {
@@ -33,6 +43,11 @@ impl Default for SurfaceFieldRuntimeConfig {
             scalar_clamp_min: -1.0,
             scalar_clamp_max: 1.0,
             vector_clamp_length: 1.0,
+            scalar_diffusion_rate: 2.4,
+            scalar_decay_rate: 0.25,
+            second_tier_coupling_weight: 0.35,
+            vector_alignment_rate: 3.0,
+            vector_gradient_rate: 1.6,
         }
     }
 }
@@ -80,6 +95,33 @@ impl SurfaceFieldRuntimeConfig {
         if !self.vector_clamp_length.is_finite() || self.vector_clamp_length <= 0.0 {
             return Err(MatterFieldError::InvalidRuntimeConfig(
                 "vector_clamp_length must be finite and positive",
+            ));
+        }
+        if !self.scalar_diffusion_rate.is_finite() || self.scalar_diffusion_rate < 0.0 {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "scalar_diffusion_rate must be finite and non-negative",
+            ));
+        }
+        if !self.scalar_decay_rate.is_finite() || self.scalar_decay_rate < 0.0 {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "scalar_decay_rate must be finite and non-negative",
+            ));
+        }
+        if !self.second_tier_coupling_weight.is_finite()
+            || !(0.0..=1.0).contains(&self.second_tier_coupling_weight)
+        {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "second_tier_coupling_weight must be finite in 0..=1",
+            ));
+        }
+        if !self.vector_alignment_rate.is_finite() || self.vector_alignment_rate < 0.0 {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "vector_alignment_rate must be finite and non-negative",
+            ));
+        }
+        if !self.vector_gradient_rate.is_finite() || self.vector_gradient_rate < 0.0 {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "vector_gradient_rate must be finite and non-negative",
             ));
         }
         Ok(())
