@@ -86,13 +86,16 @@ transient-memory, and no-memory control presets over the reviewed GLB-derived
 body substrate. The realtime preset uses 160 sampled GLB surface nodes with
 five first-tier and five second-tier neighbor links per node, and exports
 `node_surface_anchors()` rows as `[triangle_index, barycentric_a,
-barycentric_b, barycentric_c]`. It also exports deterministic outcome traces
-for renderer-side comparison plots, including the Matter-owned comparison
-trace set used by Optics browser overlays and selected node/edge readout
-accessors used by browser inspector panels. It also exposes a bounded recent
-edit-event history for browser live feedback, plus affected node/edge target
-rows for renderer highlights; browsers format and draw those rows but do not
-own the event semantics.
+barycentric_b, barycentric_c]`. It also exports `node_activity()` rows as
+`[absolute_voltage_delta, normalized_voltage_delta]` from the latest Matter
+step or accepted voltage-changing edit so renderers can display realtime
+activity without deriving circuit deltas from geometry. It also exports
+deterministic outcome traces for renderer-side comparison plots, including the
+Matter-owned comparison trace set used by Optics browser overlays and selected
+node/edge readout accessors used by browser inspector panels. It also exposes
+a bounded recent edit-event history for browser live feedback, plus affected
+node/edge target rows for renderer highlights; browsers format and draw those
+rows but do not own the event semantics.
 
 ## External Hand Mesh Validation
 

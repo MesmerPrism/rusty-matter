@@ -126,11 +126,12 @@ owns realtime stepping, edit application, revision reporting, and debug-value
 snapshots in browser smoke tests. Its Planarian 3D path exposes Matter-owned
 scenario resets over the reviewed GLB-derived `TriangleMeshSurface`, sampled
 surface graph, per-node triangle/barycentric anchors,
-conductance/current/gate configuration, and comparison readouts; it also
-exports deterministic scenario outcome traces and comparison trace sets for
-renderer-side plots, plus selected node and conductance-edge readouts for
-browser inspector panels and bounded recent edit-event summaries for live
-feedback, including affected node/edge target rows for renderer highlights.
+conductance/current/gate configuration, per-node activity deltas, and
+comparison readouts; it also exports deterministic scenario outcome traces and
+comparison trace sets for renderer-side plots, plus selected node and
+conductance-edge readouts for browser inspector panels and bounded recent
+edit-event summaries for live feedback, including affected node/edge target
+rows for renderer highlights.
 It does not own colors, playback controls, renderer policy, command routing, or
 visualization.
 

@@ -324,6 +324,7 @@ pub struct PlanarianBioelectricRealtimeRuntime {
     circuit: BioelectricCircuitState,
     step_index: u32,
     last_step: BioelectricCircuitStepDiagnostics,
+    last_node_activity: Vec<f32>,
     last_edit: Option<BioelectricCircuitEditResult>,
     edit_events: Vec<PlanarianWasmEditEvent>,
     edit_event_sequence: u64,
@@ -347,6 +348,7 @@ impl PlanarianBioelectricRealtimeRuntime {
         self.circuit = self.initial_circuit.clone();
         self.step_index = 0;
         self.last_step = BioelectricCircuitStepDiagnostics::empty(0);
+        self.last_node_activity.fill(0.0);
         self.last_edit = None;
         self.edit_events.clear();
         self.edit_event_sequence = 0;
@@ -370,6 +372,7 @@ impl PlanarianBioelectricRealtimeRuntime {
         self.circuit = next.circuit;
         self.step_index = next.step_index;
         self.last_step = next.last_step;
+        self.last_node_activity = next.last_node_activity;
         self.last_edit = next.last_edit;
         self.edit_events = next.edit_events;
         self.edit_event_sequence = next.edit_event_sequence;
@@ -382,7 +385,9 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// request an unbounded simulation burst.
     pub fn step(&mut self, requested_steps: u32) -> Result<Float32Array, JsValue> {
         let steps = requested_steps.clamp(1, 8);
+        let mut activity = zero_node_activity(self.circuit.node_count);
         for _ in 0..steps {
+            let previous_voltage = self.circuit.voltage.values.clone();
             self.last_step = self
                 .runtime
                 .step_fixed(
@@ -391,8 +396,14 @@ impl PlanarianBioelectricRealtimeRuntime {
                     self.step_index,
                 )
                 .map_err(to_js_error)?;
+            accumulate_voltage_activity(
+                &previous_voltage,
+                &self.circuit.voltage.values,
+                &mut activity,
+            );
             self.step_index += 1;
         }
+        self.last_node_activity = activity;
         Ok(self.stats())
     }
 
@@ -526,6 +537,39 @@ impl PlanarianBioelectricRealtimeRuntime {
             }
         }
         Float32Array::from(values.as_slice())
+    }
+
+    /// Returns Matter-owned per-node activity from the latest step or edit.
+    ///
+    /// The returned `Float32Array` layout is two floats per node:
+    /// `[absolute_voltage_delta, normalized_voltage_delta]`.
+    /// Normalization is relative to the largest node delta in this latest
+    /// Matter mutation batch. A fresh or reset runtime returns zeros.
+    #[must_use]
+    pub fn node_activity(&self) -> Float32Array {
+        let max_delta = self
+            .last_node_activity
+            .iter()
+            .copied()
+            .fold(0.0_f32, f32::max);
+        let mut values = Vec::with_capacity(self.last_node_activity.len() * 2);
+        for delta in &self.last_node_activity {
+            values.extend_from_slice(&[
+                *delta,
+                if max_delta > 1.0e-6 {
+                    (*delta / max_delta).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                },
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns the number of floats per node in `node_activity()`.
+    #[must_use]
+    pub fn node_activity_stride(&self) -> usize {
+        2
     }
 
     /// Returns a Matter-owned readout for one selected node.
@@ -1003,6 +1047,7 @@ impl PlanarianBioelectricRealtimeRuntime {
             outcome_trace,
             outcome_trace_set,
             circuit: initial_circuit.clone(),
+            last_node_activity: zero_node_activity(initial_circuit.node_count),
             initial_circuit,
             step_index: 0,
             last_step: BioelectricCircuitStepDiagnostics::empty(0),
@@ -1016,6 +1061,7 @@ impl PlanarianBioelectricRealtimeRuntime {
         &mut self,
         operation: BioelectricCircuitEditOperation,
     ) -> Result<Float32Array, JsValue> {
+        let previous_voltage = self.circuit.voltage.values.clone();
         let edit = BioelectricCircuitEdit::new(
             format!("edit.planarian_wasm.{}", self.circuit.revision),
             None,
@@ -1025,6 +1071,7 @@ impl PlanarianBioelectricRealtimeRuntime {
             .runtime
             .apply_edit(&self.source_run.substrate, &mut self.circuit, &edit)
             .map_err(to_js_error)?;
+        self.last_node_activity = voltage_activity(&previous_voltage, &self.circuit.voltage.values);
         let values = edit_result_values(&result);
         self.record_edit_event(&operation, &result);
         self.last_edit = Some(result);
@@ -1342,6 +1389,24 @@ fn readout_values<'a>(state: &'a BioelectricCircuitState, layer_id: &str) -> Opt
         .iter()
         .find(|layer| layer.layer_id == layer_id)
         .map(|layer| layer.values.as_slice())
+}
+
+fn zero_node_activity(node_count: usize) -> Vec<f32> {
+    vec![0.0; node_count]
+}
+
+fn voltage_activity(previous: &[f32], current: &[f32]) -> Vec<f32> {
+    let mut activity = zero_node_activity(current.len());
+    accumulate_voltage_activity(previous, current, &mut activity);
+    activity
+}
+
+fn accumulate_voltage_activity(previous: &[f32], current: &[f32], activity: &mut [f32]) {
+    for (node_index, (previous, current)) in previous.iter().zip(current.iter()).enumerate() {
+        if let Some(slot) = activity.get_mut(node_index) {
+            *slot = (*slot).max((current - previous).abs());
+        }
+    }
 }
 
 fn push_edit_target_values(
