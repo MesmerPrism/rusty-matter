@@ -70,6 +70,78 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.surface_node.v1",
+      "rust_type": "SurfaceFieldNode",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.surface_substrate.v1",
+      "rust_type": "SurfaceFieldSubstrate",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.scalar_field.v1",
+      "rust_type": "SurfaceScalarField",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.vector_field.v1",
+      "rust_type": "SurfaceVectorField",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.field_state.v1",
+      "rust_type": "SurfaceFieldState",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.perturbation.v1",
+      "rust_type": "SurfaceFieldPerturbation",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.runtime_config.v1",
+      "rust_type": "SurfaceFieldRuntimeConfig",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.step_diagnostics.v1",
+      "rust_type": "SurfaceFieldStepDiagnostics",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.run_summary.v1",
+      "rust_type": "SurfaceFieldRunSummary",
+      "fixture_paths": [
+        "fixtures/fields/unit-square-surface-field-run-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [
@@ -161,6 +233,8 @@
         "fixtures/damaged/invalid-mesh-surface-index.json",
         "fixtures/damaged/invalid-particle-body.json",
         "fixtures/damaged/invalid-particle-influence.json",
+        "fixtures/damaged/invalid-surface-field-perturbation.json",
+        "fixtures/damaged/invalid-surface-field-state.json",
         "fixtures/damaged/invalid-voxel-size.json",
         "fixtures/damaged/voxel-budget-overflow.json"
       ],

@@ -10,6 +10,10 @@ Matter owns:
 - mesh and geometry payloads;
 - dynamic mesh topology keys, surface samples, coordinate maps, and local
   coordinate frames;
+- surface-field graph substrates over mesh sample nodes and same-surface
+  neighbor tiers;
+- scalar/vector surface-field state buffers, perturbation descriptors, runtime
+  config contracts, and deterministic run-summary contracts;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -64,6 +68,8 @@ The implemented foundation slices are intentionally CPU/data-only:
 - triangle mesh validation;
 - dynamic mesh surface validation and topology keys;
 - deterministic surface sampling with same-surface neighbor tiers;
+- surface-field contracts over mesh surface sample nodes and first/second
+  neighbor tiers;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -94,6 +100,20 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-mesh/src/surface.rs`: generic triangle surface and topology key.
 - `rusty-matter-mesh/src/sampling.rs`: deterministic surface sampling,
   barycentric anchor updates, live sampler updates, and cross-neighborhoods.
+- `rusty-matter-fields/src/substrate.rs`: surface-field nodes and graph
+  substrates derived from `MeshSurfaceSampleSet` positions, normals, topology,
+  and first/second same-surface neighbor tiers.
+- `rusty-matter-fields/src/state.rs`: scalar fields, vector fields, and
+  substrate-bound field state bundles.
+- `rusty-matter-fields/src/perturbation.rs`: scheduled field perturbation
+  descriptors for polarity initialization, wound/scalar region edits, coupling
+  multiplier changes, and polarity inversion.
+- `rusty-matter-fields/src/config.rs`: fixed-step runtime configuration
+  contracts for later field dynamics.
+- `rusty-matter-fields/src/runtime.rs`: contract-only runtime wrapper that
+  validates F1 inputs and emits zero-step summaries.
+- `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
+  contracts.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

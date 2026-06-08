@@ -16,6 +16,8 @@ impl SchemaCatalog {
         ];
         let mesh_surface_fixtures = &["fixtures/mesh/unit-square-surface.json"];
         let mesh_surface_sample_fixtures = &["fixtures/mesh/unit-square-sample-summary.json"];
+        let field_contract_fixtures =
+            &["fixtures/fields/unit-square-surface-field-run-summary.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -39,6 +41,8 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-mesh-surface-index.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
+            "fixtures/damaged/invalid-surface-field-perturbation.json",
+            "fixtures/damaged/invalid-surface-field-state.json",
             "fixtures/damaged/invalid-voxel-size.json",
             "fixtures/damaged/voxel-budget-overflow.json",
         ];
@@ -88,6 +92,51 @@ impl SchemaCatalog {
                     "rusty.matter.mesh.surface_sample_set.v1",
                     "MeshSurfaceSampleSet",
                     mesh_surface_sample_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.surface_node.v1",
+                    "SurfaceFieldNode",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.surface_substrate.v1",
+                    "SurfaceFieldSubstrate",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.scalar_field.v1",
+                    "SurfaceScalarField",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.vector_field.v1",
+                    "SurfaceVectorField",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.field_state.v1",
+                    "SurfaceFieldState",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.perturbation.v1",
+                    "SurfaceFieldPerturbation",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.runtime_config.v1",
+                    "SurfaceFieldRuntimeConfig",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.step_diagnostics.v1",
+                    "SurfaceFieldStepDiagnostics",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.run_summary.v1",
+                    "SurfaceFieldRunSummary",
+                    field_contract_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

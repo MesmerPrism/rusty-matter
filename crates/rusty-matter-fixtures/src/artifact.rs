@@ -5,6 +5,7 @@ use serde::Serialize;
 
 use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
+use crate::fields::surface_field_contract_summary;
 use crate::mesh::{
     dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
     mesh_surface_sample_summary, synthetic_hand_validation_mesh_frame, unit_square_surface,
@@ -91,6 +92,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/mesh/unit-square-dynamic-collider-summary.json",
         &dynamic_collider_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-surface-field-run-summary.json",
+        &surface_field_contract_summary(&surface)?,
     )?);
 
     let hand_frame = synthetic_hand_validation_mesh_frame();

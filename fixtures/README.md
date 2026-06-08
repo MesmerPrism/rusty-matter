@@ -8,10 +8,12 @@ The SDF foundation bundle currently includes:
 - mesh payload fixtures in `fixtures/mesh`;
 - dynamic mesh surface, sample, coordinate-map, and dynamic-collider summaries
   in `fixtures/mesh`;
+- surface-field contract summaries in `fixtures/fields`;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
-- damaged-input rejection reports in `fixtures/damaged`;
+- damaged-input rejection reports in `fixtures/damaged`, including
+  surface-field state and perturbation rejection cases;
 - particle step summaries in `fixtures/particles`, including SDF attraction and
   richer interaction summaries.
 - a render-neutral particle payload summary in `fixtures/particles`.

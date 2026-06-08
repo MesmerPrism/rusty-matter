@@ -65,6 +65,8 @@ Current crate-root maps:
 
 - `rusty-matter-model/src/lib.rs`: facade over `ids`, `vec3`,
   `bounds`, `mesh`, and `error`.
+- `rusty-matter-fields/src/lib.rs`: facade over `ids`, `substrate`, `state`,
+  `perturbation`, `config`, `runtime`, `summary`, and `error`.
 - `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `sampling`,
   `coordinate`, `hand`, `collider`, accelerated surface `distance`, `error`,
   and shared `math`.
@@ -76,7 +78,8 @@ Current crate-root maps:
 - `rusty-matter-handmesh-wasm/src/lib.rs`: target-gated browser adapter over
   the shared Matter hand-mesh distance sampler.
 - `rusty-matter-fixtures/src/main.rs`: dispatch-only binary over `cli`,
-  `artifact`, `summary`, `sdf`, `mesh`, `particles`, `damaged`, and `error`.
+  `artifact`, `summary`, `fields`, `sdf`, `mesh`, `particles`, `damaged`, and
+  `error`.
 - `rusty-matter-schema/src/main.rs`: dispatch-only binary over `cli`,
   `catalog`, and `error`.
 

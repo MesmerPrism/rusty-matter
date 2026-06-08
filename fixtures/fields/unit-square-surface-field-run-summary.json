@@ -1,0 +1,17 @@
+{
+  "schema_id": "rusty.matter.fields.run_summary.v1",
+  "summary_id": "fixture.fields.unit_square_contract.v1",
+  "substrate_id": "fields.substrate.unit_square_fixture",
+  "state_id": "fields.state.unit_square_contract",
+  "runtime_config_id": "fields.runtime.default",
+  "node_count": 12,
+  "scalar_field_count": 3,
+  "vector_field_count": 1,
+  "perturbation_count": 2,
+  "first_tier_edge_count": 36,
+  "second_tier_edge_count": 36,
+  "step_count": 0,
+  "scalar_min": 0.0,
+  "scalar_max": 0.5,
+  "max_vector_length": 1.0
+}
