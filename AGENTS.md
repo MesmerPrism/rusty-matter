@@ -10,6 +10,11 @@ including fields, geometry, meshes, particles, SDF/TSDF, sampling, dynamics,
 fixtures, and deterministic CPU reference behavior. Do not introduce
 `rusty.morphospace.*` schemas here; use `rusty.matter.*` for Matter contracts.
 
+Project-owned source in this repo is licensed `AGPL-3.0-or-later`. Keep
+third-party dependencies, datasets, captured geometry, GLB or mesh assets,
+research-derived fixtures, binary releases, and external tools under their own
+provenance and notice requirements; see `docs/LICENSING.md`.
+
 ## Purpose
 
 Rusty Matter owns computational matter: fields, geometry, particles, SDF/TSDF,
