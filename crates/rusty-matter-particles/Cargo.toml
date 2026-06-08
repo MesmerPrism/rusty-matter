@@ -11,10 +11,10 @@ default = []
 serde = ["dep:serde", "rusty-matter-model/serde", "rusty-matter-sdf/serde"]
 
 [dependencies]
+rusty-matter-mesh = { path = "../rusty-matter-mesh" }
 rusty-matter-model = { path = "../rusty-matter-model" }
 rusty-matter-sdf = { path = "../rusty-matter-sdf" }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [lints]
 workspace = true
-

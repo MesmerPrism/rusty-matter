@@ -117,6 +117,7 @@ dependencies = [
  "js-sys",
  "rusty-matter-mesh",
  "rusty-matter-model",
+ "rusty-matter-particles",
  "wasm-bindgen",
 ]
 
@@ -139,6 +140,7 @@ dependencies = [
 name = "rusty-matter-particles"
 version = "0.1.0"
 dependencies = [
+ "rusty-matter-mesh",
  "rusty-matter-model",
  "rusty-matter-sdf",
  "serde",

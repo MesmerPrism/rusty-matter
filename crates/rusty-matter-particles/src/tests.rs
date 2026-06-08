@@ -1,4 +1,5 @@
 use super::*;
+use rusty_matter_mesh::{SurfaceDistanceSamplerConfig, TriangleMeshSurface};
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig, PackedSdfGrid};
 
@@ -230,4 +231,87 @@ fn fixed_step_simulator_drops_excess_steps() {
 
     assert_eq!(diagnostics.fixed_steps, 1);
     assert_eq!(diagnostics.dropped_steps, 2);
+}
+
+#[test]
+fn surface_particle_reset_is_deterministic() {
+    let mut left = SurfaceParticleRuntime::new(
+        "particles.surface.left",
+        SurfaceParticleRuntimeConfig::default(),
+    )
+    .expect("runtime builds");
+    let mut right = SurfaceParticleRuntime::new(
+        "particles.surface.right",
+        SurfaceParticleRuntimeConfig::default(),
+    )
+    .expect("runtime builds");
+
+    left.reset_random_sphere(Vec3::new(0.0, 0.0, 0.0), 8, 2.0, 0.01, 0.5, 17)
+        .expect("left reset");
+    right
+        .reset_random_sphere(Vec3::new(0.0, 0.0, 0.0), 8, 2.0, 0.01, 0.5, 17)
+        .expect("right reset");
+
+    assert_eq!(
+        left.particles().particles[0].position,
+        right.particles().particles[0].position
+    );
+    assert_eq!(
+        left.particles().particles[7].velocity,
+        right.particles().particles[7].velocity
+    );
+}
+
+#[test]
+fn surface_particle_runtime_steps_against_accelerated_sampler() {
+    let surface = TriangleMeshSurface::new(
+        "mesh.surface_particle_test",
+        vec![
+            Vec3::new(-0.5, -0.5, 0.0),
+            Vec3::new(0.5, -0.5, 0.0),
+            Vec3::new(0.0, 0.5, 0.0),
+        ],
+        vec![[0, 1, 2]],
+    );
+    let sampler = surface
+        .distance_sampler(SurfaceDistanceSamplerConfig::default())
+        .expect("sampler builds");
+    let mut runtime = SurfaceParticleRuntime::new(
+        "particles.surface_step",
+        SurfaceParticleRuntimeConfig {
+            max_substep_seconds: 1.0 / 120.0,
+            max_substeps_per_frame: 8,
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+    )
+    .expect("runtime builds");
+    runtime
+        .reset_random_sphere(Vec3::new(0.0, 0.0, 0.2), 16, 0.8, 0.01, 0.5, 3)
+        .expect("reset succeeds");
+    let before = runtime.particles().particles[0].position;
+
+    let diagnostics =
+        runtime.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
+
+    assert_eq!(diagnostics.particle_count, 16);
+    assert_eq!(diagnostics.substeps, 4);
+    assert!(diagnostics.closest_samples >= 16);
+    assert!(diagnostics.affected_particles >= 16);
+    assert!(diagnostics.surface_triangle_tests >= diagnostics.closest_samples);
+    assert!(diagnostics.max_speed.is_finite());
+    assert_ne!(runtime.particles().particles[0].position, before);
+}
+
+#[test]
+fn surface_particle_runtime_rejects_invalid_config() {
+    let error = SurfaceParticleRuntime::new(
+        "particles.surface_bad",
+        SurfaceParticleRuntimeConfig {
+            max_substep_seconds: 0.0,
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+    )
+    .unwrap_err();
+
+    assert_eq!(error, ParticleError::InvalidFixedStep);
 }
