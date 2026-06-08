@@ -5,11 +5,13 @@ use crate::{
     BioelectricCircuitConfig, BioelectricCircuitRuntime, BioelectricCircuitState,
     BioelectricConductanceEdge, BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate,
     BioelectricGateSource, BioelectricMemoryState, BioelectricReadoutLayer,
-    BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError, SurfaceFieldDebugFrame,
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRuntime,
-    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
-    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
-    BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID, SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
+    BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError, PlanarianAxisRegion,
+    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    SurfaceVectorField, SurfaceVectorFieldKind, BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID,
+    SURFACE_FIELD_SUBSTRATE_SCHEMA_ID,
 };
 
 #[test]
@@ -419,6 +421,143 @@ fn damaged_bioelectric_current_target_is_rejected() {
     ));
 }
 
+#[test]
+fn planarian_axis_map_assigns_every_node_to_one_region() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+
+    assert_eq!(run.substrate.node_count(), run.axis_map.node_regions.len());
+    for region in PlanarianAxisRegion::all() {
+        assert!(
+            !run.axis_map.nodes_in_region(region).is_empty(),
+            "{region:?} should have sampled nodes"
+        );
+    }
+    run.validate().expect("planarian run validates");
+}
+
+#[test]
+fn planarian_baseline_separates_head_and_tail_readouts() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    let final_frame = run.sequence.frames.last().expect("final frame");
+    let head_nodes = run.axis_map.nodes_in_region(PlanarianAxisRegion::Head);
+    let tail_nodes = run.axis_map.nodes_in_region(PlanarianAxisRegion::Tail);
+
+    let head_identity_at_head = average_readout(
+        final_frame,
+        "readout.planarian_ap.head_identity",
+        &head_nodes,
+    );
+    let head_identity_at_tail = average_readout(
+        final_frame,
+        "readout.planarian_ap.head_identity",
+        &tail_nodes,
+    );
+    let tail_identity_at_tail = average_readout(
+        final_frame,
+        "readout.planarian_ap.tail_identity",
+        &tail_nodes,
+    );
+    let tail_identity_at_head = average_readout(
+        final_frame,
+        "readout.planarian_ap.tail_identity",
+        &head_nodes,
+    );
+
+    assert!(head_identity_at_head > head_identity_at_tail + 0.35);
+    assert!(tail_identity_at_tail > tail_identity_at_head + 0.35);
+}
+
+#[test]
+fn planarian_wound_current_is_localized_to_cut_band() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::TransverseCutWound);
+    let wound = run
+        .initial_circuit
+        .current_terms
+        .iter()
+        .find(|term| term.term_id == "current.planarian_ap.transverse_wound_depolarization")
+        .expect("wound current term");
+    let target_nodes = &wound.target_node_indices;
+    assert!(!target_nodes.is_empty());
+    assert!(target_nodes.iter().all(|node_index| {
+        let z = run.substrate.nodes[*node_index].position.z;
+        (z - 0.16).abs() <= 0.11 + 1.0e-5
+    }));
+
+    let initial_frame = &run.sequence.frames[0];
+    let wound_frame = run
+        .sequence
+        .frames
+        .iter()
+        .find(|frame| frame.step_index == 10)
+        .expect("wound active frame");
+    let wound_delta =
+        average_voltage(wound_frame, target_nodes) - average_voltage(initial_frame, target_nodes);
+    let outside_nodes = outside_nodes(run.substrate.node_count(), target_nodes);
+    let outside_delta = average_voltage(wound_frame, &outside_nodes)
+        - average_voltage(initial_frame, &outside_nodes);
+
+    assert!(wound_delta > 0.25);
+    assert!(wound_delta > outside_delta + 0.15);
+}
+
+#[test]
+fn planarian_gap_block_reduces_cross_band_conductance() {
+    let baseline = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    let gap_block = planarian_run(PlanarianBioelectricScenarioKind::GapBlock);
+
+    let baseline_cross = average_cross_cut_conductance(&baseline, 0.16);
+    let blocked_cross = average_cross_cut_conductance(&gap_block, 0.16);
+
+    assert!(baseline_cross > 0.0);
+    assert!(blocked_cross < baseline_cross * 0.15);
+}
+
+#[test]
+fn planarian_transient_memory_persists_after_perturbation() {
+    let memory = planarian_run(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory);
+    let control =
+        planarian_run(PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl);
+    let posterior_nodes = posterior_nodes(&memory);
+    let memory_final = memory.sequence.frames.last().expect("memory final frame");
+    let control_final = control.sequence.frames.last().expect("control final frame");
+
+    let memory_head = average_readout(
+        memory_final,
+        "readout.planarian_ap.head_identity",
+        &posterior_nodes,
+    );
+    let control_head = average_readout(
+        control_final,
+        "readout.planarian_ap.head_identity",
+        &posterior_nodes,
+    );
+    let memory_average = average_memory(memory_final, &posterior_nodes);
+
+    assert!(memory_average > 0.35);
+    assert!(memory_head > control_head + 0.20);
+}
+
+#[test]
+fn damaged_planarian_config_and_axis_map_are_rejected() {
+    let bad_config = PlanarianBioelectricPresetConfig {
+        sample_count: 0,
+        ..PlanarianBioelectricPresetConfig::default()
+    };
+    let error = PlanarianBioelectricScenarioRun::build(
+        PlanarianBioelectricScenarioKind::Baseline,
+        bad_config,
+    )
+    .expect_err("bad config rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
+
+    let mut run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    run.axis_map.node_regions[0].node_index = run.substrate.node_count();
+    let error = run.validate().expect_err("bad axis map rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
+}
+
 fn test_substrate() -> SurfaceFieldSubstrate {
     let surface = unit_square_surface();
     let config = MeshSurfaceSampleConfig {
@@ -585,4 +724,70 @@ fn wound_signal_count(frame: &SurfaceFieldDebugFrame, threshold: f32) -> usize {
         .iter()
         .filter(|value| **value > threshold)
         .count()
+}
+
+fn planarian_run(kind: PlanarianBioelectricScenarioKind) -> PlanarianBioelectricScenarioRun {
+    PlanarianBioelectricScenarioRun::build(kind, PlanarianBioelectricPresetConfig::default())
+        .expect("planarian scenario validates")
+}
+
+fn average_readout(
+    frame: &crate::BioelectricCircuitDebugFrame,
+    layer_id: &str,
+    node_indices: &[usize],
+) -> f32 {
+    let layer = frame
+        .readout_layers
+        .iter()
+        .find(|layer| layer.layer_id == layer_id)
+        .expect("readout layer");
+    average_values(&layer.values, node_indices)
+}
+
+fn average_voltage(frame: &crate::BioelectricCircuitDebugFrame, node_indices: &[usize]) -> f32 {
+    average_values(&frame.voltage_values, node_indices)
+}
+
+fn average_memory(frame: &crate::BioelectricCircuitDebugFrame, node_indices: &[usize]) -> f32 {
+    average_values(
+        frame.memory_values.as_ref().expect("memory values"),
+        node_indices,
+    )
+}
+
+fn average_values(values: &[f32], node_indices: &[usize]) -> f32 {
+    let sum = node_indices
+        .iter()
+        .map(|node_index| values[*node_index])
+        .sum::<f32>();
+    sum / node_indices.len() as f32
+}
+
+fn outside_nodes(node_count: usize, excluded: &[usize]) -> Vec<usize> {
+    (0..node_count)
+        .filter(|node_index| !excluded.contains(node_index))
+        .collect()
+}
+
+fn average_cross_cut_conductance(run: &PlanarianBioelectricScenarioRun, cut_z: f32) -> f32 {
+    let mut sum = 0.0;
+    let mut count = 0_usize;
+    for edge in &run.initial_circuit.conductance_edges {
+        let from_z = run.substrate.nodes[edge.from_node].position.z;
+        let to_z = run.substrate.nodes[edge.to_node].position.z;
+        if (from_z < cut_z && to_z >= cut_z) || (to_z < cut_z && from_z >= cut_z) {
+            sum += edge.base_conductance;
+            count += 1;
+        }
+    }
+    sum / count as f32
+}
+
+fn posterior_nodes(run: &PlanarianBioelectricScenarioRun) -> Vec<usize> {
+    let mut nodes = run.axis_map.nodes_in_region(PlanarianAxisRegion::Tail);
+    nodes.extend(
+        run.axis_map
+            .nodes_in_region(PlanarianAxisRegion::PostpharyngealTrunk),
+    );
+    nodes
 }

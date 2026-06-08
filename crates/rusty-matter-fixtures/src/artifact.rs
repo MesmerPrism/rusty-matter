@@ -7,7 +7,8 @@ use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
 use crate::fields::{
     bioelectric_circuit_config, bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
-    surface_field_contract_summary, surface_field_debug_frame, surface_field_debug_sequence,
+    planarian_bioelectric_scenario_run, surface_field_contract_summary, surface_field_debug_frame,
+    surface_field_debug_sequence,
 };
 use crate::mesh::{
     dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
@@ -119,6 +120,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json",
         &bioelectric_circuit_step_diagnostics(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json",
+        &planarian_bioelectric_scenario_run()?,
     )?);
 
     let hand_frame = synthetic_hand_validation_mesh_frame();

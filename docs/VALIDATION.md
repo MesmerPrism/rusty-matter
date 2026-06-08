@@ -35,10 +35,11 @@ and vector buffer validation, perturbation descriptor validation, runtime
 config validation, sparse neighbor-plan construction, deterministic fixed-step
 field dynamics, qualitative bioelectric circuit voltage/conductance/current
 contracts, gated coupling, hysteresis memory, readout stepping,
-debug-sequence emission, and damaged neighbor/buffer/runtime inputs.
+debug-sequence emission, synthetic planarian AP axis/circuit scenario behavior,
+and damaged neighbor/buffer/runtime inputs.
 
-The committed dynamic surface-field fixture is regenerated with the normal
-fixture route:
+The committed dynamic surface-field and planarian bioelectric scenario fixtures
+are regenerated with the normal fixture route:
 
 ```powershell
 cargo run -p rusty-matter-fixtures -- write

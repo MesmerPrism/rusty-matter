@@ -19,6 +19,8 @@ Matter owns:
   membrane-voltage-like buffers, gap-junction-like conductance edges,
   configurable current terms, gated coupling, hysteresis memory, and
   voltage-driven readout layers;
+- policy-free bioelectric circuit debug frames/sequences and synthetic
+  planarian AP axis/circuit presets for educational qualitative dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -80,6 +82,9 @@ The implemented foundation slices are intentionally CPU/data-only:
 - qualitative bioelectric circuit contracts and deterministic stepping over
   the same surface-field substrate, including voltage, conductance, current
   terms, gates, memory, and readouts;
+- bioelectric circuit debug frame/sequence contracts plus a synthetic
+  planarian anterior/posterior preset with AP region metadata, gap-block,
+  wound, memory, and no-memory control scenarios;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -134,6 +139,12 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   contracts and deterministic stepping for voltage state, conductance edges,
   configurable current terms, gated coupling, hysteresis memory, readout
   layers, config, and diagnostics.
+- `rusty-matter-fields/src/circuit_debug.rs`: policy-free bioelectric circuit
+  frames/sequences over substrate nodes, neighbor edges, voltage, memory,
+  readouts, and per-step diagnostics.
+- `rusty-matter-fields/src/planarian.rs`: synthetic planarian AP surface,
+  AP-region metadata, qualitative bioelectric preset scenarios, and validated
+  scenario-run contracts.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector

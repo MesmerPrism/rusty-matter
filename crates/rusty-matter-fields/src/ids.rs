@@ -42,3 +42,14 @@ pub const BIOELECTRIC_CIRCUIT_STATE_SCHEMA_ID: &str =
 /// Schema ID for per-step bioelectric circuit diagnostics.
 pub const BIOELECTRIC_STEP_DIAGNOSTICS_SCHEMA_ID: &str =
     "rusty.matter.fields.bioelectric_step_diagnostics.v1";
+/// Schema ID for policy-free bioelectric circuit debug frames.
+pub const BIOELECTRIC_CIRCUIT_DEBUG_FRAME_SCHEMA_ID: &str =
+    "rusty.matter.fields.bioelectric_circuit_debug_frame.v1";
+/// Schema ID for policy-free bioelectric circuit debug frame sequences.
+pub const BIOELECTRIC_CIRCUIT_DEBUG_SEQUENCE_SCHEMA_ID: &str =
+    "rusty.matter.fields.bioelectric_circuit_debug_sequence.v1";
+/// Schema ID for planarian anterior/posterior region-band metadata.
+pub const PLANARIAN_AXIS_MAP_SCHEMA_ID: &str = "rusty.matter.fields.planarian_axis_map.v1";
+/// Schema ID for synthetic planarian bioelectric scenario runs.
+pub const PLANARIAN_BIOELECTRIC_SCENARIO_RUN_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_bioelectric_scenario_run.v1";

@@ -3,10 +3,11 @@ use rusty_matter_fields::{
     BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
     BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
     BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
-    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
-    SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary, SurfaceFieldRuntime,
-    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
-    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -106,6 +107,22 @@ pub(crate) fn bioelectric_circuit_step_diagnostics(
     runtime
         .step_fixed(&substrate, &mut circuit, 0)
         .map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_bioelectric_scenario_run(
+) -> Result<PlanarianBioelectricScenarioRun, CliError> {
+    let config = PlanarianBioelectricPresetConfig {
+        sample_count: 80,
+        step_count: 150,
+        frame_stride: 15,
+        seed: 130_363,
+        ..PlanarianBioelectricPresetConfig::default()
+    };
+    PlanarianBioelectricScenarioRun::build(
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+        config,
+    )
+    .map_err(CliError::Field)
 }
 
 fn surface_field_contracts(

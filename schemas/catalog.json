@@ -214,6 +214,38 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_debug_frame.v1",
+      "rust_type": "BioelectricCircuitDebugFrame",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.bioelectric_circuit_debug_sequence.v1",
+      "rust_type": "BioelectricCircuitDebugSequence",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.planarian_axis_map.v1",
+      "rust_type": "PlanarianAxisMap",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.planarian_bioelectric_scenario_run.v1",
+      "rust_type": "PlanarianBioelectricScenarioRun",
+      "fixture_paths": [
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [
