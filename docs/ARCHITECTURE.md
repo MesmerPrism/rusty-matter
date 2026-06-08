@@ -95,6 +95,11 @@ The optional `rusty-matter-handmesh-wasm` crate is a thin browser export over
 the same Matter mesh distance sampler used natively. It does not own renderer
 policy, browser UI, command routing, or hand-mesh acquisition.
 
+The optional `rusty-matter-fields-wasm` crate is a thin browser export over the
+same Matter surface-field runtime used natively. It owns realtime stepping and
+debug-value snapshots in browser smoke tests, but it does not own colors,
+playback controls, renderer policy, command routing, or visualization.
+
 ## Module Map
 
 Crate roots stay as facades so Matter does not rebuild the monolithic
@@ -122,6 +127,9 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector
   and perturbation-region frames/sequences for Optics and debug adapters.
+- `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
+  runtime adapter exposing packed topology, sparse edges, perturbation regions,
+  state snapshots, and step diagnostics.
 - `rusty-matter-mesh/src/distance.rs`: accelerated closest-surface sampling
   over dynamic triangle meshes, including query diagnostics for node and exact
   triangle tests.

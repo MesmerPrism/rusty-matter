@@ -2,6 +2,7 @@
 members = [
     "crates/rusty-matter-fixtures",
     "crates/rusty-matter-fields",
+    "crates/rusty-matter-fields-wasm",
     "crates/rusty-matter-handmesh-wasm",
     "crates/rusty-matter-mesh",
     "crates/rusty-matter-model",

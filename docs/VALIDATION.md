@@ -53,6 +53,15 @@ The script installs `wasm-bindgen` under `target\wasm-tools` when missing,
 builds `rusty-matter-handmesh-wasm` for `wasm32-unknown-unknown`, and writes
 web-ready JS/Wasm artifacts under `local-artifacts\handmesh-wasm`.
 
+To build the realtime surface-field WebAssembly adapter:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Build-SurfaceFieldWasmRuntime.ps1
+```
+
+The script builds `rusty-matter-fields-wasm` for `wasm32-unknown-unknown` and
+writes web-ready JS/Wasm artifacts under `local-artifacts\surface-field-wasm`.
+
 ## External Hand Mesh Validation
 
 Matter's generic mesh contracts should also be exercised on a real deforming

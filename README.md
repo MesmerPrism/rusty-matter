@@ -11,6 +11,8 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   contracts, perturbation descriptors, runtime config contracts, sparse
   fixed-step dynamics, run summaries, diagnostics, and policy-free debug
   frames/sequences over mesh sample nodes;
+- `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
+  Matter-owned realtime surface-field runtime;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
