@@ -608,6 +608,11 @@ fn planarian_scenario_preserves_source_surface_topology() {
     );
     assert!(run.source_surface.vertex_count() > 0);
     assert!(run.source_surface.triangle_count() > 0);
+    for node in &run.substrate.nodes {
+        assert!(node.triangle_index < run.source_surface.triangle_count());
+        let barycentric_sum: f32 = node.barycentric.iter().sum();
+        assert!((barycentric_sum - 1.0).abs() <= 1.0e-4);
+    }
     run.validate().expect("planarian run validates");
 }
 
@@ -788,6 +793,12 @@ fn damaged_planarian_config_and_axis_map_are_rejected() {
     let error = run.validate().expect_err("bad source surface rejects");
 
     assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut run = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    run.substrate.nodes[0].barycentric = [0.75, 0.75, 0.0];
+    let error = run.validate().expect_err("bad node anchor rejects");
+
+    assert!(matches!(error, MatterFieldError::InvalidSubstrate(_)));
 }
 
 fn test_substrate() -> SurfaceFieldSubstrate {

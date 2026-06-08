@@ -24,7 +24,8 @@ Matter owns:
   surfaces;
 - policy-free bioelectric circuit debug frames/sequences and planarian AP
   circuit presets over a reviewed GLB-derived educational body mesh, with a
-  synthetic AP-axis fallback, for educational qualitative dynamics;
+  mesh-anchored surface-field substrate and a synthetic AP-axis fallback, for
+  educational qualitative dynamics;
 - compact planarian scenario outcome traces that summarize Matter-owned
   memory, readout, cut-band voltage, and cross-cut conductance metrics, plus
   comparison trace sets over the deterministic scenario family;
@@ -94,9 +95,9 @@ The implemented foundation slices are intentionally CPU/data-only:
   rejected-result reporting, and revision tracking;
 - bioelectric circuit debug frame/sequence contracts plus a planarian
   anterior/posterior preset with GLB-derived body-surface provenance,
-  mesh-normalized AP region metadata, gap-block, wound, memory, and no-memory
-  control scenarios, plus compact outcome traces and comparison trace sets for
-  educational comparison;
+  mesh-normalized AP region metadata, triangle/barycentric node anchors,
+  gap-block, wound, memory, and no-memory control scenarios, plus compact
+  outcome traces and comparison trace sets for educational comparison;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -124,9 +125,10 @@ same Matter surface-field and planarian bioelectric runtimes used natively. It
 owns realtime stepping, edit application, revision reporting, and debug-value
 snapshots in browser smoke tests. Its Planarian 3D path exposes Matter-owned
 scenario resets over the reviewed GLB-derived `TriangleMeshSurface`, sampled
-surface graph, conductance/current/gate configuration, and comparison readouts;
-it also exports deterministic scenario outcome traces and comparison trace sets
-for renderer-side plots, plus selected node and conductance-edge readouts for
+surface graph, per-node triangle/barycentric anchors,
+conductance/current/gate configuration, and comparison readouts; it also
+exports deterministic scenario outcome traces and comparison trace sets for
+renderer-side plots, plus selected node and conductance-edge readouts for
 browser inspector panels and bounded recent edit-event summaries for live
 feedback, including affected node/edge target rows for renderer highlights.
 It does not own colors, playback controls, renderer policy, command routing, or
@@ -141,8 +143,9 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-mesh/src/sampling.rs`: deterministic surface sampling,
   barycentric anchor updates, live sampler updates, and cross-neighborhoods.
 - `rusty-matter-fields/src/substrate.rs`: surface-field nodes and graph
-  substrates derived from `MeshSurfaceSampleSet` positions, normals, topology,
-  and first/second same-surface neighbor tiers.
+  substrates derived from `MeshSurfaceSampleSet` positions, normals,
+  triangle/barycentric mesh anchors, topology, and first/second same-surface
+  neighbor tiers.
 - `rusty-matter-fields/src/state.rs`: scalar fields, vector fields, and
   substrate-bound field state bundles.
 - `rusty-matter-fields/src/perturbation.rs`: scheduled field perturbation
@@ -182,7 +185,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   and perturbation-region frames/sequences for Optics and debug adapters.
 - `rusty-matter-fields-wasm/src/web.rs`: browser-facing realtime surface-field
   and planarian bioelectric runtime adapter exposing packed topology, sparse
-  edges, perturbation or edit surfaces, Planarian 3D scenario resets, state
+  edges, perturbation or edit surfaces, Planarian 3D scenario resets,
+  GLB-surface node anchors, state
   snapshots, outcome traces, comparison trace-set accessors, selected
   node/edge readouts, recent edit-event and affected-target readouts, and step
   diagnostics.

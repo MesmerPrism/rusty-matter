@@ -15,8 +15,8 @@ The SDF foundation bundle currently includes:
 - bioelectric circuit edit request/result fixtures in `fixtures/fields`;
 - planarian AP bioelectric scenario runs in `fixtures/fields`, including the
   reviewed GLB-derived educational source-surface provenance, substrate nodes,
-  mesh-normalized AP-region metadata, circuit debug frames, voltage, memory,
-  readouts, and diagnostics;
+  triangle/barycentric mesh anchors, mesh-normalized AP-region metadata,
+  circuit debug frames, voltage, memory, readouts, and diagnostics;
 - compact planarian AP outcome traces in `fixtures/fields`, including
   posterior memory/head readout, head/tail readout, cut-band voltage, and
   cross-cut conductance metrics derived from Matter scenario runs, plus the

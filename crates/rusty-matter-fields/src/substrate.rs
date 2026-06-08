@@ -24,6 +24,12 @@ pub struct SurfaceFieldNode {
     pub normal: Vec3,
     /// Source triangle index.
     pub triangle_index: usize,
+    /// Barycentric coordinates inside the source triangle.
+    ///
+    /// These coordinates keep the node anchored to the source mesh even when a
+    /// later runtime deforms or swaps vertex positions without changing
+    /// topology.
+    pub barycentric: [f32; 3],
     /// Same-surface first-tier neighbor nodes.
     pub first_tier_neighbors: Vec<usize>,
     /// Same-surface second-tier neighbor nodes.
@@ -46,6 +52,7 @@ impl SurfaceFieldNode {
             position: sample.position,
             normal: sample.normal,
             triangle_index: sample.triangle_index,
+            barycentric: sample.barycentric,
             first_tier_neighbors,
             second_tier_neighbors,
         }
@@ -85,6 +92,17 @@ impl SurfaceFieldNode {
         if self.normal.length_squared() <= 1.0e-10 {
             return Err(MatterFieldError::InvalidSubstrate(
                 "node normal must be non-zero",
+            ));
+        }
+        if !self
+            .barycentric
+            .iter()
+            .all(|value| value.is_finite() && *value >= -1.0e-5 && *value <= 1.0 + 1.0e-5)
+            || (self.barycentric[0] + self.barycentric[1] + self.barycentric[2] - 1.0).abs()
+                > 1.0e-4
+        {
+            return Err(MatterFieldError::InvalidSubstrate(
+                "node barycentric anchor must be finite and normalized",
             ));
         }
         validate_neighbors(self.node_index, node_count, &self.first_tier_neighbors)?;

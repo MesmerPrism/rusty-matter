@@ -38,7 +38,7 @@ contracts, gated coupling, hysteresis memory, readout stepping,
 realtime edit request/result/revision behavior, debug-sequence emission,
 planarian AP circuit behavior over the reviewed GLB-derived educational mesh,
 scenario outcome trace and trace-set contracts, synthetic fallback coverage,
-and damaged neighbor/buffer/runtime/edit/trace inputs.
+and damaged neighbor/buffer/runtime/edit/trace/mesh-anchor inputs.
 
 The committed planarian mesh module is regenerated from a reviewed GLB with:
 
@@ -83,12 +83,16 @@ The exported package includes the Matter-owned surface-field runtime and the
 Matter-owned planarian bioelectric runtime/edit surface. The Planarian 3D Wasm
 surface also exports scenario reset codes for baseline, wound, gap-block,
 transient-memory, and no-memory control presets over the reviewed GLB-derived
-body substrate, plus deterministic outcome traces for renderer-side comparison
-plots, including the Matter-owned comparison trace set used by Optics browser
-overlays and selected node/edge readout accessors used by browser inspector
-panels. It also exposes a bounded recent edit-event history for browser live
-feedback, plus affected node/edge target rows for renderer highlights;
-browsers format and draw those rows but do not own the event semantics.
+body substrate. The realtime preset uses 160 sampled GLB surface nodes with
+five first-tier and five second-tier neighbor links per node, and exports
+`node_surface_anchors()` rows as `[triangle_index, barycentric_a,
+barycentric_b, barycentric_c]`. It also exports deterministic outcome traces
+for renderer-side comparison plots, including the Matter-owned comparison
+trace set used by Optics browser overlays and selected node/edge readout
+accessors used by browser inspector panels. It also exposes a bounded recent
+edit-event history for browser live feedback, plus affected node/edge target
+rows for renderer highlights; browsers format and draw those rows but do not
+own the event semantics.
 
 ## External Hand Mesh Validation
 

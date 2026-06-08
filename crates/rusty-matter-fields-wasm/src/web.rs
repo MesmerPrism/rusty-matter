@@ -331,7 +331,7 @@ pub struct PlanarianBioelectricRealtimeRuntime {
 
 #[wasm_bindgen]
 impl PlanarianBioelectricRealtimeRuntime {
-    /// Creates the deterministic synthetic planarian bioelectric runtime.
+    /// Creates the deterministic GLB-derived planarian bioelectric runtime.
     ///
     /// # Errors
     ///
@@ -446,6 +446,32 @@ impl PlanarianBioelectricRealtimeRuntime {
             ]);
         }
         Float32Array::from(values.as_slice())
+    }
+
+    /// Returns mesh-anchor metadata for each sampled bioelectric node.
+    ///
+    /// The returned `Float32Array` layout is four floats per node:
+    /// `[source_triangle_index, barycentric_a, barycentric_b, barycentric_c]`.
+    /// This lets renderers and later adapters inspect the GLB-derived
+    /// mesh-attached data contract without using the GLB as runtime authority.
+    #[must_use]
+    pub fn node_surface_anchors(&self) -> Float32Array {
+        let mut values = Vec::with_capacity(self.source_run.substrate.node_count() * 4);
+        for node in &self.source_run.substrate.nodes {
+            values.extend_from_slice(&[
+                node.triangle_index as f32,
+                node.barycentric[0],
+                node.barycentric[1],
+                node.barycentric[2],
+            ]);
+        }
+        Float32Array::from(values.as_slice())
+    }
+
+    /// Returns the number of floats per node in `node_surface_anchors()`.
+    #[must_use]
+    pub fn node_surface_anchor_stride(&self) -> usize {
+        4
     }
 
     /// Returns conductance edge metadata.
@@ -1141,7 +1167,9 @@ fn dynamic_contracts() -> Result<
 
 fn planarian_wasm_config() -> PlanarianBioelectricPresetConfig {
     PlanarianBioelectricPresetConfig {
-        sample_count: 128,
+        sample_count: 160,
+        first_tier_neighbor_count: 5,
+        second_tier_neighbor_count: 5,
         step_count: 240,
         frame_stride: 12,
         seed: 196_613,
@@ -1153,9 +1181,19 @@ fn planarian_wasm_outcome_trace_set() -> Result<PlanarianBioelectricOutcomeTrace
     PlanarianBioelectricOutcomeTraceSet::from_preset_config(
         "fields.planarian_ap.wasm_comparison_outcome_trace_set",
         &planarian_comparison_scenario_kinds(),
-        planarian_wasm_config(),
+        planarian_wasm_comparison_config(),
     )
     .map_err(to_js_error)
+}
+
+fn planarian_wasm_comparison_config() -> PlanarianBioelectricPresetConfig {
+    PlanarianBioelectricPresetConfig {
+        sample_count: 128,
+        step_count: 240,
+        frame_stride: 12,
+        seed: 196_613,
+        ..PlanarianBioelectricPresetConfig::default()
+    }
 }
 
 fn scenario_kind_from_code(code: u32) -> Result<PlanarianBioelectricScenarioKind, JsValue> {

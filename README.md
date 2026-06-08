@@ -15,12 +15,14 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   hysteresis memory, voltage-driven readouts, realtime edit requests/results,
   circuit debug sequences, and planarian AP bioelectric presets over a
   reviewed GLB-derived educational body mesh with synthetic fallback and
-  compact scenario outcome traces and comparison trace sets;
+  mesh-anchored substrate nodes, plus compact scenario outcome traces and
+  comparison trace sets;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
-  reviewed GLB-derived planarian body substrate, selected node/edge readout
-  accessors, bounded recent edit-event readouts, and affected-target readouts;
+  reviewed GLB-derived planarian body substrate, GLB surface-anchor readouts,
+  selected node/edge readout accessors, bounded recent edit-event readouts,
+  and affected-target readouts;
 - `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
