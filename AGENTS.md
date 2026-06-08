@@ -4,6 +4,12 @@ This is the clean source repository for Rusty Matter. Keep committed content
 self-contained and free of private planning paths, downstream app names,
 platform-specific runtime handles, and historical naming drift.
 
+Rusty Morphospace is the top-level project/platform umbrella. This repo remains
+the Matter lane inside that umbrella: morphology of computational substance,
+including fields, geometry, meshes, particles, SDF/TSDF, sampling, dynamics,
+fixtures, and deterministic CPU reference behavior. Do not introduce
+`rusty.morphospace.*` schemas here; use `rusty.matter.*` for Matter contracts.
+
 ## Purpose
 
 Rusty Matter owns computational matter: fields, geometry, particles, SDF/TSDF,
