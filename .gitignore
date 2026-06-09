@@ -7,4 +7,5 @@
 *.ilk
 *.log
 *.tmp
-
+__pycache__/
+/local-artifacts/

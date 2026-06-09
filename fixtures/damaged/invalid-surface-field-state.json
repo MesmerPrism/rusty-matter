@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_surface_field_state.v1",
+  "damaged_input_id": "damaged.fields.invalid_state",
+  "expected_rejection_code": "field.node_count_mismatch",
+  "actual_rejection_code": "field.node_count_mismatch",
+  "message": "surface-field node count mismatch: expected 8, found 7"
+}

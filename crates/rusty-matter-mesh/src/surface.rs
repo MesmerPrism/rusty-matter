@@ -2,6 +2,7 @@ use rusty_matter_model::Vec3;
 
 use crate::{
     sample_mesh_surface_points, MatterMeshError, MeshSurfaceSampleConfig, MeshSurfaceSampleSet,
+    SurfaceDistanceSampler, SurfaceDistanceSamplerConfig,
 };
 
 /// Schema ID for dynamic triangle mesh surfaces.
@@ -77,6 +78,18 @@ impl TriangleMeshSurface {
         config: &MeshSurfaceSampleConfig,
     ) -> Result<MeshSurfaceSampleSet, MatterMeshError> {
         sample_mesh_surface_points(self, config)
+    }
+
+    /// Builds an accelerated closest-surface sampler.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the surface is invalid.
+    pub fn distance_sampler(
+        &self,
+        config: SurfaceDistanceSamplerConfig,
+    ) -> Result<SurfaceDistanceSampler, MatterMeshError> {
+        SurfaceDistanceSampler::from_surface(self, config)
     }
 
     /// Validates surface metadata and geometry.

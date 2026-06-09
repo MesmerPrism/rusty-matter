@@ -5,6 +5,13 @@ use serde::Serialize;
 
 use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
+use crate::fields::{
+    bioelectric_circuit_config, bioelectric_circuit_edit, bioelectric_circuit_edit_result,
+    bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
+    planarian_bioelectric_outcome_trace, planarian_bioelectric_outcome_trace_set,
+    planarian_bioelectric_scenario_run, surface_field_contract_summary, surface_field_debug_frame,
+    surface_field_debug_sequence,
+};
 use crate::mesh::{
     dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
     mesh_surface_sample_summary, synthetic_hand_validation_mesh_frame, unit_square_surface,
@@ -91,6 +98,50 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/mesh/unit-square-dynamic-collider-summary.json",
         &dynamic_collider_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-surface-field-run-summary.json",
+        &surface_field_contract_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-surface-field-debug-frame.json",
+        &surface_field_debug_frame(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-surface-field-debug-sequence.json",
+        &surface_field_debug_sequence(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-config.json",
+        &bioelectric_circuit_config()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-state.json",
+        &bioelectric_circuit_state(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json",
+        &bioelectric_circuit_step_diagnostics(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-edit.json",
+        &bioelectric_circuit_edit()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/unit-square-bioelectric-circuit-edit-result.json",
+        &bioelectric_circuit_edit_result(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-ap-transient-memory-scenario-run.json",
+        &planarian_bioelectric_scenario_run()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-ap-transient-memory-outcome-trace.json",
+        &planarian_bioelectric_outcome_trace()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-ap-comparison-outcome-trace-set.json",
+        &planarian_bioelectric_outcome_trace_set()?,
     )?);
 
     let hand_frame = synthetic_hand_validation_mesh_frame();

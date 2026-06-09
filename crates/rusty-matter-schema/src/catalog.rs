@@ -16,6 +16,27 @@ impl SchemaCatalog {
         ];
         let mesh_surface_fixtures = &["fixtures/mesh/unit-square-surface.json"];
         let mesh_surface_sample_fixtures = &["fixtures/mesh/unit-square-sample-summary.json"];
+        let field_contract_fixtures =
+            &["fixtures/fields/unit-square-surface-field-run-summary.json"];
+        let field_debug_fixtures = &["fixtures/fields/unit-square-surface-field-debug-frame.json"];
+        let field_debug_sequence_fixtures =
+            &["fixtures/fields/unit-square-surface-field-debug-sequence.json"];
+        let bioelectric_circuit_config_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-config.json"];
+        let bioelectric_circuit_state_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-state.json"];
+        let bioelectric_circuit_diagnostic_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-step-diagnostics.json"];
+        let bioelectric_circuit_edit_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-edit.json"];
+        let bioelectric_circuit_edit_result_fixtures =
+            &["fixtures/fields/unit-square-bioelectric-circuit-edit-result.json"];
+        let planarian_bioelectric_scenario_fixtures =
+            &["fixtures/fields/planarian-ap-transient-memory-scenario-run.json"];
+        let planarian_bioelectric_outcome_fixtures =
+            &["fixtures/fields/planarian-ap-transient-memory-outcome-trace.json"];
+        let planarian_bioelectric_outcome_set_fixtures =
+            &["fixtures/fields/planarian-ap-comparison-outcome-trace-set.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -39,6 +60,8 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-mesh-surface-index.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
+            "fixtures/damaged/invalid-surface-field-perturbation.json",
+            "fixtures/damaged/invalid-surface-field-state.json",
             "fixtures/damaged/invalid-voxel-size.json",
             "fixtures/damaged/voxel-budget-overflow.json",
         ];
@@ -88,6 +111,136 @@ impl SchemaCatalog {
                     "rusty.matter.mesh.surface_sample_set.v1",
                     "MeshSurfaceSampleSet",
                     mesh_surface_sample_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.surface_node.v1",
+                    "SurfaceFieldNode",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.surface_substrate.v1",
+                    "SurfaceFieldSubstrate",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.scalar_field.v1",
+                    "SurfaceScalarField",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.vector_field.v1",
+                    "SurfaceVectorField",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.field_state.v1",
+                    "SurfaceFieldState",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.perturbation.v1",
+                    "SurfaceFieldPerturbation",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.runtime_config.v1",
+                    "SurfaceFieldRuntimeConfig",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.step_diagnostics.v1",
+                    "SurfaceFieldStepDiagnostics",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.run_summary.v1",
+                    "SurfaceFieldRunSummary",
+                    field_contract_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.debug_frame.v1",
+                    "SurfaceFieldDebugFrame",
+                    field_debug_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.debug_sequence.v1",
+                    "SurfaceFieldDebugFrameSequence",
+                    field_debug_sequence_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_voltage_field.v1",
+                    "BioelectricVoltageField",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_conductance_edge.v1",
+                    "BioelectricConductanceEdge",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_current_term.v1",
+                    "BioelectricCurrentTerm",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_readout_layer.v1",
+                    "BioelectricReadoutLayer",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_config.v1",
+                    "BioelectricCircuitConfig",
+                    bioelectric_circuit_config_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_state.v1",
+                    "BioelectricCircuitState",
+                    bioelectric_circuit_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_edit.v1",
+                    "BioelectricCircuitEdit",
+                    bioelectric_circuit_edit_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_edit_result.v1",
+                    "BioelectricCircuitEditResult",
+                    bioelectric_circuit_edit_result_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_step_diagnostics.v1",
+                    "BioelectricCircuitStepDiagnostics",
+                    bioelectric_circuit_diagnostic_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_debug_frame.v1",
+                    "BioelectricCircuitDebugFrame",
+                    planarian_bioelectric_scenario_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.bioelectric_circuit_debug_sequence.v1",
+                    "BioelectricCircuitDebugSequence",
+                    planarian_bioelectric_scenario_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_axis_map.v1",
+                    "PlanarianAxisMap",
+                    planarian_bioelectric_scenario_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_bioelectric_scenario_run.v1",
+                    "PlanarianBioelectricScenarioRun",
+                    planarian_bioelectric_scenario_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1",
+                    "PlanarianBioelectricOutcomeTrace",
+                    planarian_bioelectric_outcome_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_bioelectric_outcome_trace_set.v1",
+                    "PlanarianBioelectricOutcomeTraceSet",
+                    planarian_bioelectric_outcome_set_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

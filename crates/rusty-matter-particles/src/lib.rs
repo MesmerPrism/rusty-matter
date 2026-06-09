@@ -9,6 +9,7 @@ mod render;
 mod simulator;
 mod spatial_hash;
 mod state;
+mod surface;
 
 pub use config::*;
 pub use diagnostics::*;
@@ -19,6 +20,7 @@ pub use render::*;
 pub use simulator::*;
 pub use spatial_hash::*;
 pub use state::*;
+pub use surface::*;
 
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,10 @@
+use rusty_matter_fields::{
+    MatterFieldError, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
+    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+};
 use rusty_matter_mesh::{
     HandValidationMeshFrame, Handedness, MatterMeshError, MeshCoordinateFrameConfig,
-    TriangleMeshSurface,
+    MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface,
 };
 use rusty_matter_model::{MatterModelError, TriangleMeshSnapshot, Vec3};
 use rusty_matter_particles::{
@@ -21,6 +25,8 @@ pub(crate) struct DamagedArtifact {
 }
 
 pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError> {
+    let field_substrate = unit_surface_field_substrate()?;
+    let field_node_count = field_substrate.node_count();
     Ok(vec![
         damaged_report(
             "fixtures/damaged/invalid-mesh-index.json",
@@ -128,6 +134,37 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
             )
             .validate(),
         )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-surface-field-state.json",
+            "fixture.damaged.invalid_surface_field_state.v1",
+            "damaged.fields.invalid_state",
+            "field.node_count_mismatch",
+            SurfaceFieldState::new(
+                "state.invalid_field_count",
+                &field_substrate,
+                vec![SurfaceScalarField::constant(
+                    "field.vmem_like",
+                    SurfaceScalarFieldKind::VmemLike,
+                    field_node_count.saturating_sub(1),
+                    0.0,
+                )],
+                Vec::new(),
+            )
+            .map(|_| ()),
+        )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-surface-field-perturbation.json",
+            "fixture.damaged.invalid_surface_field_perturbation.v1",
+            "damaged.fields.invalid_perturbation",
+            "field.invalid_perturbation_node",
+            SurfaceFieldPerturbation::new(
+                "perturbation.invalid_target",
+                Some("field.wound_signal".to_owned()),
+                vec![field_node_count],
+                SurfaceFieldPerturbationEffect::WoundRegion { signal_value: 1.0 },
+            )
+            .validate(field_node_count),
+        )?,
     ])
 }
 
@@ -227,6 +264,55 @@ fn damaged_mesh_report(
     })
 }
 
+fn damaged_field_report(
+    path: &'static str,
+    fixture_id: impl Into<String>,
+    damaged_input_id: impl Into<String>,
+    expected_rejection_code: &'static str,
+    result: Result<(), MatterFieldError>,
+) -> Result<DamagedArtifact, CliError> {
+    let fixture_id = fixture_id.into();
+    let Err(error) = result else {
+        return Err(CliError::ExpectedRejection { fixture_id });
+    };
+    let actual_rejection_code = field_rejection_code(&error);
+    if actual_rejection_code != expected_rejection_code {
+        return Err(CliError::UnexpectedRejection {
+            expected: expected_rejection_code.to_owned(),
+            actual: actual_rejection_code,
+        });
+    }
+
+    Ok(DamagedArtifact {
+        path,
+        report: DamagedFixtureReport {
+            schema_id: "rusty.matter.fixture.damaged_input_report.v1".to_owned(),
+            fixture_id,
+            damaged_input_id: damaged_input_id.into(),
+            expected_rejection_code: expected_rejection_code.to_owned(),
+            actual_rejection_code,
+            message: error.to_string(),
+        },
+    })
+}
+
+fn unit_surface_field_substrate() -> Result<SurfaceFieldSubstrate, CliError> {
+    let surface = unit_square_surface();
+    let config = MeshSurfaceSampleConfig {
+        sample_config_id: "mesh.surface_sample.damaged_field_fixture".to_owned(),
+        sample_set_id: "mesh.surface_samples.damaged_field_fixture".to_owned(),
+        point_count: 8,
+        first_tier_neighbor_count: 2,
+        second_tier_neighbor_count: 2,
+        seed: 14_003,
+        pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
+        ..MeshSurfaceSampleConfig::default()
+    };
+    let samples = surface.sample_points(&config).map_err(CliError::Mesh)?;
+    SurfaceFieldSubstrate::from_sample_set("fields.substrate.damaged_fixture", &samples)
+        .map_err(CliError::Field)
+}
+
 fn sdf_rejection_code(error: &SdfError) -> String {
     match error {
         SdfError::Model(MatterModelError::IndexOutOfRange { .. }) => "model.index_out_of_range",
@@ -275,6 +361,34 @@ fn particle_rejection_code(error: &ParticleError) -> String {
         ParticleError::InvalidSpatialHashCellSize => "particle.invalid_spatial_hash_cell_size",
         ParticleError::InvalidFixedStep => "particle.invalid_fixed_step",
         ParticleError::InvalidMaxSteps => "particle.invalid_max_steps",
+    }
+    .to_owned()
+}
+
+fn field_rejection_code(error: &MatterFieldError) -> String {
+    match error {
+        MatterFieldError::UnexpectedSchema { .. } => "field.unexpected_schema",
+        MatterFieldError::EmptySubstrateId => "field.empty_substrate_id",
+        MatterFieldError::EmptyNodeId => "field.empty_node_id",
+        MatterFieldError::EmptyFieldId => "field.empty_field_id",
+        MatterFieldError::EmptyStateId => "field.empty_state_id",
+        MatterFieldError::EmptyPerturbationId => "field.empty_perturbation_id",
+        MatterFieldError::EmptyRuntimeConfigId => "field.empty_runtime_config_id",
+        MatterFieldError::EmptyRunSummaryId => "field.empty_run_summary_id",
+        MatterFieldError::InvalidSubstrate(_) => "field.invalid_substrate",
+        MatterFieldError::InvalidField(_) => "field.invalid_field",
+        MatterFieldError::InvalidPerturbation(_) => "field.invalid_perturbation",
+        MatterFieldError::InvalidRuntimeConfig(_) => "field.invalid_runtime_config",
+        MatterFieldError::InvalidRunSummary(_) => "field.invalid_run_summary",
+        MatterFieldError::NodeCountMismatch { .. } => "field.node_count_mismatch",
+        MatterFieldError::NonFiniteScalar { .. } => "field.non_finite_scalar",
+        MatterFieldError::NonFiniteVector { .. } => "field.non_finite_vector",
+        MatterFieldError::InvalidNeighbor { .. } => "field.invalid_neighbor",
+        MatterFieldError::SelfNeighbor { .. } => "field.self_neighbor",
+        MatterFieldError::DuplicateNeighbor { .. } => "field.duplicate_neighbor",
+        MatterFieldError::DuplicateFieldId { .. } => "field.duplicate_field_id",
+        MatterFieldError::DuplicatePerturbationNode { .. } => "field.duplicate_perturbation_node",
+        MatterFieldError::InvalidPerturbationNode { .. } => "field.invalid_perturbation_node",
     }
     .to_owned()
 }

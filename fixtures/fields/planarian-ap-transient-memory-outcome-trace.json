@@ -1,0 +1,123 @@
+{
+  "schema_id": "rusty.matter.fields.planarian_bioelectric_outcome_trace.v1",
+  "trace_id": "fixture.fields.planarian_ap.transient_memory_outcome_trace",
+  "scenario_id": "bioelectric.planarian_ap.transient_depolarization_memory.synthetic",
+  "scenario_kind": "TransientDepolarizationMemory",
+  "expected_outcome": "posterior transient depolarization can persist as head-identity readout memory",
+  "evidence_type": "synthetic_bioelectric_over_educational_glb_mesh",
+  "substrate_id": "fields.substrate.planarian_ap.sketchfab_educational",
+  "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
+  "fixed_step_seconds": 0.033333335,
+  "frame_stride": 15,
+  "cross_cut_base_conductance_average": 0.08785712,
+  "sample_columns": [
+    "step_index",
+    "time_seconds",
+    "posterior_memory_average",
+    "posterior_head_identity_average",
+    "head_identity_at_head_average",
+    "tail_identity_at_tail_average",
+    "cut_band_voltage_average"
+  ],
+  "samples": [
+    {
+      "step_index": 0,
+      "time_seconds": 0.0,
+      "posterior_memory_average": 0.0,
+      "posterior_head_identity_average": 0.21124998,
+      "head_identity_at_head_average": 0.91999996,
+      "tail_identity_at_tail_average": 0.92,
+      "cut_band_voltage_average": 0.0
+    },
+    {
+      "step_index": 15,
+      "time_seconds": 0.5,
+      "posterior_memory_average": 0.68987596,
+      "posterior_head_identity_average": 0.90565306,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.2820138,
+      "cut_band_voltage_average": 0.010569223
+    },
+    {
+      "step_index": 30,
+      "time_seconds": 1.0000004,
+      "posterior_memory_average": 0.9637494,
+      "posterior_head_identity_average": 1.0,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.0,
+      "cut_band_voltage_average": 0.019753315
+    },
+    {
+      "step_index": 45,
+      "time_seconds": 1.4999999,
+      "posterior_memory_average": 0.99576265,
+      "posterior_head_identity_average": 1.0,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.0,
+      "cut_band_voltage_average": 0.024636671
+    },
+    {
+      "step_index": 60,
+      "time_seconds": 1.9999994,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 1.0,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.0,
+      "cut_band_voltage_average": 0.023298932
+    },
+    {
+      "step_index": 75,
+      "time_seconds": 2.499999,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 1.0,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.012335955,
+      "cut_band_voltage_average": 0.01984051
+    },
+    {
+      "step_index": 90,
+      "time_seconds": 2.9999986,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 0.9992042,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.11212692,
+      "cut_band_voltage_average": 0.01701629
+    },
+    {
+      "step_index": 105,
+      "time_seconds": 3.499998,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 0.9827615,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.2138005,
+      "cut_band_voltage_average": 0.015013817
+    },
+    {
+      "step_index": 120,
+      "time_seconds": 3.9999976,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 0.9635296,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.28562915,
+      "cut_band_voltage_average": 0.013621907
+    },
+    {
+      "step_index": 135,
+      "time_seconds": 4.499997,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 0.94946975,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.33040994,
+      "cut_band_voltage_average": 0.0126777785
+    },
+    {
+      "step_index": 150,
+      "time_seconds": 4.9999967,
+      "posterior_memory_average": 0.99900174,
+      "posterior_head_identity_average": 0.9403549,
+      "head_identity_at_head_average": 1.0,
+      "tail_identity_at_tail_average": 0.35671303,
+      "cut_band_voltage_average": 0.012056368
+    }
+  ]
+}

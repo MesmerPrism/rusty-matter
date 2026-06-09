@@ -1,0 +1,15 @@
+{
+  "schema_id": "rusty.matter.fields.bioelectric_circuit_edit_result.v1",
+  "result_id": "edit.fixture.set_node_voltage.result",
+  "edit_id": "edit.fixture.set_node_voltage",
+  "accepted": true,
+  "rejection_reason": null,
+  "revision_before": 0,
+  "revision_after": 1,
+  "clamped_values": 1,
+  "affected_node_indices": [
+    0
+  ],
+  "affected_edge_indices": [],
+  "affected_current_term_ids": []
+}

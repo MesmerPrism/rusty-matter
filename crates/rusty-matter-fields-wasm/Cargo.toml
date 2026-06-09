@@ -1,0 +1,20 @@
+[package]
+name = "rusty-matter-fields-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+js-sys = "0.3"
+rusty-matter-fields = { path = "../rusty-matter-fields" }
+rusty-matter-mesh = { path = "../rusty-matter-mesh" }
+rusty-matter-model = { path = "../rusty-matter-model" }
+wasm-bindgen = "0.2.122"
+
+[lints]
+workspace = true

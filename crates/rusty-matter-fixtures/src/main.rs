@@ -7,6 +7,7 @@ mod artifact;
 mod cli;
 mod damaged;
 mod error;
+mod fields;
 mod mesh;
 mod particles;
 mod sdf;

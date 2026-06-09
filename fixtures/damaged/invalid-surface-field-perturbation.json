@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_surface_field_perturbation.v1",
+  "damaged_input_id": "damaged.fields.invalid_perturbation",
+  "expected_rejection_code": "field.invalid_perturbation_node",
+  "actual_rejection_code": "field.invalid_perturbation_node",
+  "message": "surface-field perturbation references node 8, but only 8 nodes exist"
+}
