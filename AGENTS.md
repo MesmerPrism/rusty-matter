@@ -1,7 +1,7 @@
 # Rusty Matter Agent Notes
 
 This is the clean source repository for Rusty Matter. Keep committed content
-self-contained and free of private planning paths, downstream app names,
+self-contained and free of local-only planning paths, downstream app names,
 platform-specific runtime handles, and historical naming drift.
 
 Rusty Morphospace is the top-level project/platform umbrella. This repo remains
@@ -50,9 +50,9 @@ sockets, media stacks, or downstream app crates.
 - XR/device adapters own platform hand mesh acquisition and device runtime
   lifecycle. They convert platform frames into Matter payloads and Lattice
   relation snapshots outside Matter core.
-- Keep Kuramoto, oscillator coupling, breath control, study defaults, and
-  downstream visual-driver behavior out of Matter unless a later explicit
-  generalization decision is recorded.
+- Keep app-specific dynamics, control bindings, study defaults, and downstream
+  visual-driver behavior out of Matter unless a later explicit generalization
+  decision is recorded.
 - Use `rusty.matter.*` schema IDs for default Matter contracts. Legacy XR names
   may appear only in explicitly named compatibility layers outside Matter core.
 - Add fixtures and damaged-input expectations before runtime adapters.

@@ -11,7 +11,6 @@ FORBIDDEN_CARGO_TERMS = {
     "rusty_xr",
     "rusty-dope",
     "rusty_dope",
-    "viscereality",
     "makepad",
     "openxr",
     "vulkan",
@@ -58,4 +57,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
