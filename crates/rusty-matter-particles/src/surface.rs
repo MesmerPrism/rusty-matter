@@ -160,6 +160,7 @@ pub struct SurfaceParticleRuntime {
     particles: ParticleSet,
     config: SurfaceParticleRuntimeConfig,
     executor: BatchExecutor,
+    step_inputs: Vec<SurfaceParticleStepInput>,
 }
 
 impl PartialEq for SurfaceParticleRuntime {
@@ -185,6 +186,7 @@ impl SurfaceParticleRuntime {
             particles: ParticleSet::new(set_id),
             config,
             executor,
+            step_inputs: Vec::new(),
         })
     }
 
@@ -249,6 +251,7 @@ impl SurfaceParticleRuntime {
         }
         particles.validate()?;
         self.particles = particles;
+        self.step_inputs.clear();
         Ok(())
     }
 
@@ -297,9 +300,15 @@ impl SurfaceParticleRuntime {
         let max_speed = surface_radius * self.config.max_speed_radius_scale;
 
         for _ in 0..substeps {
-            let previous_particles = self.particles.particles.clone();
+            self.step_inputs.clear();
+            self.step_inputs.extend(
+                self.particles
+                    .particles
+                    .iter()
+                    .map(SurfaceParticleStepInput::from),
+            );
             let snapshot = SurfaceParticleStepSnapshot {
-                previous_particles: &previous_particles,
+                previous_particles: &self.step_inputs,
                 sampler,
                 config: &self.config,
                 max_speed,
@@ -322,8 +331,23 @@ impl SurfaceParticleRuntime {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct SurfaceParticleStepInput {
+    position: Vec3,
+    velocity: Vec3,
+}
+
+impl From<&ParticleState> for SurfaceParticleStepInput {
+    fn from(particle: &ParticleState) -> Self {
+        Self {
+            position: particle.position,
+            velocity: particle.velocity,
+        }
+    }
+}
+
 struct SurfaceParticleStepSnapshot<'a> {
-    previous_particles: &'a [ParticleState],
+    previous_particles: &'a [SurfaceParticleStepInput],
     sampler: &'a SurfaceDistanceSampler,
     config: &'a SurfaceParticleRuntimeConfig,
     max_speed: f32,
