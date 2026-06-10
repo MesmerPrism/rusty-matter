@@ -16,10 +16,23 @@ impl BatchReduce for OrderDiagnostics {
 }
 
 fn config(batch_size: usize) -> BatchConfig {
+    serial_config(batch_size)
+}
+
+fn serial_config(batch_size: usize) -> BatchConfig {
     BatchConfig {
         backend: BatchBackendKind::Serial,
         batch_size: NonZeroUsize::new(batch_size).expect("test batch size is non-zero"),
         max_threads: None,
+    }
+}
+
+#[cfg(feature = "rayon")]
+fn rayon_config(batch_size: usize, max_threads: Option<usize>) -> BatchConfig {
+    BatchConfig {
+        backend: BatchBackendKind::Rayon,
+        batch_size: NonZeroUsize::new(batch_size).expect("test batch size is non-zero"),
+        max_threads,
     }
 }
 
@@ -150,4 +163,73 @@ fn executor_rejects_zero_worker_cap() {
     .unwrap_err();
 
     assert_eq!(error, BatchError::InvalidMaxThreads);
+}
+
+#[cfg(feature = "rayon")]
+#[test]
+fn rayon_executor_matches_serial_diagnostics() {
+    let serial = BatchExecutor::new(serial_config(3)).expect("serial executor builds");
+    let rayon = BatchExecutor::new(rayon_config(3, Some(2))).expect("rayon executor builds");
+
+    let serial_report = serial.run_chunks(37, |chunk| OrderDiagnostics {
+        visited: vec![chunk.index],
+        sum: chunk.range.sum(),
+    });
+    let rayon_report = rayon.run_chunks(37, |chunk| OrderDiagnostics {
+        visited: vec![chunk.index],
+        sum: chunk.range.sum(),
+    });
+
+    assert_eq!(rayon_report.backend, BatchBackendKind::Rayon);
+    assert_eq!(rayon_report.worker_count, 2);
+    assert_eq!(rayon_report.chunk_count, serial_report.chunk_count);
+    assert_eq!(rayon_report.diagnostics, serial_report.diagnostics);
+}
+
+#[cfg(feature = "rayon")]
+#[test]
+fn rayon_slice_chunks_match_serial_output() {
+    let serial = BatchExecutor::new(serial_config(4)).expect("serial executor builds");
+    let rayon = BatchExecutor::new(rayon_config(4, Some(2))).expect("rayon executor builds");
+    let mut serial_output = vec![0usize; 31];
+    let mut rayon_output = vec![0usize; 31];
+
+    let serial_report = serial.run_slice_chunks(&mut serial_output, |chunk, values| {
+        for (offset, value) in values.iter_mut().enumerate() {
+            *value = (chunk.range.start + offset) * 3;
+        }
+        OrderDiagnostics {
+            visited: vec![chunk.index],
+            sum: values.iter().sum(),
+        }
+    });
+    let rayon_report = rayon.run_slice_chunks(&mut rayon_output, |chunk, values| {
+        for (offset, value) in values.iter_mut().enumerate() {
+            *value = (chunk.range.start + offset) * 3;
+        }
+        OrderDiagnostics {
+            visited: vec![chunk.index],
+            sum: values.iter().sum(),
+        }
+    });
+
+    assert_eq!(rayon_output, serial_output);
+    assert_eq!(rayon_report.chunk_count, serial_report.chunk_count);
+    assert_eq!(rayon_report.diagnostics, serial_report.diagnostics);
+}
+
+#[cfg(feature = "rayon")]
+#[test]
+fn rayon_integer_reduction_is_batch_size_invariant() {
+    let expected_sum = (0..129).sum::<usize>();
+    for batch_size in [1, 2, 7, 32, 129] {
+        let executor =
+            BatchExecutor::new(rayon_config(batch_size, Some(2))).expect("rayon executor builds");
+        let report = executor.run_chunks(129, |chunk| OrderDiagnostics {
+            visited: Vec::new(),
+            sum: chunk.range.sum(),
+        });
+
+        assert_eq!(report.diagnostics.sum, expected_sum);
+    }
 }

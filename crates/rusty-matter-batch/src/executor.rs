@@ -1,6 +1,12 @@
 use std::time::Instant;
 
+#[cfg(feature = "rayon")]
+use std::sync::Arc;
+
 use crate::{build_chunks, BatchBackendKind, BatchChunk, BatchConfig, BatchError, BatchReport};
+
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
 
 /// Deterministic diagnostic reduction for per-chunk batch output.
 pub trait BatchReduce: Default + Send {
@@ -9,9 +15,11 @@ pub trait BatchReduce: Default + Send {
 }
 
 /// Reusable Matter batch executor.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct BatchExecutor {
     config: BatchConfig,
+    #[cfg(feature = "rayon")]
+    rayon_pool: Option<Arc<rayon::ThreadPool>>,
 }
 
 impl BatchExecutor {
@@ -24,7 +32,23 @@ impl BatchExecutor {
         if matches!(config.max_threads, Some(0)) {
             return Err(BatchError::InvalidMaxThreads);
         }
-        Ok(Self { config })
+        #[cfg(feature = "rayon")]
+        let rayon_pool = if matches!(config.backend, BatchBackendKind::Rayon) {
+            let mut builder = rayon::ThreadPoolBuilder::new();
+            if let Some(max_threads) = config.max_threads {
+                builder = builder.num_threads(max_threads);
+            }
+            Some(Arc::new(builder.build().map_err(|error| {
+                BatchError::RayonPoolBuild(error.to_string())
+            })?))
+        } else {
+            None
+        };
+        Ok(Self {
+            config,
+            #[cfg(feature = "rayon")]
+            rayon_pool,
+        })
     }
 
     /// Returns the executor config.
@@ -48,6 +72,20 @@ impl BatchExecutor {
             BatchBackendKind::Serial => {
                 for chunk in chunks.iter().cloned() {
                     diagnostics.reduce(kernel(chunk));
+                }
+            }
+            #[cfg(feature = "rayon")]
+            BatchBackendKind::Rayon => {
+                let pool = self.rayon_pool.as_ref().expect("rayon pool exists");
+                let mut diagnostics_by_chunk = pool.install(|| {
+                    chunks
+                        .par_iter()
+                        .map(|chunk| (chunk.index, kernel(chunk.clone())))
+                        .collect::<Vec<_>>()
+                });
+                diagnostics_by_chunk.sort_by_key(|(chunk_index, _)| *chunk_index);
+                for (_, chunk_diagnostics) in diagnostics_by_chunk {
+                    diagnostics.reduce(chunk_diagnostics);
                 }
             }
         }
@@ -90,6 +128,30 @@ impl BatchExecutor {
                     chunk_count += 1;
                 }
             }
+            #[cfg(feature = "rayon")]
+            BatchBackendKind::Rayon => {
+                let pool = self.rayon_pool.as_ref().expect("rayon pool exists");
+                let mut diagnostics_by_chunk = pool.install(|| {
+                    output
+                        .par_chunks_mut(batch_size)
+                        .enumerate()
+                        .map(|(index, output_chunk)| {
+                            let start = index * batch_size;
+                            let end = start + output_chunk.len();
+                            let chunk = BatchChunk {
+                                index,
+                                range: start..end,
+                            };
+                            (index, kernel(chunk, output_chunk))
+                        })
+                        .collect::<Vec<_>>()
+                });
+                chunk_count = diagnostics_by_chunk.len();
+                diagnostics_by_chunk.sort_by_key(|(chunk_index, _)| *chunk_index);
+                for (_, chunk_diagnostics) in diagnostics_by_chunk {
+                    diagnostics.reduce(chunk_diagnostics);
+                }
+            }
         }
 
         BatchReport {
@@ -106,7 +168,22 @@ impl BatchExecutor {
     fn worker_count(&self) -> usize {
         match self.config.backend {
             BatchBackendKind::Serial => 1,
+            #[cfg(feature = "rayon")]
+            BatchBackendKind::Rayon => self
+                .rayon_pool
+                .as_ref()
+                .map_or(1, |pool| pool.current_num_threads()),
         }
+    }
+}
+
+impl std::fmt::Debug for BatchExecutor {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("BatchExecutor")
+            .field("config", &self.config)
+            .field("worker_count", &self.worker_count())
+            .finish()
     }
 }
 

@@ -6,7 +6,12 @@ authors.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+default = []
+rayon = ["dep:rayon"]
+
 [dependencies]
+rayon = { version = "1", optional = true }
 
 [lints]
 workspace = true

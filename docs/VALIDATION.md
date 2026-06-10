@@ -18,10 +18,14 @@ For Matter batch execution work, the narrow test route is:
 
 ```powershell
 cargo test -p rusty-matter-batch
+cargo test -p rusty-matter-batch --features rayon
 ```
 
 Those tests verify deterministic logical chunk construction and serial
-chunk-index-ordered diagnostics reduction before any parallel backend is added.
+chunk-index-ordered diagnostics reduction. With the `rayon` feature enabled,
+they also verify local-pool Rayon execution, serial-vs-Rayon output
+equivalence, batch-size-invariant integer diagnostics, and deterministic
+chunk-index reduction order.
 
 For accelerated mesh-distance work, the narrow test route is:
 

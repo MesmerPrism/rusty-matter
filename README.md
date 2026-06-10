@@ -7,8 +7,9 @@ fixtures, diagnostics, and deterministic CPU reference behavior.
 This repository starts with a narrow mesh, SDF, and particle foundation:
 
 - `rusty-matter-batch`: deterministic dependency-light batch execution helpers
-  for Matter CPU reference kernels, starting with a serial backend, stable
-  logical chunks, and chunk-index-ordered diagnostics reduction;
+  for Matter CPU reference kernels, with a default serial backend, optional
+  Rayon backend, stable logical chunks, and chunk-index-ordered diagnostics
+  reduction;
 - `rusty-matter-model`: shared model primitives and schema IDs;
 - `rusty-matter-fields`: surface-field substrates, scalar/vector field
   contracts, perturbation descriptors, runtime config contracts, sparse

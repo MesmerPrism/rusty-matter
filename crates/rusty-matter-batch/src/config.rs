@@ -5,6 +5,9 @@ use std::num::NonZeroUsize;
 pub enum BatchBackendKind {
     /// Deterministic single-threaded execution.
     Serial,
+    /// Rayon-backed execution with deterministic logical chunk reduction.
+    #[cfg(feature = "rayon")]
+    Rayon,
 }
 
 /// Batch execution configuration.
