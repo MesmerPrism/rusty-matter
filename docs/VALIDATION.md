@@ -22,7 +22,10 @@ cargo test -p rusty-matter-mesh distance_sampler
 
 Those tests verify exact closest-point behavior and that dense-surface queries
 prune exact triangle tests through the Matter-owned sampler that browser Wasm
-and Makepad/native adapters should share.
+and Makepad/native adapters should share. They also verify that animated meshes
+with unchanged topology can refit an existing distance-sampler tree without a
+full rebuild, while changed topology is rejected rather than silently reusing an
+invalid tree.
 
 For native animated-surface runtime adapter work, the narrow test route is:
 
@@ -33,7 +36,9 @@ cargo test -p rusty-matter-surface-runtime
 Those tests verify that the native facade updates animated surfaces, exposes
 distance sampler diagnostics, probes the dynamic collider, builds an SDF grid
 from the current surface, steps Matter-owned surface particles, and refreshes
-browser-parity particle distance snapshots without using the Wasm adapter.
+browser-parity particle distance snapshots without using the Wasm adapter. They
+also verify that consecutive matching-topology frames use the distance-sampler
+refit path exposed on `MatterSurfaceRuntimeUpdate`.
 
 For surface-field contract and dynamics work, the narrow test route is:
 

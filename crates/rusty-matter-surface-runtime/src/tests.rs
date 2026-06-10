@@ -49,6 +49,31 @@ fn runtime_updates_surface_and_exposes_sampler_stats() {
 }
 
 #[test]
+fn runtime_refits_distance_sampler_for_matching_topology_frames() {
+    let mut runtime = MatterSurfaceRuntime::default();
+    let surface = unit_square_surface();
+    let mut deformed = surface.clone();
+    for position in &mut deformed.positions {
+        position.z += 0.125;
+    }
+
+    let first = runtime
+        .update_frame(MatterSurfaceFrameInput::new(1, 0.0, surface))
+        .expect("initial surface update succeeds");
+    let second = runtime
+        .update_frame(MatterSurfaceFrameInput::new(2, 0.1, deformed))
+        .expect("matching-topology surface update refits");
+    let sample = runtime
+        .sample_distance(Vec3::new(0.25, 0.25, 0.25))
+        .expect("distance sample exists");
+
+    assert!(!first.distance_sampler_refit);
+    assert!(second.distance_sampler_refit);
+    assert_eq!(first.distance_sampler, second.distance_sampler);
+    assert!((sample.distance - 0.125).abs() < 1.0e-5);
+}
+
+#[test]
 fn runtime_probes_dynamic_collider_contacts() {
     let mut runtime = MatterSurfaceRuntime::default();
     runtime

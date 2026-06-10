@@ -155,6 +155,41 @@ impl SurfaceDistanceSampler {
         })
     }
 
+    /// Refits this sampler to updated vertex positions with identical topology.
+    ///
+    /// This preserves the existing BVH partition and triangle order, then
+    /// refreshes triangle geometry and node bounds. Query results remain exact
+    /// because every leaf still tests its assigned triangles; pruning may be
+    /// less optimal than a full rebuild after large deformations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError::ChangedTopology`] when vertex/triangle counts
+    /// or triangle indices differ from the sampler topology.
+    pub fn refit_from_surface(
+        &mut self,
+        surface: &TriangleMeshSurface,
+    ) -> Result<SurfaceDistanceSamplerStats, MatterMeshError> {
+        surface.validate()?;
+        let topology_key = surface.topology_key();
+        if topology_key != self.topology_key {
+            return Err(MatterMeshError::ChangedTopology);
+        }
+        if surface.triangle_count() != self.triangles.len() || self.nodes.is_empty() {
+            return Err(MatterMeshError::ChangedTopology);
+        }
+
+        for (triangle_index, triangle) in surface.triangles.iter().copied().enumerate() {
+            let Some(slot) = self.triangles.get_mut(triangle_index) else {
+                return Err(MatterMeshError::ChangedTopology);
+            };
+            *slot = DistanceTriangle::from_surface_triangle(surface, triangle_index, triangle)?;
+        }
+        refit_node_bounds(&self.triangles, &self.triangle_order, &mut self.nodes, 0);
+        self.topology_key = topology_key;
+        Ok(self.stats.clone())
+    }
+
     /// Returns the topology key this sampler was built for.
     #[must_use]
     pub fn topology_key(&self) -> &MeshSurfaceTopologyKey {
@@ -325,6 +360,31 @@ fn bounds_for_range(
         {
             bounds = bounds.union(triangle.bounds);
         }
+    }
+    bounds
+}
+
+fn refit_node_bounds(
+    triangles: &[DistanceTriangle],
+    triangle_order: &[usize],
+    nodes: &mut [DistanceNode],
+    node_index: usize,
+) -> DistanceBounds {
+    let Some(kind) = nodes.get(node_index).map(|node| node.kind) else {
+        return DistanceBounds::empty();
+    };
+    let bounds = match kind {
+        DistanceNodeKind::Leaf { start, end } => {
+            bounds_for_range(triangles, triangle_order, start, end)
+        }
+        DistanceNodeKind::Branch { left, right } => {
+            let left_bounds = refit_node_bounds(triangles, triangle_order, nodes, left);
+            let right_bounds = refit_node_bounds(triangles, triangle_order, nodes, right);
+            left_bounds.union(right_bounds)
+        }
+    };
+    if let Some(node) = nodes.get_mut(node_index) {
+        node.bounds = bounds;
     }
     bounds
 }

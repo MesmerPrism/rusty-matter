@@ -124,6 +124,9 @@ pub struct MatterSurfaceRuntimeUpdate {
     pub triangle_count: usize,
     /// Distance sampler build stats.
     pub distance_sampler: SurfaceDistanceSamplerStats,
+    /// Whether the distance sampler reused an existing topology tree and only
+    /// refit triangle/node bounds for this update.
+    pub distance_sampler_refit: bool,
     /// Dynamic collider update summary.
     pub collider_update: DynamicMeshColliderUpdate,
 }
@@ -569,10 +572,26 @@ impl MatterSurfaceRuntime {
         time_seconds: Option<f32>,
     ) -> Result<MatterSurfaceRuntimeUpdate, MatterSurfaceRuntimeError> {
         surface.validate()?;
-        let sampler = surface.distance_sampler(self.config.distance_sampler.clone())?;
-        let distance_sampler = sampler.stats().clone();
-        let collider_update = self.collider.update_from_surface(&surface);
         let topology_key = surface.topology_key();
+        let effective_sampler_config = SurfaceDistanceSamplerConfig {
+            leaf_triangle_count: self.config.distance_sampler.effective_leaf_triangle_count(),
+            max_depth: self.config.distance_sampler.effective_max_depth(),
+        };
+        let distance_sampler_refit = self.sampler.as_ref().is_some_and(|sampler| {
+            sampler.topology_key() == &topology_key && sampler.config() == &effective_sampler_config
+        });
+        let distance_sampler = if distance_sampler_refit {
+            self.sampler
+                .as_mut()
+                .expect("sampler exists when refit is selected")
+                .refit_from_surface(&surface)?
+        } else {
+            let sampler = surface.distance_sampler(self.config.distance_sampler.clone())?;
+            let distance_sampler = sampler.stats().clone();
+            self.sampler = Some(sampler);
+            distance_sampler
+        };
+        let collider_update = self.collider.update_from_surface(&surface);
         let update = MatterSurfaceRuntimeUpdate {
             schema_id: MATTER_SURFACE_RUNTIME_UPDATE_SCHEMA_ID.to_owned(),
             runtime_id: self.config.runtime_id.clone(),
@@ -583,10 +602,10 @@ impl MatterSurfaceRuntime {
             vertex_count: surface.vertex_count(),
             triangle_count: surface.triangle_count(),
             distance_sampler,
+            distance_sampler_refit,
             collider_update,
         };
         self.surface = Some(surface);
-        self.sampler = Some(sampler);
         self.frame_index = frame_index;
         self.time_seconds = time_seconds;
         self.refresh_particle_distances();

@@ -169,6 +169,48 @@ fn distance_sampler_returns_closest_surface_point() {
 }
 
 #[test]
+fn distance_sampler_refits_deformed_surface_without_rebuilding_tree() {
+    let surface = grid_surface(6, 6);
+    let mut deformed = surface.clone();
+    for position in &mut deformed.positions {
+        position.z += 0.125;
+    }
+    let mut sampler = surface
+        .distance_sampler(SurfaceDistanceSamplerConfig {
+            leaf_triangle_count: 4,
+            ..SurfaceDistanceSamplerConfig::default()
+        })
+        .expect("distance sampler builds");
+    let original_stats = sampler.stats().clone();
+
+    let refit_stats = sampler
+        .refit_from_surface(&deformed)
+        .expect("same-topology refit succeeds");
+    let sample = sampler
+        .sample(Vec3::new(0.25, 0.25, 0.25))
+        .expect("sample exists after refit");
+
+    assert_eq!(refit_stats, original_stats);
+    assert_eq!(sampler.stats(), &original_stats);
+    assert_eq!(sampler.topology_key(), &deformed.topology_key());
+    assert!((sample.distance - 0.125).abs() < 1.0e-4);
+}
+
+#[test]
+fn distance_sampler_refit_rejects_changed_topology() {
+    let surface = unit_square_surface();
+    let mut changed = surface.clone();
+    changed.triangles.push([0, 2, 1]);
+    let mut sampler = surface
+        .distance_sampler(SurfaceDistanceSamplerConfig::default())
+        .expect("distance sampler builds");
+
+    let error = sampler.refit_from_surface(&changed).unwrap_err();
+
+    assert_eq!(error, MatterMeshError::ChangedTopology);
+}
+
+#[test]
 fn distance_sampler_prunes_dense_surface_queries() {
     let surface = grid_surface(24, 24);
     let sampler = surface
