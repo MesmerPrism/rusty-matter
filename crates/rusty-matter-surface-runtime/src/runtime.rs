@@ -47,6 +47,12 @@ pub enum MatterSurfaceParticleDistanceRefreshPolicy {
     /// redundant pre-step refresh work for adapters that always step particles
     /// after installing a surface frame.
     StepOnly,
+    /// Do not refresh snapshot distances automatically.
+    ///
+    /// Particle integration still samples the active surface as needed for
+    /// Matter-owned simulation. This only disables the extra per-particle
+    /// snapshot/debug distance pass.
+    Disabled,
 }
 
 impl MatterSurfaceParticleDistanceRefreshPolicy {
@@ -56,11 +62,24 @@ impl MatterSurfaceParticleDistanceRefreshPolicy {
         match self {
             Self::SurfaceUpdateAndStep => "surface-update-and-step",
             Self::StepOnly => "step-only",
+            Self::Disabled => "disabled",
         }
     }
 
     const fn refresh_after_surface_update(self) -> bool {
         matches!(self, Self::SurfaceUpdateAndStep)
+    }
+
+    const fn refresh_after_reset(self) -> bool {
+        matches!(self, Self::SurfaceUpdateAndStep | Self::StepOnly)
+    }
+
+    const fn refresh_after_step(self) -> bool {
+        matches!(self, Self::SurfaceUpdateAndStep | Self::StepOnly)
+    }
+
+    const fn clear_when_refresh_skipped(self) -> bool {
+        matches!(self, Self::Disabled)
     }
 }
 
@@ -485,7 +504,15 @@ impl MatterSurfaceRuntime {
             surface_radius,
             seed,
         )?;
-        self.refresh_particle_distances();
+        if self
+            .config
+            .particle_distance_refresh_policy
+            .refresh_after_reset()
+        {
+            self.refresh_particle_distances();
+        } else {
+            self.clear_particle_distances();
+        }
         Ok(self.particle_snapshot())
     }
 
@@ -512,7 +539,15 @@ impl MatterSurfaceRuntime {
             sequence_cloud_radius,
             delta_seconds,
         );
-        self.refresh_particle_distances();
+        if self
+            .config
+            .particle_distance_refresh_policy
+            .refresh_after_step()
+        {
+            self.refresh_particle_distances();
+        } else {
+            self.clear_particle_distances();
+        }
         let refreshed_distance_samples = self
             .last_particle_distances
             .iter()
@@ -673,15 +708,26 @@ impl MatterSurfaceRuntime {
             .refresh_after_surface_update()
         {
             self.refresh_particle_distances();
+        } else if self
+            .config
+            .particle_distance_refresh_policy
+            .clear_when_refresh_skipped()
+        {
+            self.clear_particle_distances();
         }
         Ok(update)
     }
 
-    fn refresh_particle_distances(&mut self) {
-        let particles = self.particles.particles();
+    fn clear_particle_distances(&mut self) {
+        let len = self.particles.particles().len();
         self.last_particle_distances.clear();
-        self.last_particle_distances.resize(particles.len(), None);
+        self.last_particle_distances.resize(len, None);
         self.last_particle_distance_diagnostics = SurfaceDistanceQueryDiagnostics::default();
+    }
+
+    fn refresh_particle_distances(&mut self) {
+        self.clear_particle_distances();
+        let particles = self.particles.particles();
         let Some(sampler) = self.sampler.as_ref() else {
             return;
         };

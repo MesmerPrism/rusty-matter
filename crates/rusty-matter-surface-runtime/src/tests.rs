@@ -1,7 +1,9 @@
 use super::*;
 use std::num::NonZeroUsize;
 
-use rusty_matter_mesh::{DynamicMeshColliderUpdateStatus, TriangleMeshSurface};
+use rusty_matter_mesh::{
+    DynamicMeshColliderUpdateStatus, SurfaceDistanceQueryDiagnostics, TriangleMeshSurface,
+};
 use rusty_matter_model::Vec3;
 use rusty_matter_sdf::{MeshSdfSignMode, MeshToSdfConfig};
 
@@ -280,6 +282,45 @@ fn step_only_particle_distance_refresh_skips_surface_update_refresh() {
         runtime.stats().particle_distance_refresh_policy,
         MatterSurfaceParticleDistanceRefreshPolicy::StepOnly
     );
+}
+
+#[test]
+fn disabled_particle_distance_refresh_skips_snapshot_sampling() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy::Disabled,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    let reset = runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+
+    assert!(reset
+        .samples
+        .iter()
+        .all(|sample| sample.last_surface_distance.is_none()));
+    assert_eq!(runtime.stats().particle_distance_samples, 0);
+
+    let diagnostics = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("step succeeds");
+    let snapshot = runtime.particle_snapshot();
+
+    assert_eq!(diagnostics.particles.particle_count, 8);
+    assert!(diagnostics.particles.closest_samples >= 8);
+    assert_eq!(diagnostics.refreshed_distance_samples, 0);
+    assert_eq!(
+        diagnostics.refreshed_distance_diagnostics,
+        SurfaceDistanceQueryDiagnostics::default()
+    );
+    assert_eq!(runtime.stats().particle_distance_samples, 0);
+    assert!(snapshot
+        .samples
+        .iter()
+        .all(|sample| sample.last_surface_distance.is_none()));
 }
 
 #[test]
