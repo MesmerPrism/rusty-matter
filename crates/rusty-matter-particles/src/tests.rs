@@ -237,6 +237,28 @@ fn spatial_hash_returns_neighbor_candidates() {
 }
 
 #[test]
+fn spatial_hash_candidate_visitor_matches_query_radius() {
+    let positions = [
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.05, 0.0, 0.0),
+        Vec3::new(0.0, 0.05, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+    ];
+    let mut grid = SpatialHashGrid::new(0.1);
+
+    grid.build(&positions, 0.1).expect("grid builds");
+    let allocated = grid.query_radius(Vec3::ZERO, 0.11);
+    let mut visited = Vec::new();
+    grid.for_each_candidate(Vec3::ZERO, 0.11, |index| visited.push(index));
+
+    assert_eq!(visited, allocated);
+    assert!(visited.contains(&0));
+    assert!(visited.contains(&1));
+    assert!(visited.contains(&2));
+    assert!(!visited.contains(&3));
+}
+
+#[test]
 fn particle_interactions_apply_to_step() {
     let mut simulator = interaction_simulator_with_execution(ParticleExecutionConfig::default());
 

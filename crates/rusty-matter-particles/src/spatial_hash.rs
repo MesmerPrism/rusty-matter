@@ -59,22 +59,30 @@ impl SpatialHashGrid {
     /// Returns candidate particle indices within neighboring hash cells.
     #[must_use]
     pub fn query_radius(&self, position: Vec3, radius: f32) -> Vec<usize> {
+        let mut indices = Vec::new();
+        self.for_each_candidate(position, radius, |index| indices.push(index));
+        indices
+    }
+
+    /// Visits candidate particle indices within neighboring hash cells without
+    /// allocating a result vector.
+    pub fn for_each_candidate(&self, position: Vec3, radius: f32, mut visitor: impl FnMut(usize)) {
         if !position.is_finite() || !radius.is_finite() || radius < 0.0 {
-            return Vec::new();
+            return;
         }
         let center = cell_for_position(position, self.cell_size);
         let span = (radius / self.cell_size).ceil().max(0.0) as i32;
-        let mut indices = Vec::new();
         for z in (center.z - span)..=(center.z + span) {
             for y in (center.y - span)..=(center.y + span) {
                 for x in (center.x - span)..=(center.x + span) {
                     if let Some(cell_indices) = self.cells.get(&SpatialHashCell { x, y, z }) {
-                        indices.extend(cell_indices.iter().copied());
+                        for index in cell_indices.iter().copied() {
+                            visitor(index);
+                        }
                     }
                 }
             }
         }
-        indices
     }
 }
 

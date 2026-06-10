@@ -381,23 +381,23 @@ fn neighbor_acceleration(
     let mut acceleration = Vec3::ZERO;
     let mut checks = 0;
     let radius_squared = radius * radius;
-    for candidate in grid.query_radius(position, radius) {
+    grid.for_each_candidate(position, radius, |candidate| {
         if candidate == index {
-            continue;
+            return;
         }
         let Some(candidate_position) = positions.get(candidate).copied() else {
-            continue;
+            return;
         };
         let offset = position - candidate_position;
         let distance_squared = offset.length_squared();
         checks += 1;
         if distance_squared <= 1.0e-12 || distance_squared > radius_squared {
-            continue;
+            return;
         }
         let distance = distance_squared.sqrt();
         let falloff = 1.0 - distance / radius;
         acceleration = acceleration + offset / distance * (falloff * strength);
-    }
+    });
 
     (acceleration, checks)
 }
