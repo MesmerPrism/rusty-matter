@@ -121,6 +121,9 @@ fn runtime_steps_particles_and_refreshes_last_distances() {
     assert_eq!(reset.samples.len(), 16);
     assert_eq!(diagnostics.particles.particle_count, 16);
     assert!(diagnostics.particles.closest_samples >= 16);
+    assert_eq!(diagnostics.particles.execution.batch_size, 256);
+    assert_eq!(diagnostics.particles.execution.worker_count, 1);
+    assert_eq!(diagnostics.particles.execution.particle_count, 16);
     assert_eq!(diagnostics.refreshed_distance_samples, 16);
     assert_eq!(snapshot.samples.len(), 16);
     assert!(snapshot

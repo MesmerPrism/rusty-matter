@@ -1,5 +1,7 @@
 use super::*;
-use rusty_matter_mesh::{SurfaceDistanceSamplerConfig, TriangleMeshSurface};
+use rusty_matter_mesh::{
+    SurfaceDistanceSampler, SurfaceDistanceSamplerConfig, TriangleMeshSurface,
+};
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig, PackedSdfGrid};
 use std::num::NonZeroUsize;
@@ -111,6 +113,39 @@ fn interaction_simulator_with_execution(execution: ParticleExecutionConfig) -> P
         ))
         .expect("impulse validates");
     simulator
+}
+
+fn surface_particle_sampler() -> SurfaceDistanceSampler {
+    TriangleMeshSurface::new(
+        "mesh.surface_particle_test",
+        vec![
+            Vec3::new(-0.5, -0.5, 0.0),
+            Vec3::new(0.5, -0.5, 0.0),
+            Vec3::new(0.0, 0.5, 0.0),
+        ],
+        vec![[0, 1, 2]],
+    )
+    .distance_sampler(SurfaceDistanceSamplerConfig::default())
+    .expect("sampler builds")
+}
+
+fn surface_particle_runtime_with_execution(
+    execution: ParticleExecutionConfig,
+) -> SurfaceParticleRuntime {
+    let mut runtime = SurfaceParticleRuntime::new(
+        "particles.surface_step",
+        SurfaceParticleRuntimeConfig {
+            max_substep_seconds: 1.0 / 120.0,
+            max_substeps_per_frame: 8,
+            execution,
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+    )
+    .expect("runtime builds");
+    runtime
+        .reset_random_sphere(Vec3::new(0.0, 0.0, 0.2), 16, 0.8, 0.01, 0.5, 3)
+        .expect("reset succeeds");
+    runtime
 }
 
 #[test]
@@ -379,30 +414,8 @@ fn surface_particle_reset_is_deterministic() {
 
 #[test]
 fn surface_particle_runtime_steps_against_accelerated_sampler() {
-    let surface = TriangleMeshSurface::new(
-        "mesh.surface_particle_test",
-        vec![
-            Vec3::new(-0.5, -0.5, 0.0),
-            Vec3::new(0.5, -0.5, 0.0),
-            Vec3::new(0.0, 0.5, 0.0),
-        ],
-        vec![[0, 1, 2]],
-    );
-    let sampler = surface
-        .distance_sampler(SurfaceDistanceSamplerConfig::default())
-        .expect("sampler builds");
-    let mut runtime = SurfaceParticleRuntime::new(
-        "particles.surface_step",
-        SurfaceParticleRuntimeConfig {
-            max_substep_seconds: 1.0 / 120.0,
-            max_substeps_per_frame: 8,
-            ..SurfaceParticleRuntimeConfig::default()
-        },
-    )
-    .expect("runtime builds");
-    runtime
-        .reset_random_sphere(Vec3::new(0.0, 0.0, 0.2), 16, 0.8, 0.01, 0.5, 3)
-        .expect("reset succeeds");
+    let sampler = surface_particle_sampler();
+    let mut runtime = surface_particle_runtime_with_execution(ParticleExecutionConfig::default());
     let before = runtime.particles().particles[0].position;
 
     let diagnostics =
@@ -414,7 +427,93 @@ fn surface_particle_runtime_steps_against_accelerated_sampler() {
     assert!(diagnostics.affected_particles >= 16);
     assert!(diagnostics.surface_triangle_tests >= diagnostics.closest_samples);
     assert!(diagnostics.max_speed.is_finite());
+    assert_eq!(
+        diagnostics.execution.backend,
+        ParticleExecutionBackend::Serial
+    );
+    assert_eq!(diagnostics.execution.batch_size, 256);
+    assert_eq!(diagnostics.execution.chunk_count, 4);
+    assert_eq!(diagnostics.execution.worker_count, 1);
+    assert_eq!(diagnostics.execution.particle_count, 16);
     assert_ne!(runtime.particles().particles[0].position, before);
+}
+
+#[test]
+fn surface_particle_batch_size_does_not_change_serial_output() {
+    let sampler = surface_particle_sampler();
+    let mut unit_batch = surface_particle_runtime_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        1,
+        None,
+    ));
+    let mut full_batch = surface_particle_runtime_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        64,
+        None,
+    ));
+
+    let unit_diagnostics =
+        unit_batch.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
+    let full_diagnostics =
+        full_batch.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
+
+    assert_eq!(unit_batch.particles(), full_batch.particles());
+    assert_eq!(
+        unit_diagnostics.closest_samples,
+        full_diagnostics.closest_samples
+    );
+    assert_eq!(
+        unit_diagnostics.affected_particles,
+        full_diagnostics.affected_particles
+    );
+    assert_eq!(
+        unit_diagnostics.surface_triangle_tests,
+        full_diagnostics.surface_triangle_tests
+    );
+    assert_eq!(unit_diagnostics.execution.chunk_count, 64);
+    assert_eq!(full_diagnostics.execution.chunk_count, 4);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn surface_particle_parallel_execution_matches_serial_output() {
+    let sampler = surface_particle_sampler();
+    let mut serial = surface_particle_runtime_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        1,
+        None,
+    ));
+    let mut parallel = surface_particle_runtime_with_execution(execution_config(
+        ParticleExecutionBackend::Parallel,
+        1,
+        Some(2),
+    ));
+
+    let serial_diagnostics =
+        serial.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
+    let parallel_diagnostics =
+        parallel.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
+
+    assert_eq!(serial.particles(), parallel.particles());
+    assert_eq!(
+        serial_diagnostics.closest_samples,
+        parallel_diagnostics.closest_samples
+    );
+    assert_eq!(
+        serial_diagnostics.affected_particles,
+        parallel_diagnostics.affected_particles
+    );
+    assert_eq!(
+        serial_diagnostics.surface_triangle_tests,
+        parallel_diagnostics.surface_triangle_tests
+    );
+    assert_eq!(
+        parallel_diagnostics.execution.backend,
+        ParticleExecutionBackend::Parallel
+    );
+    assert_eq!(parallel_diagnostics.execution.batch_size, 1);
+    assert_eq!(parallel_diagnostics.execution.chunk_count, 64);
+    assert_eq!(parallel_diagnostics.execution.worker_count, 2);
 }
 
 #[test]

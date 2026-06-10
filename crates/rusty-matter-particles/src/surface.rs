@@ -1,9 +1,14 @@
+use rusty_matter_batch::{BatchExecutor, BatchReduce, BatchReport};
 use rusty_matter_mesh::SurfaceDistanceSampler;
 use rusty_matter_model::Vec3;
 
-use crate::{ParticleError, ParticleSet, ParticleState};
+use crate::{
+    ParticleError, ParticleExecutionConfig, ParticleExecutionDiagnostics, ParticleSet,
+    ParticleState,
+};
 
 /// Configuration for particles attracted to an accelerated mesh surface.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceParticleRuntimeConfig {
     /// Target surface distance as a multiplier of particle radius.
@@ -24,6 +29,8 @@ pub struct SurfaceParticleRuntimeConfig {
     pub max_substep_seconds: f32,
     /// Maximum substeps consumed by one frame.
     pub max_substeps_per_frame: u32,
+    /// Low-rate execution settings for particle batches.
+    pub execution: ParticleExecutionConfig,
 }
 
 impl Default for SurfaceParticleRuntimeConfig {
@@ -38,6 +45,7 @@ impl Default for SurfaceParticleRuntimeConfig {
             cloud_confinement_strength: 7.0,
             max_substep_seconds: 1.0 / 45.0,
             max_substeps_per_frame: 8,
+            execution: ParticleExecutionConfig::default(),
         }
     }
 }
@@ -93,11 +101,13 @@ impl SurfaceParticleRuntimeConfig {
         if self.max_substeps_per_frame == 0 {
             return Err(ParticleError::InvalidMaxSteps);
         }
+        self.execution.validate()?;
         Ok(())
     }
 }
 
 /// Diagnostics from one surface-particle frame step.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SurfaceParticleStepDiagnostics {
     /// Number of particles in the runtime after the step.
@@ -120,13 +130,22 @@ pub struct SurfaceParticleStepDiagnostics {
     pub surface_triangle_tests: usize,
     /// Maximum observed speed after the step.
     pub max_speed: f32,
+    /// Execution diagnostics accumulated across fixed substeps.
+    pub execution: ParticleExecutionDiagnostics,
 }
 
 /// Matter-owned particle runtime for attraction to an accelerated mesh surface.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct SurfaceParticleRuntime {
     particles: ParticleSet,
     config: SurfaceParticleRuntimeConfig,
+    executor: BatchExecutor,
+}
+
+impl PartialEq for SurfaceParticleRuntime {
+    fn eq(&self, other: &Self) -> bool {
+        self.particles == other.particles && self.config == other.config
+    }
 }
 
 impl SurfaceParticleRuntime {
@@ -140,9 +159,12 @@ impl SurfaceParticleRuntime {
         config: SurfaceParticleRuntimeConfig,
     ) -> Result<Self, ParticleError> {
         config.validate()?;
+        let executor = BatchExecutor::new(config.execution.batch_config()?)
+            .map_err(|error| ParticleError::BatchExecution(error.to_string()))?;
         Ok(Self {
             particles: ParticleSet::new(set_id),
             config,
+            executor,
         })
     }
 
@@ -156,6 +178,12 @@ impl SurfaceParticleRuntime {
     #[must_use]
     pub fn config(&self) -> &SurfaceParticleRuntimeConfig {
         &self.config
+    }
+
+    /// Returns the particle execution config.
+    #[must_use]
+    pub fn execution_config(&self) -> &ParticleExecutionConfig {
+        &self.config.execution
     }
 
     /// Resets particles to a deterministic random sphere around `center`.
@@ -238,56 +266,24 @@ impl SurfaceParticleRuntime {
         let max_speed = surface_radius * self.config.max_speed_radius_scale;
 
         for _ in 0..substeps {
-            for particle in &mut self.particles.particles {
-                particle.age_seconds += sub_delta;
-                if particle.inverse_mass == 0.0 {
-                    diagnostics.max_speed = diagnostics.max_speed.max(particle.velocity.length());
-                    continue;
-                }
-
-                let position = particle.position;
-                let Some(sample) = sampler.sample(position) else {
-                    diagnostics.rejected_particles += 1;
-                    continue;
-                };
-                diagnostics.closest_samples += 1;
-                diagnostics.surface_node_tests += sample.diagnostics.node_tests;
-                diagnostics.surface_leaf_tests += sample.diagnostics.leaf_tests;
-                diagnostics.surface_triangle_tests += sample.diagnostics.triangle_tests;
-
-                let outward = if sample.distance > 1.0e-7 {
-                    normalize_or(position - sample.point, sample.normal)
-                } else {
-                    normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
-                };
-                let target_distance = (particle.radius * self.config.target_distance_radius_scale)
-                    .max(self.config.minimum_target_distance);
-                let error = sample.distance - target_distance;
-                let mut acceleration = outward * (-error * self.config.attraction_strength);
-
-                let cloud_offset = position - sequence_center;
-                let cloud_distance = cloud_offset.length();
-                let confinement_radius =
-                    sequence_cloud_radius * self.config.cloud_confinement_radius_scale;
-                if cloud_distance > confinement_radius {
-                    acceleration = acceleration
-                        + normalize_or(cloud_offset, Vec3::new(0.0, 1.0, 0.0))
-                            * (-(cloud_distance - sequence_cloud_radius)
-                                * self.config.cloud_confinement_strength);
-                }
-                diagnostics.affected_particles += 1;
-
-                let mut velocity = particle.velocity + acceleration * sub_delta;
-                let damping = (1.0 - self.config.damping * sub_delta).clamp(0.0, 1.0);
-                velocity = velocity * damping;
-                let (velocity, clamped) = clamp_speed(velocity, max_speed);
-                if clamped {
-                    diagnostics.clamped_particles += 1;
-                }
-                particle.velocity = velocity;
-                particle.position = position + velocity * sub_delta;
-                diagnostics.max_speed = diagnostics.max_speed.max(velocity.length());
-            }
+            let previous_particles = self.particles.particles.clone();
+            let mut next_particles = previous_particles.clone();
+            let snapshot = SurfaceParticleStepSnapshot {
+                previous_particles: &previous_particles,
+                sampler,
+                config: &self.config,
+                max_speed,
+                sequence_center,
+                sequence_cloud_radius,
+                delta_seconds: sub_delta,
+            };
+            let report = self
+                .executor
+                .run_slice_chunks(&mut next_particles, |chunk, output| {
+                    step_surface_particle_chunk(&snapshot, chunk.range.start, output)
+                });
+            diagnostics.merge_chunk_report(&report, self.config.execution.backend);
+            self.particles.particles = next_particles;
             self.particles.time_seconds += sub_delta;
         }
 
@@ -295,6 +291,134 @@ impl SurfaceParticleRuntime {
         diagnostics.particle_count = self.particles.len();
         diagnostics
     }
+}
+
+struct SurfaceParticleStepSnapshot<'a> {
+    previous_particles: &'a [ParticleState],
+    sampler: &'a SurfaceDistanceSampler,
+    config: &'a SurfaceParticleRuntimeConfig,
+    max_speed: f32,
+    sequence_center: Vec3,
+    sequence_cloud_radius: f32,
+    delta_seconds: f32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+struct SurfaceParticleStepChunkDiagnostics {
+    closest_samples: usize,
+    affected_particles: usize,
+    rejected_particles: usize,
+    clamped_particles: usize,
+    surface_node_tests: usize,
+    surface_leaf_tests: usize,
+    surface_triangle_tests: usize,
+    max_speed: f32,
+}
+
+impl BatchReduce for SurfaceParticleStepChunkDiagnostics {
+    fn reduce(&mut self, other: Self) {
+        self.closest_samples += other.closest_samples;
+        self.affected_particles += other.affected_particles;
+        self.rejected_particles += other.rejected_particles;
+        self.clamped_particles += other.clamped_particles;
+        self.surface_node_tests += other.surface_node_tests;
+        self.surface_leaf_tests += other.surface_leaf_tests;
+        self.surface_triangle_tests += other.surface_triangle_tests;
+        self.max_speed = self.max_speed.max(other.max_speed);
+    }
+}
+
+impl SurfaceParticleStepDiagnostics {
+    fn merge_chunk_report(
+        &mut self,
+        report: &BatchReport<SurfaceParticleStepChunkDiagnostics>,
+        backend: crate::ParticleExecutionBackend,
+    ) {
+        self.closest_samples += report.diagnostics.closest_samples;
+        self.affected_particles += report.diagnostics.affected_particles;
+        self.rejected_particles += report.diagnostics.rejected_particles;
+        self.clamped_particles += report.diagnostics.clamped_particles;
+        self.surface_node_tests += report.diagnostics.surface_node_tests;
+        self.surface_leaf_tests += report.diagnostics.surface_leaf_tests;
+        self.surface_triangle_tests += report.diagnostics.surface_triangle_tests;
+        self.max_speed = self.max_speed.max(report.diagnostics.max_speed);
+        self.execution.backend = backend;
+        self.execution.batch_size = report.batch_size;
+        self.execution.chunk_count += report.chunk_count;
+        self.execution.worker_count = self.execution.worker_count.max(report.worker_count);
+        self.execution.particle_count = report.len;
+        self.execution.elapsed_micros += report.elapsed.as_micros();
+    }
+}
+
+fn step_surface_particle_chunk(
+    snapshot: &SurfaceParticleStepSnapshot<'_>,
+    start_index: usize,
+    output: &mut [ParticleState],
+) -> SurfaceParticleStepChunkDiagnostics {
+    let mut diagnostics = SurfaceParticleStepChunkDiagnostics::default();
+    for (offset, particle) in output.iter_mut().enumerate() {
+        let index = start_index + offset;
+        step_one_surface_particle(snapshot, index, particle, &mut diagnostics);
+    }
+    diagnostics
+}
+
+fn step_one_surface_particle(
+    snapshot: &SurfaceParticleStepSnapshot<'_>,
+    index: usize,
+    particle: &mut ParticleState,
+    diagnostics: &mut SurfaceParticleStepChunkDiagnostics,
+) {
+    particle.age_seconds += snapshot.delta_seconds;
+    if particle.inverse_mass == 0.0 {
+        diagnostics.max_speed = diagnostics.max_speed.max(particle.velocity.length());
+        return;
+    }
+
+    let position = snapshot.previous_particles[index].position;
+    let Some(sample) = snapshot.sampler.sample(position) else {
+        diagnostics.rejected_particles += 1;
+        return;
+    };
+    diagnostics.closest_samples += 1;
+    diagnostics.surface_node_tests += sample.diagnostics.node_tests;
+    diagnostics.surface_leaf_tests += sample.diagnostics.leaf_tests;
+    diagnostics.surface_triangle_tests += sample.diagnostics.triangle_tests;
+
+    let outward = if sample.distance > 1.0e-7 {
+        normalize_or(position - sample.point, sample.normal)
+    } else {
+        normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
+    };
+    let target_distance = (particle.radius * snapshot.config.target_distance_radius_scale)
+        .max(snapshot.config.minimum_target_distance);
+    let error = sample.distance - target_distance;
+    let mut acceleration = outward * (-error * snapshot.config.attraction_strength);
+
+    let cloud_offset = position - snapshot.sequence_center;
+    let cloud_distance = cloud_offset.length();
+    let confinement_radius =
+        snapshot.sequence_cloud_radius * snapshot.config.cloud_confinement_radius_scale;
+    if cloud_distance > confinement_radius {
+        acceleration = acceleration
+            + normalize_or(cloud_offset, Vec3::new(0.0, 1.0, 0.0))
+                * (-(cloud_distance - snapshot.sequence_cloud_radius)
+                    * snapshot.config.cloud_confinement_strength);
+    }
+    diagnostics.affected_particles += 1;
+
+    let mut velocity =
+        snapshot.previous_particles[index].velocity + acceleration * snapshot.delta_seconds;
+    let damping = (1.0 - snapshot.config.damping * snapshot.delta_seconds).clamp(0.0, 1.0);
+    velocity = velocity * damping;
+    let (velocity, clamped) = clamp_speed(velocity, snapshot.max_speed);
+    if clamped {
+        diagnostics.clamped_particles += 1;
+    }
+    particle.velocity = velocity;
+    particle.position = position + velocity * snapshot.delta_seconds;
+    diagnostics.max_speed = diagnostics.max_speed.max(velocity.length());
 }
 
 fn random_unit_direction(index: usize, seed: u32) -> Vec3 {
