@@ -1,4 +1,6 @@
 use super::*;
+use std::num::NonZeroUsize;
+
 use rusty_matter_mesh::{DynamicMeshColliderUpdateStatus, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
 use rusty_matter_sdf::{MeshSdfSignMode, MeshToSdfConfig};
@@ -98,6 +100,99 @@ fn runtime_probes_dynamic_collider_contacts() {
     assert_eq!(batch.overlap_count, 1);
     assert!(batch.results[0].overlaps);
     assert!(!batch.results[1].overlaps);
+}
+
+#[test]
+fn contact_probe_batch_preserves_input_order_across_chunks() {
+    let mut runtime = MatterSurfaceRuntime::default();
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    let probes = (0..7)
+        .map(|index| {
+            MatterSurfaceContactProbe::sphere(
+                format!("probe.{index}"),
+                Vec3::new(
+                    index as f32 * 0.1,
+                    0.25,
+                    if index % 2 == 0 { 0.03 } else { 0.6 },
+                ),
+                0.08,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let batch = runtime
+        .probe_contacts_with_batch_config(
+            &probes,
+            BatchConfig {
+                batch_size: NonZeroUsize::new(2).expect("test batch size is non-zero"),
+                ..BatchConfig::default()
+            },
+        )
+        .expect("contact probe batch succeeds");
+
+    assert_eq!(batch.results.len(), probes.len());
+    assert_eq!(batch.contact_count, probes.len());
+    assert_eq!(batch.overlap_count, 4);
+    for (probe, result) in probes.iter().zip(batch.results.iter()) {
+        assert_eq!(result.probe_id, probe.probe_id);
+    }
+}
+
+#[test]
+fn contact_probe_batch_rejects_invalid_worker_cap() {
+    let runtime = MatterSurfaceRuntime::default();
+    let error = runtime
+        .probe_contacts_with_batch_config(
+            &[],
+            BatchConfig {
+                max_threads: Some(0),
+                ..BatchConfig::default()
+            },
+        )
+        .unwrap_err();
+
+    assert!(matches!(error, MatterSurfaceRuntimeError::Batch(_)));
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn contact_probe_parallel_execution_matches_serial_output() {
+    let mut runtime = MatterSurfaceRuntime::default();
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    let probes = (0..17)
+        .map(|index| {
+            let x = (index % 5) as f32 * 0.22;
+            let y = (index / 5) as f32 * 0.22;
+            let z = if index % 3 == 0 { 0.04 } else { 0.45 };
+            MatterSurfaceContactProbe::sphere(format!("probe.{index}"), Vec3::new(x, y, z), 0.09)
+        })
+        .collect::<Vec<_>>();
+
+    let serial = runtime
+        .probe_contacts_with_batch_config(
+            &probes,
+            BatchConfig {
+                batch_size: NonZeroUsize::new(3).expect("test batch size is non-zero"),
+                ..BatchConfig::default()
+            },
+        )
+        .expect("serial batch succeeds");
+    let parallel = runtime
+        .probe_contacts_with_batch_config(
+            &probes,
+            BatchConfig {
+                backend: BatchBackendKind::Rayon,
+                batch_size: NonZeroUsize::new(3).expect("test batch size is non-zero"),
+                max_threads: Some(2),
+            },
+        )
+        .expect("parallel batch succeeds");
+
+    assert_eq!(parallel, serial);
 }
 
 #[test]

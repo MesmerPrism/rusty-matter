@@ -85,8 +85,9 @@ distribution code stays generic.
 
 The implemented foundation slices are intentionally CPU/data-only:
 
-- deterministic serial and optional Rayon batch execution helpers for future
-  particle, distance, contact-probe, SDF, and payload-packing kernels;
+- deterministic serial and optional Rayon batch execution helpers for
+  particle, surface contact-probe, future distance, SDF, and payload-packing
+  kernels;
 - model primitives;
 - triangle mesh validation;
 - dynamic mesh surface validation and topology keys;
@@ -123,7 +124,8 @@ The implemented foundation slices are intentionally CPU/data-only:
   particle simulator, with serial default behavior and optional Rayon
   equivalence tests;
 - native surface-runtime facade over the Matter-owned distance sampler,
-  dynamic collider, SDF builder, and surface particle runtime;
+  dynamic collider, batch-backed contact probes, SDF builder, and surface
+  particle runtime;
 - fixture and schema catalog checks;
 - dependency and namespace boundary guards.
 
@@ -132,10 +134,11 @@ and downstream visual-driver behavior stay outside Matter.
 
 The `rusty-matter-surface-runtime` crate is a native orchestration facade, not
 a new authority. It owns the current animated `TriangleMeshSurface`,
-`SurfaceDistanceSampler`, `DynamicMeshCollider`, `SurfaceParticleRuntime`, and
-typed particle distance snapshots so native adapters can consume one
-browser-equivalent Matter boundary. It does not own view policy, Makepad
-buffers, Quest lifecycle, settings, command JSON, or browser Wasm exports.
+`SurfaceDistanceSampler`, `DynamicMeshCollider`, batch-backed contact probes,
+`SurfaceParticleRuntime`, and typed particle distance snapshots so native
+adapters can consume one browser-equivalent Matter boundary. It does not own
+view policy, Makepad buffers, Quest lifecycle, settings, command JSON, or
+browser Wasm exports.
 
 The optional `rusty-matter-handmesh-wasm` crate is a thin browser export over
 the same Matter mesh distance sampler used natively. It does not own renderer

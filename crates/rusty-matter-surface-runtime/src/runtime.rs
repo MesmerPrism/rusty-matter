@@ -1,3 +1,4 @@
+use rusty_matter_batch::{BatchConfig, BatchExecutor, BatchReduce};
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, DynamicMeshColliderContact,
     DynamicMeshColliderUpdate, MeshSurfaceTopologyKey, SurfaceDistanceQueryDiagnostics,
@@ -409,38 +410,56 @@ impl MatterSurfaceRuntime {
         &self,
         probes: &[MatterSurfaceContactProbe],
     ) -> MatterSurfaceContactProbeBatch {
+        self.probe_contacts_with_batch_config(probes, BatchConfig::default())
+            .expect("default contact probe batch config is valid")
+    }
+
+    /// Runs a batch of dynamic collider contact probes with an explicit Matter
+    /// batch execution config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterSurfaceRuntimeError`] when the batch executor cannot be
+    /// created.
+    pub fn probe_contacts_with_batch_config(
+        &self,
+        probes: &[MatterSurfaceContactProbe],
+        batch_config: BatchConfig,
+    ) -> Result<MatterSurfaceContactProbeBatch, MatterSurfaceRuntimeError> {
+        let executor = BatchExecutor::new(batch_config)?;
+        let mut results = vec![None; probes.len()];
+        let report = executor.run_slice_chunks(&mut results, |chunk, output| {
+            let mut diagnostics = ContactProbeChunkDiagnostics::default();
+            for (probe, slot) in probes[chunk.range].iter().zip(output.iter_mut()) {
+                let result = self.resolve_contact_probe(probe);
+                if result.contact.is_some() {
+                    diagnostics.contact_count += 1;
+                }
+                if result.overlaps {
+                    diagnostics.overlap_count += 1;
+                }
+                *slot = Some(result);
+            }
+            diagnostics
+        });
+
         let results = probes
             .iter()
-            .map(|probe| {
-                let contact = if probe.center.is_finite()
-                    && probe.radius.is_finite()
-                    && probe.radius >= 0.0
-                {
-                    self.collider.closest_point(probe.center)
-                } else {
-                    None
-                };
-                let overlaps = contact
-                    .as_ref()
-                    .is_some_and(|contact| contact.distance <= probe.radius.max(0.0));
-                MatterSurfaceContactProbeResult {
+            .zip(results)
+            .map(|(probe, result)| {
+                result.unwrap_or_else(|| MatterSurfaceContactProbeResult {
                     probe_id: probe.probe_id.clone(),
-                    contact,
-                    overlaps,
-                }
+                    contact: None,
+                    overlaps: false,
+                })
             })
             .collect::<Vec<_>>();
-        let contact_count = results
-            .iter()
-            .filter(|result| result.contact.is_some())
-            .count();
-        let overlap_count = results.iter().filter(|result| result.overlaps).count();
-        MatterSurfaceContactProbeBatch {
+        Ok(MatterSurfaceContactProbeBatch {
             schema_id: MATTER_SURFACE_CONTACT_PROBE_BATCH_SCHEMA_ID.to_owned(),
             results,
-            contact_count,
-            overlap_count,
-        }
+            contact_count: report.diagnostics.contact_count,
+            overlap_count: report.diagnostics.overlap_count,
+        })
     }
 
     /// Resets particles to a deterministic random sphere.
@@ -677,6 +696,26 @@ impl MatterSurfaceRuntime {
                 sample.diagnostics.triangle_tests;
         }
     }
+
+    fn resolve_contact_probe(
+        &self,
+        probe: &MatterSurfaceContactProbe,
+    ) -> MatterSurfaceContactProbeResult {
+        let contact = if probe.center.is_finite() && probe.radius.is_finite() && probe.radius >= 0.0
+        {
+            self.collider.closest_point(probe.center)
+        } else {
+            None
+        };
+        let overlaps = contact
+            .as_ref()
+            .is_some_and(|contact| contact.distance <= probe.radius.max(0.0));
+        MatterSurfaceContactProbeResult {
+            probe_id: probe.probe_id.clone(),
+            contact,
+            overlaps,
+        }
+    }
 }
 
 impl Default for MatterSurfaceRuntime {
@@ -710,4 +749,17 @@ fn validate_particle_reset(
         ));
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct ContactProbeChunkDiagnostics {
+    contact_count: usize,
+    overlap_count: usize,
+}
+
+impl BatchReduce for ContactProbeChunkDiagnostics {
+    fn reduce(&mut self, other: Self) {
+        self.contact_count += other.contact_count;
+        self.overlap_count += other.overlap_count;
+    }
 }

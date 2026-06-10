@@ -72,17 +72,21 @@ For native animated-surface runtime adapter work, the narrow test route is:
 
 ```powershell
 cargo test -p rusty-matter-surface-runtime
+cargo test -p rusty-matter-surface-runtime --features parallel
 ```
 
 Those tests verify that the native facade updates animated surfaces, exposes
-distance sampler diagnostics, probes the dynamic collider, builds an SDF grid
-from the current surface, steps Matter-owned surface particles, and refreshes
-browser-parity particle distance snapshots without using the Wasm adapter. They
-also verify that consecutive matching-topology frames use the distance-sampler
-refit path exposed on `MatterSurfaceRuntimeUpdate`. The default particle
-distance refresh policy remains the exact snapshot path; tests also cover the
-explicit `StepOnly` policy used by headset visual adapters to skip redundant
-pre-step snapshot refreshes without changing particle integration samples.
+distance sampler diagnostics, probes the dynamic collider through the
+batch-backed contact-probe path, builds an SDF grid from the current surface,
+steps Matter-owned surface particles, and refreshes browser-parity particle
+distance snapshots without using the Wasm adapter. They also verify that
+consecutive matching-topology frames use the distance-sampler refit path
+exposed on `MatterSurfaceRuntimeUpdate`. With the `parallel` feature enabled,
+they additionally verify serial-vs-Rayon contact probe output equivalence. The
+default particle distance refresh policy remains the exact snapshot path; tests
+also cover the explicit `StepOnly` policy used by headset visual adapters to
+skip redundant pre-step snapshot refreshes without changing particle
+integration samples.
 
 For surface-field contract and dynamics work, the narrow test route is:
 

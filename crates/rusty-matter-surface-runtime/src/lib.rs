@@ -10,6 +10,7 @@ mod runtime;
 
 pub use error::*;
 pub use runtime::*;
+pub use rusty_matter_batch::{BatchBackendKind, BatchConfig};
 pub use rusty_matter_particles::{ParticleExecutionBackend, ParticleExecutionConfig};
 
 #[cfg(test)]

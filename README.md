@@ -37,9 +37,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   diagnostics, fixed-step CPU simulation contracts, and batch-backed execution
   diagnostics for the general particle simulator;
 - `rusty-matter-surface-runtime`: native animated-surface runtime facade over
-  mesh distance, dynamic collider, SDF-grid building, and surface particles for
-  app adapters that need the same Matter-owned behavior as browser previews
-  without using Wasm;
+  mesh distance, dynamic collider, batch-backed contact probes, SDF-grid
+  building, and surface particles for app adapters that need the same
+  Matter-owned behavior as browser previews without using Wasm;
 - `rusty-matter-fixtures`: deterministic fixture validation;
 - `rusty-matter-handmesh-wasm`: optional browser WebAssembly adapter over the
   Matter mesh distance sampler;

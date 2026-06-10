@@ -8,6 +8,7 @@ rust-version.workspace = true
 
 [features]
 default = []
+parallel = ["rusty-matter-batch/rayon", "rusty-matter-particles/parallel"]
 serde = [
     "dep:serde",
     "rusty-matter-mesh/serde",
@@ -17,6 +18,7 @@ serde = [
 ]
 
 [dependencies]
+rusty-matter-batch = { path = "../rusty-matter-batch" }
 rusty-matter-mesh = { path = "../rusty-matter-mesh" }
 rusty-matter-model = { path = "../rusty-matter-model" }
 rusty-matter-particles = { path = "../rusty-matter-particles" }
