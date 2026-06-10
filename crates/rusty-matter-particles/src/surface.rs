@@ -298,7 +298,6 @@ impl SurfaceParticleRuntime {
 
         for _ in 0..substeps {
             let previous_particles = self.particles.particles.clone();
-            let mut next_particles = previous_particles.clone();
             let snapshot = SurfaceParticleStepSnapshot {
                 previous_particles: &previous_particles,
                 sampler,
@@ -310,11 +309,10 @@ impl SurfaceParticleRuntime {
             };
             let report = self
                 .executor
-                .run_slice_chunks(&mut next_particles, |chunk, output| {
+                .run_slice_chunks(&mut self.particles.particles, |chunk, output| {
                     step_surface_particle_chunk(&snapshot, chunk.range.start, output)
                 });
             diagnostics.merge_chunk_report(&report, self.config.execution.backend);
-            self.particles.particles = next_particles;
             self.particles.time_seconds += sub_delta;
         }
 

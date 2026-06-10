@@ -5,6 +5,8 @@ use rusty_matter_model::Vec3;
 use crate::math::{closest_point_on_triangle, normalize_or};
 use crate::{MatterMeshError, MeshSurfaceTopologyKey, TriangleMeshSurface};
 
+const SURFACE_DISTANCE_TRAVERSAL_STACK_CAPACITY: usize = 128;
+
 /// Configuration for an accelerated surface-distance sampler.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -218,7 +220,8 @@ impl SurfaceDistanceSampler {
         let mut diagnostics = SurfaceDistanceQueryDiagnostics::default();
         let mut best_distance_squared = f32::INFINITY;
         let mut best: Option<SurfaceDistanceSample> = None;
-        let mut stack = vec![0_usize];
+        let mut stack = SurfaceDistanceTraversalStack::new();
+        stack.push(0)?;
 
         while let Some(node_index) = stack.pop() {
             let node = self.nodes.get(node_index)?;
@@ -255,11 +258,11 @@ impl SurfaceDistanceSampler {
                     let left_distance = left_node.bounds.distance_squared(point);
                     let right_distance = right_node.bounds.distance_squared(point);
                     if left_distance <= right_distance {
-                        push_if_possible(&mut stack, right, right_distance, best_distance_squared);
-                        push_if_possible(&mut stack, left, left_distance, best_distance_squared);
+                        push_if_possible(&mut stack, right, right_distance, best_distance_squared)?;
+                        push_if_possible(&mut stack, left, left_distance, best_distance_squared)?;
                     } else {
-                        push_if_possible(&mut stack, left, left_distance, best_distance_squared);
-                        push_if_possible(&mut stack, right, right_distance, best_distance_squared);
+                        push_if_possible(&mut stack, left, left_distance, best_distance_squared)?;
+                        push_if_possible(&mut stack, right, right_distance, best_distance_squared)?;
                     }
                 }
             }
@@ -272,15 +275,51 @@ impl SurfaceDistanceSampler {
     }
 }
 
+struct SurfaceDistanceTraversalStack {
+    values: [usize; SURFACE_DISTANCE_TRAVERSAL_STACK_CAPACITY],
+    len: usize,
+}
+
+impl SurfaceDistanceTraversalStack {
+    const fn new() -> Self {
+        Self {
+            values: [0; SURFACE_DISTANCE_TRAVERSAL_STACK_CAPACITY],
+            len: 0,
+        }
+    }
+
+    fn push(&mut self, node_index: usize) -> Option<()> {
+        debug_assert!(
+            self.len < SURFACE_DISTANCE_TRAVERSAL_STACK_CAPACITY,
+            "surface distance traversal stack overflow"
+        );
+        if self.len >= SURFACE_DISTANCE_TRAVERSAL_STACK_CAPACITY {
+            return None;
+        }
+        self.values[self.len] = node_index;
+        self.len += 1;
+        Some(())
+    }
+
+    fn pop(&mut self) -> Option<usize> {
+        if self.len == 0 {
+            return None;
+        }
+        self.len -= 1;
+        Some(self.values[self.len])
+    }
+}
+
 fn push_if_possible(
-    stack: &mut Vec<usize>,
+    stack: &mut SurfaceDistanceTraversalStack,
     node_index: usize,
     node_distance_squared: f32,
     best_distance_squared: f32,
-) {
+) -> Option<()> {
     if node_distance_squared <= best_distance_squared {
-        stack.push(node_index);
+        stack.push(node_index)?;
     }
+    Some(())
 }
 
 fn build_node(
