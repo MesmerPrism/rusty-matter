@@ -30,6 +30,39 @@ pub const DEFAULT_SURFACE_RUNTIME_PARTICLE_SEED: u32 = 23;
 /// Maximum particle count accepted by the deterministic native facade.
 pub const MAX_SURFACE_RUNTIME_PARTICLE_COUNT: usize = 32_768;
 
+/// Policy for refreshing per-particle surface-distance snapshot evidence.
+///
+/// Particle integration always samples the active surface as needed for
+/// Matter-owned simulation. This policy only controls the extra snapshot
+/// distances used by renderer-neutral visuals and debug evidence.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MatterSurfaceParticleDistanceRefreshPolicy {
+    /// Refresh snapshot distances after each surface update and after each
+    /// particle step. This preserves the original native facade behavior.
+    #[default]
+    SurfaceUpdateAndStep,
+    /// Refresh snapshot distances after particle reset/step only. This avoids
+    /// redundant pre-step refresh work for adapters that always step particles
+    /// after installing a surface frame.
+    StepOnly,
+}
+
+impl MatterSurfaceParticleDistanceRefreshPolicy {
+    /// Stable marker token for compact runtime evidence.
+    #[must_use]
+    pub const fn marker_value(self) -> &'static str {
+        match self {
+            Self::SurfaceUpdateAndStep => "surface-update-and-step",
+            Self::StepOnly => "step-only",
+        }
+    }
+
+    const fn refresh_after_surface_update(self) -> bool {
+        matches!(self, Self::SurfaceUpdateAndStep)
+    }
+}
+
 /// Native Matter surface runtime configuration.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +77,8 @@ pub struct MatterSurfaceRuntimeConfig {
     pub particles: SurfaceParticleRuntimeConfig,
     /// Stable particle set identifier.
     pub particle_set_id: String,
+    /// Policy for extra per-particle snapshot distance refreshes.
+    pub particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy,
 }
 
 impl Default for MatterSurfaceRuntimeConfig {
@@ -54,6 +89,8 @@ impl Default for MatterSurfaceRuntimeConfig {
             collider: DynamicMeshColliderConfig::default(),
             particles: SurfaceParticleRuntimeConfig::default(),
             particle_set_id: "particles.surface_runtime.default".to_owned(),
+            particle_distance_refresh_policy:
+                MatterSurfaceParticleDistanceRefreshPolicy::SurfaceUpdateAndStep,
         }
     }
 }
@@ -155,6 +192,8 @@ pub struct MatterSurfaceRuntimeStats {
     pub distance_sampler: Option<SurfaceDistanceSamplerStats>,
     /// Current particle count.
     pub particle_count: usize,
+    /// Policy used for extra per-particle snapshot distance refreshes.
+    pub particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy,
     /// Particle closest-distance samples recorded for the latest snapshot.
     pub particle_distance_samples: usize,
 }
@@ -557,6 +596,7 @@ impl MatterSurfaceRuntime {
                 .map_or(0, TriangleMeshSurface::triangle_count),
             distance_sampler: self.sampler.as_ref().map(|sampler| sampler.stats().clone()),
             particle_count: self.particles.particles().len(),
+            particle_distance_refresh_policy: self.config.particle_distance_refresh_policy,
             particle_distance_samples: self
                 .last_particle_distances
                 .iter()
@@ -608,7 +648,13 @@ impl MatterSurfaceRuntime {
         self.surface = Some(surface);
         self.frame_index = frame_index;
         self.time_seconds = time_seconds;
-        self.refresh_particle_distances();
+        if self
+            .config
+            .particle_distance_refresh_policy
+            .refresh_after_surface_update()
+        {
+            self.refresh_particle_distances();
+        }
         Ok(update)
     }
 

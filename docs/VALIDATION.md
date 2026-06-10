@@ -38,7 +38,10 @@ distance sampler diagnostics, probes the dynamic collider, builds an SDF grid
 from the current surface, steps Matter-owned surface particles, and refreshes
 browser-parity particle distance snapshots without using the Wasm adapter. They
 also verify that consecutive matching-topology frames use the distance-sampler
-refit path exposed on `MatterSurfaceRuntimeUpdate`.
+refit path exposed on `MatterSurfaceRuntimeUpdate`. The default particle
+distance refresh policy remains the exact snapshot path; tests also cover the
+explicit `StepOnly` policy used by headset visual adapters to skip redundant
+pre-step snapshot refreshes without changing particle integration samples.
 
 For surface-field contract and dynamics work, the narrow test route is:
 

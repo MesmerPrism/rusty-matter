@@ -46,6 +46,10 @@ fn runtime_updates_surface_and_exposes_sampler_stats() {
     assert_eq!(stats.frame_index, Some(7));
     assert_eq!(stats.vertex_count, 4);
     assert_eq!(stats.triangle_count, 2);
+    assert_eq!(
+        stats.particle_distance_refresh_policy,
+        MatterSurfaceParticleDistanceRefreshPolicy::SurfaceUpdateAndStep
+    );
 }
 
 #[test]
@@ -124,6 +128,60 @@ fn runtime_steps_particles_and_refreshes_last_distances() {
         .iter()
         .all(|sample| sample.last_surface_distance.is_some()));
     assert_eq!(payload.samples.len(), 16);
+}
+
+#[test]
+fn step_only_particle_distance_refresh_skips_surface_update_refresh() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy::StepOnly,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    let surface = unit_square_surface();
+    runtime
+        .update_surface(surface.clone())
+        .expect("surface update succeeds");
+    runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+    let before_update = runtime
+        .particle_snapshot()
+        .samples
+        .iter()
+        .map(|sample| sample.last_surface_distance)
+        .collect::<Vec<_>>();
+
+    let mut raised = surface;
+    for position in &mut raised.positions {
+        position.z += 1.0;
+    }
+    runtime
+        .update_surface(raised)
+        .expect("matching-topology update succeeds");
+    let after_update = runtime
+        .particle_snapshot()
+        .samples
+        .iter()
+        .map(|sample| sample.last_surface_distance)
+        .collect::<Vec<_>>();
+
+    let step = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 0.0)
+        .expect("step refresh succeeds");
+    let after_step = runtime
+        .particle_snapshot()
+        .samples
+        .iter()
+        .map(|sample| sample.last_surface_distance)
+        .collect::<Vec<_>>();
+
+    assert_eq!(before_update, after_update);
+    assert_ne!(after_update, after_step);
+    assert_eq!(step.refreshed_distance_samples, 8);
+    assert_eq!(
+        runtime.stats().particle_distance_refresh_policy,
+        MatterSurfaceParticleDistanceRefreshPolicy::StepOnly
+    );
 }
 
 #[test]
