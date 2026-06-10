@@ -219,6 +219,7 @@ dependencies = [
 name = "rusty-matter-particles"
 version = "0.1.0"
 dependencies = [
+ "rusty-matter-batch",
  "rusty-matter-mesh",
  "rusty-matter-model",
  "rusty-matter-sdf",

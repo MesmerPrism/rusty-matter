@@ -119,6 +119,9 @@ The implemented foundation slices are intentionally CPU/data-only:
 - deterministic spatial hash neighbor queries;
 - particle influence points, one-shot impulses, and simple sphere/AABB bodies;
 - particle diagnostics for SDF, neighbor, influence, impulse, and body work;
+- batch-backed execution config and diagnostics for the general fixed-step
+  particle simulator, with serial default behavior and optional Rayon
+  equivalence tests;
 - native surface-runtime facade over the Matter-owned distance sampler,
   dynamic collider, SDF builder, and surface particle runtime;
 - fixture and schema catalog checks;
@@ -235,8 +238,12 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   simple bodies, and interaction bundles.
 - `rusty-matter-particles/src/spatial_hash.rs`: deterministic neighbor
   candidate hash.
+- `rusty-matter-particles/src/config.rs`: SDF interaction, fixed-step, and
+  particle execution configuration.
+- `rusty-matter-particles/src/diagnostics.rs`: particle simulation and
+  execution diagnostics.
 - `rusty-matter-particles/src/simulator.rs`: fixed-step CPU reference
-  simulation.
+  simulation over immutable step snapshots and disjoint next-state writes.
 - `rusty-matter-particles/src/surface.rs`: particles attracted to an
   accelerated mesh surface with per-step closest-point diagnostics.
 - `rusty-matter-surface-runtime/src/runtime.rs`: native animated-surface

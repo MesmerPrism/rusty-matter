@@ -27,6 +27,19 @@ they also verify local-pool Rayon execution, serial-vs-Rayon output
 equivalence, batch-size-invariant integer diagnostics, and deterministic
 chunk-index reduction order.
 
+For general fixed-step particle execution work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-particles
+cargo test -p rusty-matter-particles --features parallel
+```
+
+Those tests verify the serial default `ParticleSimulator` path,
+batch-size-invariant serial output, execution diagnostics, and serial-vs-Rayon
+equivalence for the opt-in `parallel` feature. The Quest animated hand-mesh
+path uses `SurfaceParticleRuntime`; validate that separately when its
+surface-particle execution path changes.
+
 For accelerated mesh-distance work, the narrow test route is:
 
 ```powershell

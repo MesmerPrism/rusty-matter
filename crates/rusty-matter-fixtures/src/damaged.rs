@@ -357,6 +357,8 @@ fn particle_rejection_code(error: &ParticleError) -> String {
         ParticleError::InvalidInfluenceConfig(_) => "particle.invalid_influence_config",
         ParticleError::InvalidImpulseConfig(_) => "particle.invalid_impulse_config",
         ParticleError::InvalidBodyConfig(_) => "particle.invalid_body_config",
+        ParticleError::InvalidExecutionConfig(_) => "particle.invalid_execution_config",
+        ParticleError::BatchExecution(_) => "particle.batch_execution",
         ParticleError::InvalidRenderPayload(_) => "particle.invalid_render_payload",
         ParticleError::InvalidSpatialHashCellSize => "particle.invalid_spatial_hash_cell_size",
         ParticleError::InvalidFixedStep => "particle.invalid_fixed_step",

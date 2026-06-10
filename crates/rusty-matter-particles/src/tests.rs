@@ -2,6 +2,7 @@ use super::*;
 use rusty_matter_mesh::{SurfaceDistanceSamplerConfig, TriangleMeshSurface};
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig, PackedSdfGrid};
+use std::num::NonZeroUsize;
 
 fn particle_set() -> ParticleSet {
     let mut particles = ParticleSet::new("particles.test");
@@ -31,6 +32,85 @@ fn triangle_sdf() -> PackedSdfGrid {
         },
     )
     .expect("SDF builds")
+}
+
+fn interaction_particle_set() -> ParticleSet {
+    let mut particles = ParticleSet::new("particles.interaction_test");
+    particles.push(ParticleState::new(
+        "particle.0",
+        Vec3::new(-0.05, 0.0, 0.0),
+        0.02,
+    ));
+    particles.push(ParticleState::new(
+        "particle.1",
+        Vec3::new(0.05, 0.0, 0.0),
+        0.02,
+    ));
+    particles
+}
+
+fn interaction_bundle() -> ParticleInteractions {
+    let mut interactions = ParticleInteractions::default();
+    interactions
+        .influence_points
+        .push(ParticleInfluencePoint::new(
+            "influence.up_attract",
+            Vec3::new(0.0, 0.2, 0.0),
+            1.0,
+            1.0,
+            ParticleInfluenceMode::Attract,
+        ));
+    interactions.bodies.push(ParticleInteractionBody::sphere(
+        "body.center_sphere",
+        Vec3::ZERO,
+        0.075,
+    ));
+    interactions
+}
+
+fn execution_config(
+    backend: ParticleExecutionBackend,
+    batch_size: usize,
+    max_threads: Option<usize>,
+) -> ParticleExecutionConfig {
+    ParticleExecutionConfig {
+        backend,
+        batch_size: NonZeroUsize::new(batch_size).expect("test batch size is non-zero"),
+        max_threads,
+    }
+}
+
+fn interaction_simulator_with_execution(execution: ParticleExecutionConfig) -> ParticleSimulator {
+    let mut simulator = ParticleSimulator::new_with_execution(
+        interaction_particle_set(),
+        ParticleFixedStepConfig {
+            fixed_step_seconds: 1.0 / 30.0,
+            max_steps_per_frame: 1,
+            neighbor_radius: 0.2,
+            neighbor_repulsion_strength: 1.0,
+            ..ParticleFixedStepConfig::default()
+        },
+        SdfParticleInteractionConfig {
+            mode: SdfParticleInteractionMode::Disabled,
+            damping: 0.0,
+            max_speed: 10.0,
+            ..SdfParticleInteractionConfig::default()
+        },
+        execution,
+    )
+    .expect("simulator builds");
+    simulator
+        .set_interactions(interaction_bundle())
+        .expect("interactions validate");
+    simulator
+        .push_impulse(ParticleImpulse::new(
+            "impulse.up",
+            Vec3::ZERO,
+            0.25,
+            Vec3::new(0.0, 0.1, 0.0),
+        ))
+        .expect("impulse validates");
+    simulator
 }
 
 #[test]
@@ -123,60 +203,7 @@ fn spatial_hash_returns_neighbor_candidates() {
 
 #[test]
 fn particle_interactions_apply_to_step() {
-    let mut particles = ParticleSet::new("particles.interaction_test");
-    particles.push(ParticleState::new(
-        "particle.0",
-        Vec3::new(-0.05, 0.0, 0.0),
-        0.02,
-    ));
-    particles.push(ParticleState::new(
-        "particle.1",
-        Vec3::new(0.05, 0.0, 0.0),
-        0.02,
-    ));
-    let mut interactions = ParticleInteractions::default();
-    interactions
-        .influence_points
-        .push(ParticleInfluencePoint::new(
-            "influence.up_attract",
-            Vec3::new(0.0, 0.2, 0.0),
-            1.0,
-            1.0,
-            ParticleInfluenceMode::Attract,
-        ));
-    interactions.bodies.push(ParticleInteractionBody::sphere(
-        "body.center_sphere",
-        Vec3::ZERO,
-        0.075,
-    ));
-    let mut simulator = ParticleSimulator::new(
-        particles,
-        ParticleFixedStepConfig {
-            fixed_step_seconds: 1.0 / 30.0,
-            max_steps_per_frame: 1,
-            neighbor_radius: 0.2,
-            neighbor_repulsion_strength: 1.0,
-            ..ParticleFixedStepConfig::default()
-        },
-        SdfParticleInteractionConfig {
-            mode: SdfParticleInteractionMode::Disabled,
-            damping: 0.0,
-            max_speed: 10.0,
-            ..SdfParticleInteractionConfig::default()
-        },
-    )
-    .expect("simulator builds");
-    simulator
-        .set_interactions(interactions)
-        .expect("interactions validate");
-    simulator
-        .push_impulse(ParticleImpulse::new(
-            "impulse.up",
-            Vec3::ZERO,
-            0.25,
-            Vec3::new(0.0, 0.1, 0.0),
-        ))
-        .expect("impulse validates");
+    let mut simulator = interaction_simulator_with_execution(ParticleExecutionConfig::default());
 
     let diagnostics = simulator.step_frame(1.0 / 30.0);
 
@@ -186,6 +213,94 @@ fn particle_interactions_apply_to_step() {
     assert_eq!(diagnostics.impulses_applied, 2);
     assert_eq!(diagnostics.body_collisions, 2);
     assert!(diagnostics.max_speed > 0.0);
+    assert_eq!(
+        diagnostics.execution.backend,
+        ParticleExecutionBackend::Serial
+    );
+    assert_eq!(diagnostics.execution.batch_size, 256);
+    assert_eq!(diagnostics.execution.chunk_count, 1);
+    assert_eq!(diagnostics.execution.worker_count, 1);
+    assert_eq!(diagnostics.execution.particle_count, 2);
+}
+
+#[test]
+fn particle_batch_size_does_not_change_serial_output() {
+    let mut unit_batch = interaction_simulator_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        1,
+        None,
+    ));
+    let mut full_batch = interaction_simulator_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        64,
+        None,
+    ));
+
+    let unit_diagnostics = unit_batch.step_frame(1.0 / 30.0);
+    let full_diagnostics = full_batch.step_frame(1.0 / 30.0);
+
+    assert_eq!(unit_batch.particles(), full_batch.particles());
+    assert_eq!(
+        unit_diagnostics.neighbor_checks,
+        full_diagnostics.neighbor_checks
+    );
+    assert_eq!(
+        unit_diagnostics.influence_samples,
+        full_diagnostics.influence_samples
+    );
+    assert_eq!(
+        unit_diagnostics.impulses_applied,
+        full_diagnostics.impulses_applied
+    );
+    assert_eq!(
+        unit_diagnostics.body_collisions,
+        full_diagnostics.body_collisions
+    );
+    assert_eq!(unit_diagnostics.execution.chunk_count, 2);
+    assert_eq!(full_diagnostics.execution.chunk_count, 1);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn particle_parallel_execution_matches_serial_output() {
+    let mut serial = interaction_simulator_with_execution(execution_config(
+        ParticleExecutionBackend::Serial,
+        1,
+        None,
+    ));
+    let mut parallel = interaction_simulator_with_execution(execution_config(
+        ParticleExecutionBackend::Parallel,
+        1,
+        Some(2),
+    ));
+
+    let serial_diagnostics = serial.step_frame(1.0 / 30.0);
+    let parallel_diagnostics = parallel.step_frame(1.0 / 30.0);
+
+    assert_eq!(parallel.particles(), serial.particles());
+    assert_eq!(
+        parallel_diagnostics.neighbor_checks,
+        serial_diagnostics.neighbor_checks
+    );
+    assert_eq!(
+        parallel_diagnostics.influence_samples,
+        serial_diagnostics.influence_samples
+    );
+    assert_eq!(
+        parallel_diagnostics.impulses_applied,
+        serial_diagnostics.impulses_applied
+    );
+    assert_eq!(
+        parallel_diagnostics.body_collisions,
+        serial_diagnostics.body_collisions
+    );
+    assert_eq!(
+        parallel_diagnostics.execution.backend,
+        ParticleExecutionBackend::Parallel
+    );
+    assert_eq!(parallel_diagnostics.execution.batch_size, 1);
+    assert_eq!(parallel_diagnostics.execution.chunk_count, 2);
+    assert_eq!(parallel_diagnostics.execution.worker_count, 2);
 }
 
 #[test]

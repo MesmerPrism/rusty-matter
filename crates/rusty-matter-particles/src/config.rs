@@ -1,4 +1,82 @@
+use std::num::NonZeroUsize;
+
+use rusty_matter_batch::{BatchBackendKind, BatchConfig};
+
 use crate::{ParticleError, FIXED_STEP_CONFIG_SCHEMA_ID, SDF_INTERACTION_CONFIG_SCHEMA_ID};
+
+/// Particle execution backend.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ParticleExecutionBackend {
+    /// Deterministic single-threaded execution.
+    Serial,
+    /// Rayon-backed batch execution.
+    #[cfg(feature = "parallel")]
+    Parallel,
+}
+
+impl ParticleExecutionBackend {
+    /// Stable marker token for diagnostics and evidence.
+    #[must_use]
+    pub const fn marker_value(self) -> &'static str {
+        match self {
+            Self::Serial => "serial",
+            #[cfg(feature = "parallel")]
+            Self::Parallel => "rayon",
+        }
+    }
+}
+
+/// Particle execution configuration.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParticleExecutionConfig {
+    /// Batch execution backend.
+    pub backend: ParticleExecutionBackend,
+    /// Logical batch size for one particle step.
+    pub batch_size: NonZeroUsize,
+    /// Optional worker cap for parallel execution.
+    pub max_threads: Option<usize>,
+}
+
+impl Default for ParticleExecutionConfig {
+    fn default() -> Self {
+        Self {
+            backend: ParticleExecutionBackend::Serial,
+            batch_size: NonZeroUsize::new(256).expect("default batch size is non-zero"),
+            max_threads: None,
+        }
+    }
+}
+
+impl ParticleExecutionConfig {
+    /// Validates the execution config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParticleError`] when a low-rate execution setting is invalid.
+    pub fn validate(&self) -> Result<(), ParticleError> {
+        if matches!(self.max_threads, Some(0)) {
+            return Err(ParticleError::InvalidExecutionConfig(
+                "max_threads must be absent or positive",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn batch_config(&self) -> Result<BatchConfig, ParticleError> {
+        self.validate()?;
+        Ok(BatchConfig {
+            backend: match self.backend {
+                ParticleExecutionBackend::Serial => BatchBackendKind::Serial,
+                #[cfg(feature = "parallel")]
+                ParticleExecutionBackend::Parallel => BatchBackendKind::Rayon,
+            },
+            batch_size: self.batch_size,
+            max_threads: self.max_threads,
+        })
+    }
+}
 
 /// SDF interaction mode.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

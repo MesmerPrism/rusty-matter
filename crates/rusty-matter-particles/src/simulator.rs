@@ -1,11 +1,12 @@
+use rusty_matter_batch::{BatchExecutor, BatchReduce, BatchReport};
 use rusty_matter_model::Vec3;
 use rusty_matter_sdf::PackedSdfGrid;
 
 use crate::{
-    ParticleError, ParticleFixedStepConfig, ParticleImpulse, ParticleInfluenceMode,
-    ParticleInfluencePoint, ParticleInteractionBody, ParticleInteractionShape,
-    ParticleInteractions, ParticleSet, ParticleSimulationDiagnostics, SdfParticleInteractionConfig,
-    SdfParticleInteractionMode, SpatialHashGrid,
+    ParticleError, ParticleExecutionConfig, ParticleExecutionDiagnostics, ParticleFixedStepConfig,
+    ParticleImpulse, ParticleInfluenceMode, ParticleInfluencePoint, ParticleInteractionBody,
+    ParticleInteractionShape, ParticleInteractions, ParticleSet, ParticleSimulationDiagnostics,
+    ParticleState, SdfParticleInteractionConfig, SdfParticleInteractionMode, SpatialHashGrid,
 };
 
 /// Fixed-step particle simulator.
@@ -17,6 +18,8 @@ pub struct ParticleSimulator {
     interactions: ParticleInteractions,
     pending_impulses: Vec<ParticleImpulse>,
     spatial_hash: SpatialHashGrid,
+    execution: ParticleExecutionConfig,
+    executor: BatchExecutor,
     sdf: Option<PackedSdfGrid>,
     accumulator_seconds: f32,
     tick: u64,
@@ -33,9 +36,30 @@ impl ParticleSimulator {
         fixed_step: ParticleFixedStepConfig,
         interaction: SdfParticleInteractionConfig,
     ) -> Result<Self, ParticleError> {
+        Self::new_with_execution(
+            particles,
+            fixed_step,
+            interaction,
+            ParticleExecutionConfig::default(),
+        )
+    }
+
+    /// Creates a simulator with explicit low-rate execution settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParticleError`] when inputs or execution settings are invalid.
+    pub fn new_with_execution(
+        particles: ParticleSet,
+        fixed_step: ParticleFixedStepConfig,
+        interaction: SdfParticleInteractionConfig,
+        execution: ParticleExecutionConfig,
+    ) -> Result<Self, ParticleError> {
         particles.validate()?;
         fixed_step.validate()?;
         interaction.validate()?;
+        let executor = BatchExecutor::new(execution.batch_config()?)
+            .map_err(|error| ParticleError::BatchExecution(error.to_string()))?;
         Ok(Self {
             spatial_hash: SpatialHashGrid::new(fixed_step.neighbor_radius.max(1.0e-5)),
             particles,
@@ -43,6 +67,8 @@ impl ParticleSimulator {
             interaction,
             interactions: ParticleInteractions::default(),
             pending_impulses: Vec::new(),
+            execution,
+            executor,
             sdf: None,
             accumulator_seconds: 0.0,
             tick: 0,
@@ -59,6 +85,12 @@ impl ParticleSimulator {
     #[must_use]
     pub fn interactions(&self) -> &ParticleInteractions {
         &self.interactions
+    }
+
+    /// Returns the particle execution config.
+    #[must_use]
+    pub fn execution_config(&self) -> &ParticleExecutionConfig {
+        &self.execution
     }
 
     /// Replaces the configured non-SDF particle interactions.
@@ -149,83 +181,189 @@ impl ParticleSimulator {
             diagnostics.rejected_particles += self.particles.len();
         }
         let impulses = std::mem::take(&mut self.pending_impulses);
-
-        for (index, particle) in self.particles.particles.iter_mut().enumerate() {
-            particle.age_seconds += delta_seconds;
-            if particle.inverse_mass == 0.0 {
-                diagnostics.max_speed = diagnostics.max_speed.max(particle.velocity.length());
-                continue;
-            }
-
-            let position = positions[index];
-            let mut acceleration = Vec3::ZERO;
-            if neighbor_enabled {
-                let (neighbor_acceleration, checks) = neighbor_acceleration(
-                    index,
-                    position,
-                    &positions,
-                    &self.spatial_hash,
-                    self.fixed_step.neighbor_radius,
-                    self.fixed_step.neighbor_repulsion_strength,
-                );
-                acceleration = acceleration + neighbor_acceleration;
-                diagnostics.neighbor_checks += checks;
-            }
-            if let Some(sdf) = &self.sdf {
-                match sdf.sample_nearest(position) {
-                    Some(sample) => {
-                        diagnostics.sampled_particles += 1;
-                        if let Some(sdf_acceleration) = sdf_acceleration(
-                            sdf,
-                            position,
-                            sample.distance,
-                            self.interaction.mode,
-                            self.interaction.target_distance,
-                            self.interaction.strength,
-                        ) {
-                            acceleration = acceleration + sdf_acceleration;
-                            diagnostics.affected_particles += 1;
-                        }
-                    }
-                    None => diagnostics.rejected_particles += 1,
-                }
-            }
-
-            let (influence_acceleration, influence_samples) =
-                influence_acceleration(&self.interactions.influence_points, position);
-            acceleration = acceleration + influence_acceleration;
-            diagnostics.influence_samples += influence_samples;
-
-            let mut velocity = particle.velocity + acceleration * delta_seconds;
-            let (impulse_delta, impulses_applied) =
-                impulse_velocity_delta(&impulses, position, particle.inverse_mass);
-            velocity = velocity + impulse_delta;
-            diagnostics.impulses_applied += impulses_applied;
-
-            let damping = (1.0 - self.interaction.damping * delta_seconds).clamp(0.0, 1.0);
-            velocity = velocity * damping;
-            let (velocity, clamped) = clamp_speed(velocity, self.interaction.max_speed);
-            let mut velocity = velocity;
-            if clamped {
-                diagnostics.clamped_particles += 1;
-            }
-
-            let mut next_position = position + velocity * delta_seconds;
-            diagnostics.body_collisions += apply_interaction_bodies(
-                &self.interactions.bodies,
-                particle.radius,
-                &mut next_position,
-                &mut velocity,
-            );
-
-            particle.velocity = velocity;
-            particle.position = next_position;
-            diagnostics.max_speed = diagnostics.max_speed.max(velocity.length());
-        }
+        let previous_particles = self.particles.particles.clone();
+        let mut next_particles = previous_particles.clone();
+        let snapshot = ParticleStepSnapshot {
+            previous_particles: &previous_particles,
+            positions: &positions,
+            fixed_step: &self.fixed_step,
+            interaction: &self.interaction,
+            interactions: &self.interactions,
+            impulses: &impulses,
+            spatial_hash: &self.spatial_hash,
+            sdf: self.sdf.as_ref(),
+            neighbor_enabled,
+            delta_seconds,
+        };
+        let report = self
+            .executor
+            .run_slice_chunks(&mut next_particles, |chunk, output| {
+                step_particle_chunk(&snapshot, chunk.range.start, output)
+            });
+        diagnostics.merge_chunk_report(&report, self.execution.backend);
+        self.particles.particles = next_particles;
 
         diagnostics.particle_count = self.particles.len();
         diagnostics
     }
+}
+
+struct ParticleStepSnapshot<'a> {
+    previous_particles: &'a [ParticleState],
+    positions: &'a [Vec3],
+    fixed_step: &'a ParticleFixedStepConfig,
+    interaction: &'a SdfParticleInteractionConfig,
+    interactions: &'a ParticleInteractions,
+    impulses: &'a [ParticleImpulse],
+    spatial_hash: &'a SpatialHashGrid,
+    sdf: Option<&'a PackedSdfGrid>,
+    neighbor_enabled: bool,
+    delta_seconds: f32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+struct ParticleStepChunkDiagnostics {
+    sampled_particles: usize,
+    affected_particles: usize,
+    rejected_particles: usize,
+    clamped_particles: usize,
+    neighbor_checks: usize,
+    influence_samples: usize,
+    impulses_applied: usize,
+    body_collisions: usize,
+    max_speed: f32,
+}
+
+impl BatchReduce for ParticleStepChunkDiagnostics {
+    fn reduce(&mut self, other: Self) {
+        self.sampled_particles += other.sampled_particles;
+        self.affected_particles += other.affected_particles;
+        self.rejected_particles += other.rejected_particles;
+        self.clamped_particles += other.clamped_particles;
+        self.neighbor_checks += other.neighbor_checks;
+        self.influence_samples += other.influence_samples;
+        self.impulses_applied += other.impulses_applied;
+        self.body_collisions += other.body_collisions;
+        self.max_speed = self.max_speed.max(other.max_speed);
+    }
+}
+
+impl ParticleSimulationDiagnostics {
+    fn merge_chunk_report(
+        &mut self,
+        report: &BatchReport<ParticleStepChunkDiagnostics>,
+        backend: crate::ParticleExecutionBackend,
+    ) {
+        self.sampled_particles += report.diagnostics.sampled_particles;
+        self.affected_particles += report.diagnostics.affected_particles;
+        self.rejected_particles += report.diagnostics.rejected_particles;
+        self.clamped_particles += report.diagnostics.clamped_particles;
+        self.neighbor_checks += report.diagnostics.neighbor_checks;
+        self.influence_samples += report.diagnostics.influence_samples;
+        self.impulses_applied += report.diagnostics.impulses_applied;
+        self.body_collisions += report.diagnostics.body_collisions;
+        self.max_speed = self.max_speed.max(report.diagnostics.max_speed);
+        self.execution = ParticleExecutionDiagnostics {
+            backend,
+            batch_size: report.batch_size,
+            chunk_count: report.chunk_count,
+            worker_count: report.worker_count,
+            particle_count: report.len,
+            elapsed_micros: report.elapsed.as_micros(),
+        };
+    }
+}
+
+fn step_particle_chunk(
+    snapshot: &ParticleStepSnapshot<'_>,
+    start_index: usize,
+    output: &mut [ParticleState],
+) -> ParticleStepChunkDiagnostics {
+    let mut diagnostics = ParticleStepChunkDiagnostics::default();
+    for (offset, particle) in output.iter_mut().enumerate() {
+        let index = start_index + offset;
+        step_one_particle(snapshot, index, particle, &mut diagnostics);
+    }
+    diagnostics
+}
+
+fn step_one_particle(
+    snapshot: &ParticleStepSnapshot<'_>,
+    index: usize,
+    particle: &mut ParticleState,
+    diagnostics: &mut ParticleStepChunkDiagnostics,
+) {
+    particle.age_seconds += snapshot.delta_seconds;
+    if particle.inverse_mass == 0.0 {
+        diagnostics.max_speed = diagnostics.max_speed.max(particle.velocity.length());
+        return;
+    }
+
+    let position = snapshot.positions[index];
+    let mut acceleration = Vec3::ZERO;
+    if snapshot.neighbor_enabled {
+        let (neighbor_acceleration, checks) = neighbor_acceleration(
+            index,
+            position,
+            snapshot.positions,
+            snapshot.spatial_hash,
+            snapshot.fixed_step.neighbor_radius,
+            snapshot.fixed_step.neighbor_repulsion_strength,
+        );
+        acceleration = acceleration + neighbor_acceleration;
+        diagnostics.neighbor_checks += checks;
+    }
+    if let Some(sdf) = snapshot.sdf {
+        match sdf.sample_nearest(position) {
+            Some(sample) => {
+                diagnostics.sampled_particles += 1;
+                if let Some(sdf_acceleration) = sdf_acceleration(
+                    sdf,
+                    position,
+                    sample.distance,
+                    snapshot.interaction.mode,
+                    snapshot.interaction.target_distance,
+                    snapshot.interaction.strength,
+                ) {
+                    acceleration = acceleration + sdf_acceleration;
+                    diagnostics.affected_particles += 1;
+                }
+            }
+            None => diagnostics.rejected_particles += 1,
+        }
+    }
+
+    let (influence_acceleration, influence_samples) =
+        influence_acceleration(&snapshot.interactions.influence_points, position);
+    acceleration = acceleration + influence_acceleration;
+    diagnostics.influence_samples += influence_samples;
+
+    let mut velocity =
+        snapshot.previous_particles[index].velocity + acceleration * snapshot.delta_seconds;
+    let (impulse_delta, impulses_applied) =
+        impulse_velocity_delta(snapshot.impulses, position, particle.inverse_mass);
+    velocity = velocity + impulse_delta;
+    diagnostics.impulses_applied += impulses_applied;
+
+    let damping = (1.0 - snapshot.interaction.damping * snapshot.delta_seconds).clamp(0.0, 1.0);
+    velocity = velocity * damping;
+    let (velocity, clamped) = clamp_speed(velocity, snapshot.interaction.max_speed);
+    let mut velocity = velocity;
+    if clamped {
+        diagnostics.clamped_particles += 1;
+    }
+
+    let mut next_position = position + velocity * snapshot.delta_seconds;
+    diagnostics.body_collisions += apply_interaction_bodies(
+        &snapshot.interactions.bodies,
+        particle.radius,
+        &mut next_position,
+        &mut velocity,
+    );
+
+    particle.velocity = velocity;
+    particle.position = next_position;
+    diagnostics.max_speed = diagnostics.max_speed.max(velocity.length());
 }
 
 fn neighbor_acceleration(

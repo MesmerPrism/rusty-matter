@@ -65,6 +65,10 @@ pub enum ParticleError {
     InvalidImpulseConfig(&'static str),
     /// Particle interaction body config was invalid.
     InvalidBodyConfig(&'static str),
+    /// Particle execution config was invalid.
+    InvalidExecutionConfig(&'static str),
+    /// Batch execution failed.
+    BatchExecution(String),
     /// Render-neutral payload was invalid.
     InvalidRenderPayload(&'static str),
     /// Spatial hash cell size was invalid.
@@ -129,6 +133,12 @@ impl fmt::Display for ParticleError {
                     formatter,
                     "invalid particle interaction body config: {reason}"
                 )
+            }
+            Self::InvalidExecutionConfig(reason) => {
+                write!(formatter, "invalid particle execution config: {reason}")
+            }
+            Self::BatchExecution(reason) => {
+                write!(formatter, "particle batch execution failed: {reason}")
             }
             Self::InvalidRenderPayload(reason) => {
                 write!(formatter, "invalid particle render payload: {reason}")

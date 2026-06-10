@@ -1,4 +1,35 @@
-use crate::PARTICLE_DIAGNOSTICS_SCHEMA_ID;
+use crate::{ParticleExecutionBackend, PARTICLE_DIAGNOSTICS_SCHEMA_ID};
+
+/// Diagnostics for one particle execution pass.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ParticleExecutionDiagnostics {
+    /// Execution backend.
+    pub backend: ParticleExecutionBackend,
+    /// Logical batch size used by the executor.
+    pub batch_size: usize,
+    /// Logical chunk count processed by the executor.
+    pub chunk_count: usize,
+    /// Worker count used by the executor.
+    pub worker_count: usize,
+    /// Particle count covered by the execution pass.
+    pub particle_count: usize,
+    /// Elapsed executor time in microseconds.
+    pub elapsed_micros: u128,
+}
+
+impl Default for ParticleExecutionDiagnostics {
+    fn default() -> Self {
+        Self {
+            backend: ParticleExecutionBackend::Serial,
+            batch_size: 0,
+            chunk_count: 0,
+            worker_count: 0,
+            particle_count: 0,
+            elapsed_micros: 0,
+        }
+    }
+}
 
 /// Diagnostics emitted by a particle simulation step.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -32,6 +63,8 @@ pub struct ParticleSimulationDiagnostics {
     pub body_collisions: usize,
     /// Maximum observed speed after stepping.
     pub max_speed: f32,
+    /// Execution diagnostics for the latest fixed-step pass.
+    pub execution: ParticleExecutionDiagnostics,
 }
 
 impl ParticleSimulationDiagnostics {
@@ -53,6 +86,7 @@ impl ParticleSimulationDiagnostics {
             impulses_applied: 0,
             body_collisions: 0,
             max_speed: 0.0,
+            execution: ParticleExecutionDiagnostics::default(),
         }
     }
 
@@ -69,5 +103,11 @@ impl ParticleSimulationDiagnostics {
         self.body_collisions += step.body_collisions;
         self.max_speed = self.max_speed.max(step.max_speed);
         self.particle_count = step.particle_count;
+        self.execution.backend = step.execution.backend;
+        self.execution.batch_size = step.execution.batch_size;
+        self.execution.chunk_count += step.execution.chunk_count;
+        self.execution.worker_count = self.execution.worker_count.max(step.execution.worker_count);
+        self.execution.particle_count = step.execution.particle_count;
+        self.execution.elapsed_micros += step.execution.elapsed_micros;
     }
 }

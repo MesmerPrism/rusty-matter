@@ -34,7 +34,8 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 - `rusty-matter-sdf`: packed SDF grids and mesh-to-SDF CPU reference behavior;
 - `rusty-matter-particles`: particle state, SDF interaction, spatial hashes,
   influence points, impulses, simple bodies, render-neutral payload data,
-  diagnostics, and fixed-step CPU simulation contracts;
+  diagnostics, fixed-step CPU simulation contracts, and batch-backed execution
+  diagnostics for the general particle simulator;
 - `rusty-matter-surface-runtime`: native animated-surface runtime facade over
   mesh distance, dynamic collider, SDF-grid building, and surface particles for
   app adapters that need the same Matter-owned behavior as browser previews
