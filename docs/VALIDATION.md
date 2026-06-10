@@ -40,6 +40,21 @@ equivalence for the opt-in `parallel` feature. The Quest animated hand-mesh
 path uses `SurfaceParticleRuntime`; validate that separately when its
 surface-particle execution path changes.
 
+For particle batch timing sweeps, use the Matter-owned JSONL example:
+
+```powershell
+cargo run -p rusty-matter-particles --example particle_batch_sweep -- --quick
+cargo run -p rusty-matter-particles --features parallel --example particle_batch_sweep -- --quick
+```
+
+The output rows use schema `rusty.matter.particles.batch_sweep.v1` and report
+workload, backend, worker cap, batch size, particle count, chunk count,
+elapsed timing, closest-surface samples, neighbor checks, affected/rejected
+particles, clamped particles, and max speed. Use `--full`, `--counts`,
+`--batch-sizes`, `--frames`, `--warmup-frames`, and `--workload` for larger
+local measurements. This example is not part of `check_all.ps1` because timing
+is machine-dependent evidence.
+
 For accelerated mesh-distance work, the narrow test route is:
 
 ```powershell
