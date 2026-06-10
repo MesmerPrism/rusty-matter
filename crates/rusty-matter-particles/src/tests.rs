@@ -444,6 +444,9 @@ fn surface_particle_runtime_steps_against_accelerated_sampler() {
         runtime.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 1.0 / 30.0);
 
     assert_eq!(diagnostics.particle_count, 16);
+    assert!((diagnostics.input_delta_seconds - 1.0 / 30.0).abs() < 1.0e-6);
+    assert!((diagnostics.simulated_delta_seconds - 1.0 / 30.0).abs() < 1.0e-6);
+    assert_eq!(diagnostics.dropped_delta_seconds, 0.0);
     assert_eq!(diagnostics.substeps, 4);
     assert!(diagnostics.closest_samples >= 16);
     assert!(diagnostics.affected_particles >= 16);
@@ -458,6 +461,35 @@ fn surface_particle_runtime_steps_against_accelerated_sampler() {
     assert_eq!(diagnostics.execution.worker_count, 1);
     assert_eq!(diagnostics.execution.particle_count, 16);
     assert_ne!(runtime.particles().particles[0].position, before);
+}
+
+#[test]
+fn surface_particle_runtime_can_drop_excess_frame_delta() {
+    let sampler = surface_particle_sampler();
+    let mut runtime = SurfaceParticleRuntime::new(
+        "particles.surface_step",
+        SurfaceParticleRuntimeConfig {
+            max_substep_seconds: 1.0 / 120.0,
+            max_substeps_per_frame: 8,
+            max_frame_delta_seconds: Some(1.0 / 60.0),
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+    )
+    .expect("runtime builds");
+    runtime
+        .reset_random_sphere(Vec3::new(0.0, 0.0, 0.2), 16, 0.8, 0.01, 0.5, 3)
+        .expect("reset succeeds");
+
+    let diagnostics =
+        runtime.step_against_surface(&sampler, 0.5, Vec3::new(0.0, 0.0, 0.0), 0.8, 0.25);
+
+    assert_eq!(diagnostics.particle_count, 16);
+    assert_eq!(diagnostics.input_delta_seconds, 0.25);
+    assert!((diagnostics.simulated_delta_seconds - 1.0 / 60.0).abs() < 1.0e-6);
+    assert!((diagnostics.dropped_delta_seconds - (0.25 - 1.0 / 60.0)).abs() < 1.0e-6);
+    assert_eq!(diagnostics.substeps, 2);
+    assert_eq!(diagnostics.execution.chunk_count, 2);
+    assert!(diagnostics.closest_samples >= 32);
 }
 
 #[test]
@@ -550,4 +582,20 @@ fn surface_particle_runtime_rejects_invalid_config() {
     .unwrap_err();
 
     assert_eq!(error, ParticleError::InvalidFixedStep);
+
+    let error = SurfaceParticleRuntime::new(
+        "particles.surface_bad",
+        SurfaceParticleRuntimeConfig {
+            max_frame_delta_seconds: Some(0.0),
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error,
+        ParticleError::InvalidInteractionConfig(
+            "max_frame_delta_seconds must be absent or finite and positive"
+        )
+    );
 }

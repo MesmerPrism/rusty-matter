@@ -21,6 +21,12 @@ pub struct SurfaceParticleRuntimeConfig {
     pub damping: f32,
     /// Maximum particle speed as a multiplier of source surface radius.
     pub max_speed_radius_scale: f32,
+    /// Optional cap for elapsed time simulated by one particle frame.
+    ///
+    /// When set, excess elapsed time is dropped and reported in diagnostics.
+    /// This is a deterministic CPU policy for realtime consumers that prefer
+    /// latest-state responsiveness over catch-up work after a slow frame.
+    pub max_frame_delta_seconds: Option<f32>,
     /// Radius multiplier before cloud confinement begins.
     pub cloud_confinement_radius_scale: f32,
     /// Acceleration scale applied back into the source cloud.
@@ -41,6 +47,7 @@ impl Default for SurfaceParticleRuntimeConfig {
             attraction_strength: 19.0,
             damping: 1.55,
             max_speed_radius_scale: 1.9,
+            max_frame_delta_seconds: None,
             cloud_confinement_radius_scale: 1.12,
             cloud_confinement_strength: 7.0,
             max_substep_seconds: 1.0 / 45.0,
@@ -83,6 +90,13 @@ impl SurfaceParticleRuntimeConfig {
                 "max_speed_radius_scale must be finite and non-negative",
             ));
         }
+        if let Some(max_frame_delta_seconds) = self.max_frame_delta_seconds {
+            if !max_frame_delta_seconds.is_finite() || max_frame_delta_seconds <= 0.0 {
+                return Err(ParticleError::InvalidInteractionConfig(
+                    "max_frame_delta_seconds must be absent or finite and positive",
+                ));
+            }
+        }
         if !self.cloud_confinement_radius_scale.is_finite()
             || self.cloud_confinement_radius_scale <= 0.0
         {
@@ -112,6 +126,12 @@ impl SurfaceParticleRuntimeConfig {
 pub struct SurfaceParticleStepDiagnostics {
     /// Number of particles in the runtime after the step.
     pub particle_count: usize,
+    /// Elapsed time requested by the caller.
+    pub input_delta_seconds: f32,
+    /// Elapsed time actually simulated after applying runtime policy.
+    pub simulated_delta_seconds: f32,
+    /// Elapsed time intentionally dropped by runtime policy.
+    pub dropped_delta_seconds: f32,
     /// Number of fixed substeps consumed.
     pub substeps: u32,
     /// Surface closest-point samples performed by integration.
@@ -258,11 +278,22 @@ impl SurfaceParticleRuntime {
             return diagnostics;
         }
 
-        let substeps = (delta_seconds / self.config.max_substep_seconds)
+        diagnostics.input_delta_seconds = delta_seconds;
+        let simulated_delta_seconds = self
+            .config
+            .max_frame_delta_seconds
+            .map_or(delta_seconds, |maximum| delta_seconds.min(maximum));
+        diagnostics.simulated_delta_seconds = simulated_delta_seconds;
+        diagnostics.dropped_delta_seconds = (delta_seconds - simulated_delta_seconds).max(0.0);
+        if simulated_delta_seconds <= 0.0 {
+            return diagnostics;
+        }
+
+        let substeps = (simulated_delta_seconds / self.config.max_substep_seconds)
             .ceil()
             .max(1.0) as u32;
         let substeps = substeps.clamp(1, self.config.max_substeps_per_frame);
-        let sub_delta = delta_seconds / substeps as f32;
+        let sub_delta = simulated_delta_seconds / substeps as f32;
         let max_speed = surface_radius * self.config.max_speed_radius_scale;
 
         for _ in 0..substeps {
