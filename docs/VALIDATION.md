@@ -10,6 +10,9 @@ The check covers:
 
 - `cargo fmt --all --check`;
 - `cargo test --workspace`;
+- `cargo test -p rusty-matter-batch --features rayon`;
+- `cargo test -p rusty-matter-particles --features parallel`;
+- `cargo test -p rusty-matter-surface-runtime --features parallel`;
 - fixture validation;
 - schema catalog export check;
 - Matter dependency and namespace boundary scans.
@@ -25,7 +28,9 @@ Those tests verify deterministic logical chunk construction and serial
 chunk-index-ordered diagnostics reduction. With the `rayon` feature enabled,
 they also verify local-pool Rayon execution, serial-vs-Rayon output
 equivalence, batch-size-invariant integer diagnostics, and deterministic
-chunk-index reduction order.
+chunk-index reduction order. The slice-chunk sentinel tests also cover varied
+lengths and batch sizes to prove each output index is written exactly once and
+no chunk writes outside its assigned range.
 
 For general fixed-step particle execution work, the narrow test route is:
 
@@ -36,9 +41,12 @@ cargo test -p rusty-matter-particles --features parallel
 
 Those tests verify the serial default `ParticleSimulator` path,
 batch-size-invariant serial output, execution diagnostics, and serial-vs-Rayon
-equivalence for the opt-in `parallel` feature. The Quest animated hand-mesh
-path uses `SurfaceParticleRuntime`; validate that separately when its
-surface-particle execution path changes.
+equivalence for the opt-in `parallel` feature. The general simulator keeps
+schema-rich `ParticleState` as the public model, but its fixed-step hot path
+uses compact reusable scratch inputs instead of cloning particle identity and
+schema strings each step. The Quest animated hand-mesh path uses
+`SurfaceParticleRuntime`; validate that separately when its surface-particle
+execution path changes.
 
 For particle batch timing sweeps, use the Matter-owned JSONL example:
 
@@ -83,7 +91,9 @@ cargo test -p rusty-matter-surface-runtime --features parallel
 
 Those tests verify that the native facade updates animated surfaces, exposes
 distance sampler diagnostics, probes the dynamic collider through the
-batch-backed contact-probe path, builds an SDF grid from the current surface,
+batch-backed contact-probe path, accepts reusable contact-probe executors for
+high-rate callers that should not rebuild Rayon pools per frame, builds an SDF
+grid from the current surface,
 steps Matter-owned surface particles, and refreshes browser-parity particle
 distance snapshots without using the Wasm adapter. They also verify that
 consecutive matching-topology frames use the distance-sampler refit path

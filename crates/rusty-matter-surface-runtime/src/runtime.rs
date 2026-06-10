@@ -446,6 +446,20 @@ impl MatterSurfaceRuntime {
         batch_config: BatchConfig,
     ) -> Result<MatterSurfaceContactProbeBatch, MatterSurfaceRuntimeError> {
         let executor = BatchExecutor::new(batch_config)?;
+        Ok(self.probe_contacts_with_executor(probes, &executor))
+    }
+
+    /// Runs a batch of dynamic collider contact probes with a reusable Matter
+    /// batch executor.
+    ///
+    /// Use this when contact probes are part of a high-rate frame path and the
+    /// caller wants to reuse the executor's worker pool across frames.
+    #[must_use]
+    pub fn probe_contacts_with_executor(
+        &self,
+        probes: &[MatterSurfaceContactProbe],
+        executor: &BatchExecutor,
+    ) -> MatterSurfaceContactProbeBatch {
         let mut results = vec![None; probes.len()];
         let report = executor.run_slice_chunks(&mut results, |chunk, output| {
             let mut diagnostics = ContactProbeChunkDiagnostics::default();
@@ -473,12 +487,12 @@ impl MatterSurfaceRuntime {
                 })
             })
             .collect::<Vec<_>>();
-        Ok(MatterSurfaceContactProbeBatch {
+        MatterSurfaceContactProbeBatch {
             schema_id: MATTER_SURFACE_CONTACT_PROBE_BATCH_SCHEMA_ID.to_owned(),
             results,
             contact_count: report.diagnostics.contact_count,
             overlap_count: report.diagnostics.overlap_count,
-        })
+        }
     }
 
     /// Resets particles to a deterministic random sphere.

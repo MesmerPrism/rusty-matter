@@ -143,6 +143,31 @@ fn contact_probe_batch_preserves_input_order_across_chunks() {
 }
 
 #[test]
+fn contact_probe_batch_accepts_reusable_executor() {
+    let mut runtime = MatterSurfaceRuntime::default();
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    let probes = [
+        MatterSurfaceContactProbe::sphere("probe.near", Vec3::new(0.25, 0.25, 0.05), 0.1),
+        MatterSurfaceContactProbe::sphere("probe.far", Vec3::new(0.25, 0.25, 1.0), 0.1),
+    ];
+    let executor = BatchExecutor::new(BatchConfig {
+        batch_size: NonZeroUsize::new(1).expect("test batch size is non-zero"),
+        ..BatchConfig::default()
+    })
+    .expect("executor builds");
+
+    let batch = runtime.probe_contacts_with_executor(&probes, &executor);
+
+    assert_eq!(batch.results.len(), probes.len());
+    assert_eq!(batch.contact_count, 2);
+    assert_eq!(batch.overlap_count, 1);
+    assert_eq!(batch.results[0].probe_id, "probe.near");
+    assert_eq!(batch.results[1].probe_id, "probe.far");
+}
+
+#[test]
 fn contact_probe_batch_rejects_invalid_worker_cap() {
     let runtime = MatterSurfaceRuntime::default();
     let error = runtime

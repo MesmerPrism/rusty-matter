@@ -34,7 +34,8 @@ impl BatchExecutor {
         }
         #[cfg(feature = "rayon")]
         let rayon_pool = if matches!(config.backend, BatchBackendKind::Rayon) {
-            let mut builder = rayon::ThreadPoolBuilder::new();
+            let mut builder = rayon::ThreadPoolBuilder::new()
+                .thread_name(|index| format!("matter-batch-{index}"));
             if let Some(max_threads) = config.max_threads {
                 builder = builder.num_threads(max_threads);
             }

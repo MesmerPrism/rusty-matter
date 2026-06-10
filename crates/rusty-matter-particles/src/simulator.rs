@@ -20,6 +20,8 @@ pub struct ParticleSimulator {
     spatial_hash: SpatialHashGrid,
     execution: ParticleExecutionConfig,
     executor: BatchExecutor,
+    step_inputs: Vec<ParticleStepInput>,
+    positions: Vec<Vec3>,
     sdf: Option<PackedSdfGrid>,
     accumulator_seconds: f32,
     tick: u64,
@@ -69,6 +71,8 @@ impl ParticleSimulator {
             pending_impulses: Vec::new(),
             execution,
             executor,
+            step_inputs: Vec::new(),
+            positions: Vec::new(),
             sdf: None,
             accumulator_seconds: 0.0,
             tick: 0,
@@ -163,29 +167,27 @@ impl ParticleSimulator {
             return diagnostics;
         }
 
-        let positions = self
-            .particles
-            .particles
-            .iter()
-            .map(|particle| particle.position)
-            .collect::<Vec<_>>();
+        self.step_inputs.clear();
+        self.step_inputs
+            .extend(self.particles.particles.iter().map(ParticleStepInput::from));
+        self.positions.clear();
+        self.positions
+            .extend(self.step_inputs.iter().map(|particle| particle.position));
         let mut neighbor_enabled = self.fixed_step.neighbor_radius > 0.0
             && self.fixed_step.neighbor_repulsion_strength > 0.0;
         if neighbor_enabled
             && self
                 .spatial_hash
-                .build(&positions, self.fixed_step.neighbor_radius)
+                .build(&self.positions, self.fixed_step.neighbor_radius)
                 .is_err()
         {
             neighbor_enabled = false;
             diagnostics.rejected_particles += self.particles.len();
         }
         let impulses = std::mem::take(&mut self.pending_impulses);
-        let previous_particles = self.particles.particles.clone();
-        let mut next_particles = previous_particles.clone();
         let snapshot = ParticleStepSnapshot {
-            previous_particles: &previous_particles,
-            positions: &positions,
+            previous_particles: &self.step_inputs,
+            positions: &self.positions,
             fixed_step: &self.fixed_step,
             interaction: &self.interaction,
             interactions: &self.interactions,
@@ -197,19 +199,37 @@ impl ParticleSimulator {
         };
         let report = self
             .executor
-            .run_slice_chunks(&mut next_particles, |chunk, output| {
+            .run_slice_chunks(&mut self.particles.particles, |chunk, output| {
                 step_particle_chunk(&snapshot, chunk.range.start, output)
             });
         diagnostics.merge_chunk_report(&report, self.execution.backend);
-        self.particles.particles = next_particles;
 
         diagnostics.particle_count = self.particles.len();
         diagnostics
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+struct ParticleStepInput {
+    position: Vec3,
+    velocity: Vec3,
+    radius: f32,
+    inverse_mass: f32,
+}
+
+impl From<&ParticleState> for ParticleStepInput {
+    fn from(particle: &ParticleState) -> Self {
+        Self {
+            position: particle.position,
+            velocity: particle.velocity,
+            radius: particle.radius,
+            inverse_mass: particle.inverse_mass,
+        }
+    }
+}
+
 struct ParticleStepSnapshot<'a> {
-    previous_particles: &'a [ParticleState],
+    previous_particles: &'a [ParticleStepInput],
     positions: &'a [Vec3],
     fixed_step: &'a ParticleFixedStepConfig,
     interaction: &'a SdfParticleInteractionConfig,
@@ -294,12 +314,13 @@ fn step_one_particle(
     diagnostics: &mut ParticleStepChunkDiagnostics,
 ) {
     particle.age_seconds += snapshot.delta_seconds;
-    if particle.inverse_mass == 0.0 {
-        diagnostics.max_speed = diagnostics.max_speed.max(particle.velocity.length());
+    let previous = snapshot.previous_particles[index];
+    if previous.inverse_mass == 0.0 {
+        diagnostics.max_speed = diagnostics.max_speed.max(previous.velocity.length());
         return;
     }
 
-    let position = snapshot.positions[index];
+    let position = previous.position;
     let mut acceleration = Vec3::ZERO;
     if snapshot.neighbor_enabled {
         let (neighbor_acceleration, checks) = neighbor_acceleration(
@@ -338,10 +359,9 @@ fn step_one_particle(
     acceleration = acceleration + influence_acceleration;
     diagnostics.influence_samples += influence_samples;
 
-    let mut velocity =
-        snapshot.previous_particles[index].velocity + acceleration * snapshot.delta_seconds;
+    let mut velocity = previous.velocity + acceleration * snapshot.delta_seconds;
     let (impulse_delta, impulses_applied) =
-        impulse_velocity_delta(snapshot.impulses, position, particle.inverse_mass);
+        impulse_velocity_delta(snapshot.impulses, position, previous.inverse_mass);
     velocity = velocity + impulse_delta;
     diagnostics.impulses_applied += impulses_applied;
 
@@ -356,7 +376,7 @@ fn step_one_particle(
     let mut next_position = position + velocity * snapshot.delta_seconds;
     diagnostics.body_collisions += apply_interaction_bodies(
         &snapshot.interactions.bodies,
-        particle.radius,
+        previous.radius,
         &mut next_position,
         &mut velocity,
     );

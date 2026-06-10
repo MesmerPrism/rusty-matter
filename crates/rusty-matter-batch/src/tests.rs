@@ -154,6 +154,29 @@ fn serial_executor_writes_mutable_slice_chunks() {
 }
 
 #[test]
+fn slice_chunks_cover_each_index_once_for_varied_lengths() {
+    for len in [0, 1, 2, 3, 7, 31, 32, 33, 255, 256, 257, 1024] {
+        for batch_size in [1, 2, 3, 7, 16, 64, 256] {
+            let executor = BatchExecutor::new(serial_config(batch_size)).expect("executor builds");
+            let mut output = vec![usize::MAX; len];
+            let report = executor.run_slice_chunks(&mut output, |chunk, values| {
+                for (offset, value) in values.iter_mut().enumerate() {
+                    *value = chunk.range.start + offset;
+                }
+                OrderDiagnostics {
+                    visited: vec![chunk.index],
+                    sum: values.iter().sum(),
+                }
+            });
+
+            assert_eq!(output, (0..len).collect::<Vec<_>>());
+            assert_eq!(report.diagnostics.sum, (0..len).sum());
+            assert_eq!(report.chunk_count, len.div_ceil(batch_size));
+        }
+    }
+}
+
+#[test]
 fn executor_rejects_zero_worker_cap() {
     let error = BatchExecutor::new(BatchConfig {
         backend: BatchBackendKind::Serial,
@@ -216,6 +239,45 @@ fn rayon_slice_chunks_match_serial_output() {
     assert_eq!(rayon_output, serial_output);
     assert_eq!(rayon_report.chunk_count, serial_report.chunk_count);
     assert_eq!(rayon_report.diagnostics, serial_report.diagnostics);
+}
+
+#[cfg(feature = "rayon")]
+#[test]
+fn rayon_slice_chunks_cover_each_index_once_for_varied_lengths() {
+    for len in [0, 1, 2, 3, 7, 31, 32, 33, 255, 256, 257, 1024] {
+        for batch_size in [1, 2, 3, 7, 16, 64, 256] {
+            let serial =
+                BatchExecutor::new(serial_config(batch_size)).expect("serial executor builds");
+            let rayon = BatchExecutor::new(rayon_config(batch_size, Some(2)))
+                .expect("rayon executor builds");
+            let mut serial_output = vec![usize::MAX; len];
+            let mut rayon_output = vec![usize::MAX; len];
+
+            let serial_report = serial.run_slice_chunks(&mut serial_output, |chunk, values| {
+                for (offset, value) in values.iter_mut().enumerate() {
+                    *value = chunk.range.start + offset;
+                }
+                OrderDiagnostics {
+                    visited: vec![chunk.index],
+                    sum: values.iter().sum(),
+                }
+            });
+            let rayon_report = rayon.run_slice_chunks(&mut rayon_output, |chunk, values| {
+                for (offset, value) in values.iter_mut().enumerate() {
+                    *value = chunk.range.start + offset;
+                }
+                OrderDiagnostics {
+                    visited: vec![chunk.index],
+                    sum: values.iter().sum(),
+                }
+            });
+
+            assert_eq!(rayon_output, serial_output);
+            assert_eq!(rayon_output, (0..len).collect::<Vec<_>>());
+            assert_eq!(rayon_report.chunk_count, serial_report.chunk_count);
+            assert_eq!(rayon_report.diagnostics, serial_report.diagnostics);
+        }
+    }
 }
 
 #[cfg(feature = "rayon")]
