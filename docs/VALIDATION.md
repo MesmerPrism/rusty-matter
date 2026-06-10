@@ -14,6 +14,15 @@ The check covers:
 - schema catalog export check;
 - Matter dependency and namespace boundary scans.
 
+For Matter batch execution work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-batch
+```
+
+Those tests verify deterministic logical chunk construction and serial
+chunk-index-ordered diagnostics reduction before any parallel backend is added.
+
 For accelerated mesh-distance work, the narrow test route is:
 
 ```powershell

@@ -6,6 +6,9 @@ fixtures, diagnostics, and deterministic CPU reference behavior.
 
 This repository starts with a narrow mesh, SDF, and particle foundation:
 
+- `rusty-matter-batch`: deterministic dependency-light batch execution helpers
+  for Matter CPU reference kernels, starting with a serial backend, stable
+  logical chunks, and chunk-index-ordered diagnostics reduction;
 - `rusty-matter-model`: shared model primitives and schema IDs;
 - `rusty-matter-fields`: surface-field substrates, scalar/vector field
   contracts, perturbation descriptors, runtime config contracts, sparse
@@ -48,14 +51,14 @@ circuit debug frames, GLB-derived and synthetic planarian presets,
 Planarian 3D realtime scenario switching, scenario outcome traces and trace
 sets, selected readouts, tiered voltage-neighborhood edit targets, recent
 edit-event and affected-target readouts, summaries, debug frames, and errors.
-Mesh code is split by surface,
-sampling/live updates, accelerated
-distance queries, coordinate maps, hand payloads, dynamic collider, and
-error/math helpers. SDF code is split by builder, config, packed grid, geometry
-helpers, and errors. Particle code is split by IDs, state, render-neutral
-payloads, configs, interactions, spatial hash, diagnostics, simulation, and
-errors. Surface runtime code is split by facade/runtime types and
-orchestration errors. Fixture generation is split by artifact dispatch,
+Mesh code is split by surface, sampling/live updates, accelerated distance
+queries, coordinate maps, hand payloads, dynamic collider, and error/math
+helpers. Batch code is split by config, chunks, executor, report, and errors.
+SDF code is split by builder, config, packed grid, geometry helpers, and
+errors. Particle code is split by IDs, state, render-neutral payloads, configs,
+interactions, spatial hash, diagnostics, simulation, and errors. Surface
+runtime code is split by facade/runtime types and orchestration errors.
+Fixture generation is split by artifact dispatch,
 summaries, fields, SDF, mesh, particle, and damaged-input families. Schema
 export is split by catalog, CLI, and error modules.
 

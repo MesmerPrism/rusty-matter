@@ -7,6 +7,9 @@ deterministic CPU reference behavior.
 
 Matter owns:
 
+- deterministic dependency-light batch execution helpers for Matter CPU
+  reference kernels, with stable logical chunks and chunk-index-ordered
+  diagnostics reduction;
 - mesh and geometry payloads;
 - dynamic mesh topology keys, surface samples, coordinate maps, and local
   coordinate frames;
@@ -81,6 +84,8 @@ distribution code stays generic.
 
 The implemented foundation slices are intentionally CPU/data-only:
 
+- deterministic serial batch execution helpers for future particle, distance,
+  contact-probe, SDF, and payload-packing kernels;
 - model primitives;
 - triangle mesh validation;
 - dynamic mesh surface validation and topology keys;
