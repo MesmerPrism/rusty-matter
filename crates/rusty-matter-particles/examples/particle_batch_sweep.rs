@@ -32,29 +32,42 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let sampler = benchmark_sampler(options.grid_divisions)?;
     for workload in options.workloads() {
-        for particle_count in &options.particle_counts {
-            for batch_size in &options.batch_sizes {
-                for backend in backend_cases() {
-                    let row = match workload {
-                        Workload::Surface => run_surface_case(
-                            &sampler,
-                            *particle_count,
-                            *batch_size,
-                            backend,
-                            options.frames,
-                            options.warmup_frames,
-                        )?,
-                        Workload::Neighbor => run_neighbor_case(
-                            *particle_count,
-                            *batch_size,
-                            backend,
-                            options.frames,
-                            options.warmup_frames,
-                        )?,
-                    };
-                    println!("{}", row.to_json_line());
+        match workload {
+            Workload::Surface => {
+                for leaf_triangle_count in &options.leaf_triangle_counts {
+                    let sampler = benchmark_sampler(options.grid_divisions, *leaf_triangle_count)?;
+                    for particle_count in &options.particle_counts {
+                        for batch_size in &options.batch_sizes {
+                            for backend in backend_cases() {
+                                let row = run_surface_case(
+                                    &sampler,
+                                    *particle_count,
+                                    *batch_size,
+                                    backend,
+                                    options.frames,
+                                    options.warmup_frames,
+                                )?;
+                                println!("{}", row.to_json_line());
+                            }
+                        }
+                    }
+                }
+            }
+            Workload::Neighbor => {
+                for particle_count in &options.particle_counts {
+                    for batch_size in &options.batch_sizes {
+                        for backend in backend_cases() {
+                            let row = run_neighbor_case(
+                                *particle_count,
+                                *batch_size,
+                                backend,
+                                options.frames,
+                                options.warmup_frames,
+                            )?;
+                            println!("{}", row.to_json_line());
+                        }
+                    }
                 }
             }
         }
@@ -70,6 +83,7 @@ struct SweepOptions {
     frames: usize,
     warmup_frames: usize,
     grid_divisions: usize,
+    leaf_triangle_counts: Vec<usize>,
     workload: WorkloadSelection,
     help: bool,
 }
@@ -82,6 +96,7 @@ impl SweepOptions {
             frames: DEFAULT_FRAMES,
             warmup_frames: DEFAULT_WARMUP_FRAMES,
             grid_divisions: DEFAULT_GRID_DIVISIONS,
+            leaf_triangle_counts: vec![8],
             workload: WorkloadSelection::Surface,
             help: false,
         };
@@ -95,6 +110,7 @@ impl SweepOptions {
                     options.batch_sizes = vec![256];
                     options.frames = 3;
                     options.warmup_frames = 1;
+                    options.leaf_triangle_counts = vec![8];
                     options.workload = WorkloadSelection::All;
                 }
                 "--full" => {
@@ -145,6 +161,18 @@ impl SweepOptions {
                         "--grid-divisions",
                     )?;
                 }
+                "--leaf-triangle-counts" => {
+                    options.leaf_triangle_counts = parse_usize_list(
+                        args.next()
+                            .ok_or_else(|| {
+                                "--leaf-triangle-counts requires a comma-separated value".to_owned()
+                            })?
+                            .as_str(),
+                    )?;
+                    if options.leaf_triangle_counts.iter().any(|value| *value == 0) {
+                        return Err("--leaf-triangle-counts values must be positive".to_owned());
+                    }
+                }
                 "--workload" => {
                     options.workload = WorkloadSelection::parse(
                         args.next()
@@ -163,6 +191,9 @@ impl SweepOptions {
         }
         if options.batch_sizes.is_empty() {
             return Err("--batch-sizes must contain at least one value".to_owned());
+        }
+        if options.leaf_triangle_counts.is_empty() {
+            return Err("--leaf-triangle-counts must contain at least one value".to_owned());
         }
         Ok(options)
     }
@@ -252,6 +283,7 @@ struct SweepRow {
     backend: ParticleExecutionBackend,
     max_threads: Option<usize>,
     batch_size: usize,
+    leaf_triangle_count: usize,
     particle_count: usize,
     frames: usize,
     warmup_frames: usize,
@@ -260,6 +292,9 @@ struct SweepRow {
     chunk_count: usize,
     worker_count: usize,
     closest_samples: usize,
+    surface_node_tests: usize,
+    surface_leaf_tests: usize,
+    surface_triangle_tests: usize,
     neighbor_checks: usize,
     affected_particles: usize,
     rejected_particles: usize,
@@ -270,12 +305,13 @@ struct SweepRow {
 impl SweepRow {
     fn to_json_line(&self) -> String {
         format!(
-            "{{\"schema\":\"{}\",\"workload\":\"{}\",\"backend\":\"{}\",\"max_threads\":{},\"batch_size\":{},\"particle_count\":{},\"frames\":{},\"warmup_frames\":{},\"elapsed_micros\":{},\"avg_frame_micros\":{},\"execution_elapsed_micros\":{},\"chunk_count\":{},\"worker_count\":{},\"closest_samples\":{},\"neighbor_checks\":{},\"affected_particles\":{},\"rejected_particles\":{},\"clamped_particles\":{},\"max_speed\":{:.6}}}",
+            "{{\"schema\":\"{}\",\"workload\":\"{}\",\"backend\":\"{}\",\"max_threads\":{},\"batch_size\":{},\"leaf_triangle_count\":{},\"particle_count\":{},\"frames\":{},\"warmup_frames\":{},\"elapsed_micros\":{},\"avg_frame_micros\":{},\"execution_elapsed_micros\":{},\"chunk_count\":{},\"worker_count\":{},\"closest_samples\":{},\"surface_node_tests\":{},\"surface_leaf_tests\":{},\"surface_triangle_tests\":{},\"neighbor_checks\":{},\"affected_particles\":{},\"rejected_particles\":{},\"clamped_particles\":{},\"max_speed\":{:.6}}}",
             SCHEMA_ID,
             self.workload.marker_value(),
             self.backend.marker_value(),
             option_usize_json(self.max_threads),
             self.batch_size,
+            self.leaf_triangle_count,
             self.particle_count,
             self.frames,
             self.warmup_frames,
@@ -285,6 +321,9 @@ impl SweepRow {
             self.chunk_count,
             self.worker_count,
             self.closest_samples,
+            self.surface_node_tests,
+            self.surface_leaf_tests,
+            self.surface_triangle_tests,
             self.neighbor_checks,
             self.affected_particles,
             self.rejected_particles,
@@ -336,6 +375,7 @@ fn run_surface_case(
         backend: backend.backend,
         max_threads: backend.max_threads,
         batch_size,
+        leaf_triangle_count: sampler.stats().leaf_triangle_count,
         particle_count,
         frames,
         warmup_frames,
@@ -344,6 +384,9 @@ fn run_surface_case(
         chunk_count: accumulator.chunk_count,
         worker_count: accumulator.worker_count,
         closest_samples: accumulator.closest_samples,
+        surface_node_tests: accumulator.surface_node_tests,
+        surface_leaf_tests: accumulator.surface_leaf_tests,
+        surface_triangle_tests: accumulator.surface_triangle_tests,
         neighbor_checks: 0,
         affected_particles: accumulator.affected_particles,
         rejected_particles: accumulator.rejected_particles,
@@ -393,6 +436,7 @@ fn run_neighbor_case(
         backend: backend.backend,
         max_threads: backend.max_threads,
         batch_size,
+        leaf_triangle_count: 0,
         particle_count,
         frames,
         warmup_frames,
@@ -401,6 +445,9 @@ fn run_neighbor_case(
         chunk_count: accumulator.chunk_count,
         worker_count: accumulator.worker_count,
         closest_samples: 0,
+        surface_node_tests: 0,
+        surface_leaf_tests: 0,
+        surface_triangle_tests: 0,
         neighbor_checks: accumulator.neighbor_checks,
         affected_particles: accumulator.affected_particles,
         rejected_particles: accumulator.rejected_particles,
@@ -415,6 +462,9 @@ struct SurfaceAccumulator {
     chunk_count: usize,
     worker_count: usize,
     closest_samples: usize,
+    surface_node_tests: usize,
+    surface_leaf_tests: usize,
+    surface_triangle_tests: usize,
     affected_particles: usize,
     rejected_particles: usize,
     clamped_particles: usize,
@@ -427,6 +477,9 @@ impl SurfaceAccumulator {
         self.chunk_count += diagnostics.execution.chunk_count;
         self.worker_count = self.worker_count.max(diagnostics.execution.worker_count);
         self.closest_samples += diagnostics.closest_samples;
+        self.surface_node_tests += diagnostics.surface_node_tests;
+        self.surface_leaf_tests += diagnostics.surface_leaf_tests;
+        self.surface_triangle_tests += diagnostics.surface_triangle_tests;
         self.affected_particles += diagnostics.affected_particles;
         self.rejected_particles += diagnostics.rejected_particles;
         self.clamped_particles += diagnostics.clamped_particles;
@@ -467,10 +520,13 @@ fn execution_config(backend: BackendCase, batch_size: usize) -> ParticleExecutio
     }
 }
 
-fn benchmark_sampler(grid_divisions: usize) -> Result<SurfaceDistanceSampler, Box<dyn Error>> {
+fn benchmark_sampler(
+    grid_divisions: usize,
+    leaf_triangle_count: usize,
+) -> Result<SurfaceDistanceSampler, Box<dyn Error>> {
     Ok(
         benchmark_surface(grid_divisions).distance_sampler(SurfaceDistanceSamplerConfig {
-            leaf_triangle_count: 8,
+            leaf_triangle_count,
             ..SurfaceDistanceSamplerConfig::default()
         })?,
     )
@@ -554,6 +610,6 @@ fn option_usize_json(value: Option<usize>) -> String {
 
 fn print_usage() {
     println!(
-        "usage: cargo run -p rusty-matter-particles --example particle_batch_sweep -- [--quick] [--full] [--workload surface|neighbor|all] [--counts 64,192,512,2048] [--batch-sizes 32,64,128,256,512] [--frames N] [--warmup-frames N]"
+        "usage: cargo run -p rusty-matter-particles --example particle_batch_sweep -- [--quick] [--full] [--workload surface|neighbor|all] [--counts 64,192,512,2048] [--batch-sizes 32,64,128,256,512] [--leaf-triangle-counts 4,8,16] [--frames N] [--warmup-frames N]"
     );
 }

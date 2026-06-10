@@ -49,11 +49,17 @@ cargo run -p rusty-matter-particles --features parallel --example particle_batch
 
 The output rows use schema `rusty.matter.particles.batch_sweep.v1` and report
 workload, backend, worker cap, batch size, particle count, chunk count,
-elapsed timing, closest-surface samples, neighbor checks, affected/rejected
-particles, clamped particles, and max speed. Use `--full`, `--counts`,
-`--batch-sizes`, `--frames`, `--warmup-frames`, and `--workload` for larger
-local measurements. This example is not part of `check_all.ps1` because timing
-is machine-dependent evidence.
+elapsed timing, closest-surface samples, surface-distance node/leaf/triangle
+test totals, neighbor checks, affected/rejected particles, clamped particles,
+and max speed. Use `--full`, `--counts`, `--batch-sizes`,
+`--leaf-triangle-counts`, `--frames`, `--warmup-frames`, and `--workload` for
+larger local measurements. This example is not part of `check_all.ps1` because
+timing is machine-dependent evidence. For Quest SDF/particle tuning, prefer a
+surface-only release sweep such as:
+
+```powershell
+cargo run --release -p rusty-matter-particles --features parallel --example particle_batch_sweep -- --counts 32768 --batch-sizes 256 --leaf-triangle-counts 4,8,16,32 --frames 4 --warmup-frames 1 --workload surface
+```
 
 For accelerated mesh-distance work, the narrow test route is:
 
