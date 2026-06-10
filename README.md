@@ -31,6 +31,10 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
 - `rusty-matter-particles`: particle state, SDF interaction, spatial hashes,
   influence points, impulses, simple bodies, render-neutral payload data,
   diagnostics, and fixed-step CPU simulation contracts;
+- `rusty-matter-surface-runtime`: native animated-surface runtime facade over
+  mesh distance, dynamic collider, SDF-grid building, and surface particles for
+  app adapters that need the same Matter-owned behavior as browser previews
+  without using Wasm;
 - `rusty-matter-fixtures`: deterministic fixture validation;
 - `rusty-matter-handmesh-wasm`: optional browser WebAssembly adapter over the
   Matter mesh distance sampler;
@@ -50,9 +54,10 @@ distance queries, coordinate maps, hand payloads, dynamic collider, and
 error/math helpers. SDF code is split by builder, config, packed grid, geometry
 helpers, and errors. Particle code is split by IDs, state, render-neutral
 payloads, configs, interactions, spatial hash, diagnostics, simulation, and
-errors. Fixture generation is split by artifact dispatch, summaries, fields,
-SDF, mesh, particle, and damaged-input families. Schema export is split by
-catalog, CLI, and error modules.
+errors. Surface runtime code is split by facade/runtime types and
+orchestration errors. Fixture generation is split by artifact dispatch,
+summaries, fields, SDF, mesh, particle, and damaged-input families. Schema
+export is split by catalog, CLI, and error modules.
 
 ## Boundary
 

@@ -35,6 +35,8 @@ Matter owns:
 - fields and packed SDF grids;
 - particle state and dynamics;
 - render-neutral particle payload data derived from Matter state;
+- native animated-surface runtime orchestration over mesh distance, dynamic
+  collider, SDF-grid building, and surface particles for downstream adapters;
 - deterministic CPU reference algorithms;
 - fixture and schema artifacts;
 - diagnostics for simulation and field operations.
@@ -111,11 +113,20 @@ The implemented foundation slices are intentionally CPU/data-only:
 - deterministic spatial hash neighbor queries;
 - particle influence points, one-shot impulses, and simple sphere/AABB bodies;
 - particle diagnostics for SDF, neighbor, influence, impulse, and body work;
+- native surface-runtime facade over the Matter-owned distance sampler,
+  dynamic collider, SDF builder, and surface particle runtime;
 - fixture and schema catalog checks;
 - dependency and namespace boundary guards.
 
 Runtime workers, renderer-owned GPU state, platform adapters, command routing,
 and downstream visual-driver behavior stay outside Matter.
+
+The `rusty-matter-surface-runtime` crate is a native orchestration facade, not
+a new authority. It owns the current animated `TriangleMeshSurface`,
+`SurfaceDistanceSampler`, `DynamicMeshCollider`, `SurfaceParticleRuntime`, and
+typed particle distance snapshots so native adapters can consume one
+browser-equivalent Matter boundary. It does not own view policy, Makepad
+buffers, Quest lifecycle, settings, command JSON, or browser Wasm exports.
 
 The optional `rusty-matter-handmesh-wasm` crate is a thin browser export over
 the same Matter mesh distance sampler used natively. It does not own renderer
@@ -220,6 +231,14 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   candidate hash.
 - `rusty-matter-particles/src/simulator.rs`: fixed-step CPU reference
   simulation.
+- `rusty-matter-particles/src/surface.rs`: particles attracted to an
+  accelerated mesh surface with per-step closest-point diagnostics.
+- `rusty-matter-surface-runtime/src/runtime.rs`: native animated-surface
+  runtime facade that coordinates `TriangleMeshSurface`,
+  `SurfaceDistanceSampler`, `DynamicMeshCollider`, `PackedSdfGrid`, and
+  `SurfaceParticleRuntime` without platform or renderer dependencies.
+- `rusty-matter-surface-runtime/src/error.rs`: runtime orchestration error
+  surface over mesh, particle, and SDF failures.
 - `rusty-matter-handmesh-wasm/src/web.rs`: `wasm-bindgen` adapter that accepts
   typed-array mesh buffers and exposes accelerated closest-surface samples plus
   sampler diagnostics for browser previews.

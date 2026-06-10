@@ -9,6 +9,7 @@ members = [
     "crates/rusty-matter-particles",
     "crates/rusty-matter-schema",
     "crates/rusty-matter-sdf",
+    "crates/rusty-matter-surface-runtime",
 ]
 resolver = "2"
 

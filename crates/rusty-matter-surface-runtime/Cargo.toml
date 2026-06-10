@@ -1,0 +1,27 @@
+[package]
+name = "rusty-matter-surface-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+serde = [
+    "dep:serde",
+    "rusty-matter-mesh/serde",
+    "rusty-matter-model/serde",
+    "rusty-matter-particles/serde",
+    "rusty-matter-sdf/serde",
+]
+
+[dependencies]
+rusty-matter-mesh = { path = "../rusty-matter-mesh" }
+rusty-matter-model = { path = "../rusty-matter-model" }
+rusty-matter-particles = { path = "../rusty-matter-particles" }
+rusty-matter-sdf = { path = "../rusty-matter-sdf" }
+serde = { version = "1", features = ["derive"], optional = true }
+
+[lints]
+workspace = true

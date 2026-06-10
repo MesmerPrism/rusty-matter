@@ -24,6 +24,17 @@ Those tests verify exact closest-point behavior and that dense-surface queries
 prune exact triangle tests through the Matter-owned sampler that browser Wasm
 and Makepad/native adapters should share.
 
+For native animated-surface runtime adapter work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-surface-runtime
+```
+
+Those tests verify that the native facade updates animated surfaces, exposes
+distance sampler diagnostics, probes the dynamic collider, builds an SDF grid
+from the current surface, steps Matter-owned surface particles, and refreshes
+browser-parity particle distance snapshots without using the Wasm adapter.
+
 For surface-field contract and dynamics work, the narrow test route is:
 
 ```powershell
