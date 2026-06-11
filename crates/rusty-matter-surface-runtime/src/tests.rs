@@ -567,6 +567,26 @@ fn sdf_particle_force_source_samples_field_without_mesh_fallback() {
     );
     assert!(!diagnostics.sdf_adf_debug_particle_authority);
     assert_eq!(diagnostics.particle_force_compare_probe_count, 4);
+    let probe = diagnostics
+        .particle_force_probe
+        .as_ref()
+        .expect("SDF force probe is populated");
+    assert_eq!(
+        probe.particle_force_source,
+        MatterSurfaceParticleForceSource::SdfField
+    );
+    assert!(probe.attraction_strength.is_finite());
+    assert_eq!(probe.requested_count, 4);
+    assert_eq!(probe.sampled_count, 4);
+    assert_eq!(probe.samples.len(), 4);
+    assert!(probe
+        .samples
+        .iter()
+        .all(|sample| sample.position.is_finite()
+            && sample.outward.is_finite()
+            && sample.expected_acceleration.is_finite()
+            && sample.distance.is_finite()
+            && sample.target_distance.is_finite()));
     assert!(diagnostics.particles.closest_samples >= 8);
     assert_eq!(diagnostics.particles.surface_triangle_tests, 0);
     assert_eq!(diagnostics.refreshed_distance_samples, 0);

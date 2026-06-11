@@ -452,6 +452,44 @@ pub struct MatterSurfaceParticleSnapshot {
     pub distance_diagnostics: SurfaceDistanceQueryDiagnostics,
 }
 
+/// One bounded CPU-oracle force probe sample for GPU comparison.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatterSurfaceParticleForceProbeSample {
+    /// Source particle index in the Matter particle set.
+    pub particle_index: usize,
+    /// Particle position sampled by the selected Matter force source.
+    pub position: Vec3,
+    /// Particle radius used for target-distance scaling.
+    pub radius: f32,
+    /// Distance sampled from the selected Matter force source.
+    pub distance: f32,
+    /// Normalized outward direction sampled from the selected Matter force source.
+    pub outward: Vec3,
+    /// Target distance used by Matter's particle force equation.
+    pub target_distance: f32,
+    /// CPU-expected acceleration from Matter's particle force equation.
+    pub expected_acceleration: Vec3,
+}
+
+/// Bounded CPU-oracle particle-force probe for GPU validation.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatterSurfaceParticleForceProbe {
+    /// Selected Matter force source.
+    pub particle_force_source: MatterSurfaceParticleForceSource,
+    /// Attraction strength used by Matter's particle force equation.
+    pub attraction_strength: f32,
+    /// Requested bounded probe count.
+    pub requested_count: usize,
+    /// Number of populated probe samples.
+    pub sampled_count: usize,
+    /// Number of skipped particles whose force source could not be sampled.
+    pub rejected_count: usize,
+    /// Bounded probe samples.
+    pub samples: Vec<MatterSurfaceParticleForceProbeSample>,
+}
+
 /// Particle step result with refreshed distance evidence.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -468,6 +506,8 @@ pub struct MatterSurfaceStepDiagnostics {
     pub particle_force_update_interval_frames: usize,
     /// Bounded diagnostic compare probes requested for this step.
     pub particle_force_compare_probe_count: usize,
+    /// Bounded CPU-oracle force probes for GPU validation, when requested.
+    pub particle_force_probe: Option<MatterSurfaceParticleForceProbe>,
     /// Whether particles are using an SDF/ADF debug payload as authority.
     ///
     /// Reserved future field modes keep this false until Matter owns a real
@@ -743,22 +783,29 @@ impl MatterSurfaceRuntime {
         let should_refresh_force = self.particle_force_frame_counter % interval == 0;
         self.particle_force_frame_counter = self.particle_force_frame_counter.saturating_add(1);
         let force_source = self.config.particle_force_source;
-        let (particles, force_status, force_refresh) = match force_source {
+        let (particles, force_status, force_refresh, particle_force_probe) = match force_source {
             MatterSurfaceParticleForceSource::MeshDistance if should_refresh_force => {
                 let sampler = self
                     .sampler
                     .as_ref()
                     .ok_or(MatterSurfaceRuntimeError::DistanceSamplerUnavailable)?;
+                let particles = self.particles.step_against_surface(
+                    sampler,
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                );
+                let particle_force_probe = self.particle_force_probe(
+                    force_source,
+                    Some(sampler),
+                    self.config.particle_force_compare_probe_count,
+                );
                 (
-                    self.particles.step_against_surface(
-                        sampler,
-                        surface_radius,
-                        sequence_center,
-                        sequence_cloud_radius,
-                        delta_seconds,
-                    ),
+                    particles,
                     MatterSurfaceParticleForceSourceStatus::Ready,
                     MatterSurfaceParticleForceRefresh::Fresh,
+                    particle_force_probe,
                 )
             }
             MatterSurfaceParticleForceSource::MeshDistance => (
@@ -770,6 +817,13 @@ impl MatterSurfaceRuntime {
                 ),
                 MatterSurfaceParticleForceSourceStatus::Ready,
                 MatterSurfaceParticleForceRefresh::Reused,
+                self.particle_force_probe(
+                    force_source,
+                    self.sampler
+                        .as_ref()
+                        .map(|sampler| sampler as &dyn SurfaceParticleForceSampler),
+                    self.config.particle_force_compare_probe_count,
+                ),
             ),
             MatterSurfaceParticleForceSource::None => (
                 self.particles.step_without_surface_force(
@@ -780,6 +834,7 @@ impl MatterSurfaceRuntime {
                 ),
                 MatterSurfaceParticleForceSourceStatus::Disabled,
                 MatterSurfaceParticleForceRefresh::Disabled,
+                None,
             ),
             MatterSurfaceParticleForceSource::SdfField => {
                 let force_refresh = self.refresh_particle_sdf_force_grid(should_refresh_force)?;
@@ -788,16 +843,23 @@ impl MatterSurfaceRuntime {
                     .as_ref()
                     .expect("SDF force grid exists after refresh");
                 let sampler = SdfParticleForceSampler { grid };
+                let particles = self.particles.step_with_force_sampler(
+                    &sampler,
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                );
+                let particle_force_probe = self.particle_force_probe(
+                    force_source,
+                    Some(&sampler),
+                    self.config.particle_force_compare_probe_count,
+                );
                 (
-                    self.particles.step_with_force_sampler(
-                        &sampler,
-                        surface_radius,
-                        sequence_center,
-                        sequence_cloud_radius,
-                        delta_seconds,
-                    ),
+                    particles,
                     MatterSurfaceParticleForceSourceStatus::Ready,
                     force_refresh,
+                    particle_force_probe,
                 )
             }
             MatterSurfaceParticleForceSource::AdfField => {
@@ -811,16 +873,23 @@ impl MatterSurfaceRuntime {
                     .as_ref()
                     .expect("ADF force index exists after refresh");
                 let sampler = AdfParticleForceSampler { field, index };
+                let particles = self.particles.step_with_force_sampler(
+                    &sampler,
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                );
+                let particle_force_probe = self.particle_force_probe(
+                    force_source,
+                    Some(&sampler),
+                    self.config.particle_force_compare_probe_count,
+                );
                 (
-                    self.particles.step_with_force_sampler(
-                        &sampler,
-                        surface_radius,
-                        sequence_center,
-                        sequence_cloud_radius,
-                        delta_seconds,
-                    ),
+                    particles,
                     MatterSurfaceParticleForceSourceStatus::Ready,
                     force_refresh,
+                    particle_force_probe,
                 )
             }
         };
@@ -841,6 +910,7 @@ impl MatterSurfaceRuntime {
             particle_force_refresh: force_refresh,
             particle_force_update_interval_frames: interval,
             particle_force_compare_probe_count: self.config.particle_force_compare_probe_count,
+            particle_force_probe,
             sdf_adf_debug_particle_authority: force_source.uses_sdf_adf_debug_payload(),
             refreshed_distance_samples,
             refreshed_distance_diagnostics: self.last_particle_distance_diagnostics,
@@ -923,6 +993,55 @@ impl MatterSurfaceRuntime {
         } else {
             Ok(MatterSurfaceParticleForceRefresh::Reused)
         }
+    }
+
+    fn particle_force_probe(
+        &self,
+        particle_force_source: MatterSurfaceParticleForceSource,
+        sampler: Option<&dyn SurfaceParticleForceSampler>,
+        requested_count: usize,
+    ) -> Option<MatterSurfaceParticleForceProbe> {
+        let sampler = sampler?;
+        if requested_count == 0 {
+            return None;
+        }
+
+        let mut rejected_count = 0;
+        let mut samples = Vec::with_capacity(requested_count);
+        for (particle_index, particle) in self.particles.particles().particles.iter().enumerate() {
+            if samples.len() >= requested_count {
+                break;
+            }
+            let Some(sample) = sampler.sample_particle_force(particle.position) else {
+                rejected_count += 1;
+                continue;
+            };
+            let outward = normalize_or(sample.outward, Vec3::new(0.0, 1.0, 0.0));
+            let target_distance = (particle.radius
+                * self.config.particles.target_distance_radius_scale)
+                .max(self.config.particles.minimum_target_distance);
+            let error = sample.distance - target_distance;
+            let expected_acceleration =
+                outward * (-error * self.config.particles.attraction_strength);
+            samples.push(MatterSurfaceParticleForceProbeSample {
+                particle_index,
+                position: particle.position,
+                radius: particle.radius,
+                distance: sample.distance,
+                outward,
+                target_distance,
+                expected_acceleration,
+            });
+        }
+
+        Some(MatterSurfaceParticleForceProbe {
+            particle_force_source,
+            attraction_strength: self.config.particles.attraction_strength,
+            requested_count,
+            sampled_count: samples.len(),
+            rejected_count,
+            samples,
+        })
     }
 
     /// Builds a packed SDF grid from the current surface.
