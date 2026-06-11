@@ -418,6 +418,20 @@ fn hand_rig_skins_joint_frame_to_validation_mesh() {
     assert_eq!(blended.joint_matrices[0][2][3], 0.25);
     assert_eq!(blended.joint_matrices[1][2][3], 0.5);
     assert_eq!(blended.expected_position, [1.0, 1.0, 0.375, 1.0]);
+
+    let buffer_oracle = rig
+        .skinning_mesh_buffer_oracle(&joint_frame)
+        .expect("mesh buffer oracle builds");
+    assert_eq!(buffer_oracle.vertex_count(), 4);
+    assert_eq!(buffer_oracle.triangle_count(), 2);
+    assert_eq!(buffer_oracle.index_count(), 6);
+    assert_eq!(buffer_oracle.triangles, rig.bind_surface.triangles);
+    assert_eq!(buffer_oracle.vertices[0].vertex_index, 0);
+    assert_eq!(buffer_oracle.vertices[3].vertex_index, 3);
+    assert_eq!(
+        buffer_oracle.vertices[2].expected_position,
+        [1.0, 1.0, 0.375, 1.0]
+    );
 }
 
 #[test]

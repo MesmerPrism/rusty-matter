@@ -50,6 +50,40 @@ pub struct HandSkinningMatrixSample {
     pub expected_position: [f32; 4],
 }
 
+/// Full hand-skinning mesh-buffer oracle for GPU residency validation.
+///
+/// This is still Matter-owned CPU reference data. It carries one skinning row
+/// per bind vertex plus the stable topology indices so GPU adapters can prove
+/// full vertex and index buffer residency without becoming the semantic owner
+/// of hand skinning.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct HandSkinningMeshBufferOracle {
+    /// One row per bind-surface vertex.
+    pub vertices: Vec<HandSkinningMatrixSample>,
+    /// Source bind-surface triangle indices.
+    pub triangles: Vec<[u32; 3]>,
+}
+
+impl HandSkinningMeshBufferOracle {
+    /// Full topology vertex count.
+    #[must_use]
+    pub fn vertex_count(&self) -> usize {
+        self.vertices.len()
+    }
+
+    /// Full topology triangle count.
+    #[must_use]
+    pub fn triangle_count(&self) -> usize {
+        self.triangles.len()
+    }
+
+    /// Full flattened triangle index count.
+    #[must_use]
+    pub fn index_count(&self) -> usize {
+        self.triangles.len() * 3
+    }
+}
+
 /// Hand rig capture metadata around a bind-pose triangle mesh.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -256,6 +290,36 @@ impl HandRigCapture {
                 self.skinning_matrix_sample(vertex_index, frame)
             })
             .collect()
+    }
+
+    /// Builds a full mesh-buffer oracle for GPU skinning residency proofs.
+    ///
+    /// Unlike [`Self::skinning_matrix_samples`], this returns one row for every
+    /// bind vertex and preserves the full triangle-index buffer. GPU adapters
+    /// should emit compact evidence about this payload rather than logging the
+    /// rows themselves.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the rig, joint frame, or skinning
+    /// metadata is invalid.
+    pub fn skinning_mesh_buffer_oracle(
+        &self,
+        frame: &HandJointFrame,
+    ) -> Result<HandSkinningMeshBufferOracle, MatterMeshError> {
+        self.validate()?;
+        frame.validate()?;
+        validate_rig_frame_match(self, frame)?;
+        validate_full_bind_joint_frame(self, frame)?;
+
+        let vertices = (0..self.bind_surface.vertex_count())
+            .map(|vertex_index| self.skinning_matrix_sample(vertex_index, frame))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(HandSkinningMeshBufferOracle {
+            vertices,
+            triangles: self.bind_surface.triangles.clone(),
+        })
     }
 
     fn skin_vertex(
