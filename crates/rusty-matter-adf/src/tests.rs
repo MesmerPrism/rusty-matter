@@ -69,6 +69,10 @@ fn adf_large_tolerance_collapses_to_root_cell() {
 
     assert_eq!(report.field.cell_count(), 1);
     assert_eq!(report.field.cells[0].level, 0);
+    assert_eq!(
+        report.field.cells[0].source_sample_count,
+        grid.sample_count()
+    );
     assert_eq!(report.diagnostics.split_count, 0);
 }
 
