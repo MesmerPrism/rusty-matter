@@ -115,6 +115,117 @@ fn adf_samples_containing_leaf_cell() {
 }
 
 #[test]
+fn adf_index_samples_match_reference_scan() {
+    let grid = sdf_grid();
+    let field = build_adf_from_sdf_grid(
+        &grid,
+        AdfBuildConfig {
+            max_depth: 2,
+            max_cells: 512,
+            error_tolerance: 0.01,
+        },
+    )
+    .expect("ADF builds");
+    let index = field
+        .build_index(AdaptiveDistanceFieldIndexConfig::default())
+        .expect("ADF index builds");
+
+    assert_eq!(index.field_id, field.field_id);
+    assert_eq!(index.grid_dim, 4);
+    assert_eq!(index.lookup.len(), 64);
+    for linear in 0..grid.sample_count() {
+        let point = grid
+            .linear_cell_center(linear)
+            .expect("source sample center exists");
+        let reference = field
+            .sample_nearest_clamped(point)
+            .expect("reference sample exists");
+        let indexed = index
+            .sample_nearest_clamped(&field, point)
+            .expect("indexed sample exists");
+
+        assert_eq!(indexed, reference);
+    }
+}
+
+#[test]
+fn adf_index_clamps_outside_points_like_reference_scan() {
+    let grid = sdf_grid();
+    let field = build_adf_from_sdf_grid(
+        &grid,
+        AdfBuildConfig {
+            max_depth: 2,
+            max_cells: 512,
+            error_tolerance: 0.01,
+        },
+    )
+    .expect("ADF builds");
+    let index = field
+        .build_index(AdaptiveDistanceFieldIndexConfig::default())
+        .expect("ADF index builds");
+    let point = field.origin + Vec3::new(-100.0, 0.25, 100.0);
+    let reference = field
+        .sample_nearest_clamped(point)
+        .expect("reference sample exists");
+    let indexed = index
+        .sample_nearest_clamped(&field, point)
+        .expect("indexed sample exists");
+
+    assert_eq!(indexed, reference);
+}
+
+#[test]
+fn adf_index_gradient_returns_finite_vector() {
+    let grid = sdf_grid();
+    let field = build_adf_from_sdf_grid(
+        &grid,
+        AdfBuildConfig {
+            max_depth: 2,
+            max_cells: 512,
+            error_tolerance: 0.01,
+        },
+    )
+    .expect("ADF builds");
+    let index = field
+        .build_index(AdaptiveDistanceFieldIndexConfig::default())
+        .expect("ADF index builds");
+    let point = grid
+        .linear_cell_center(0)
+        .expect("source sample center exists");
+    let gradient = index
+        .gradient_nearest(&field, point)
+        .expect("gradient sample exists");
+
+    assert!(gradient.is_finite());
+    assert!(gradient.length() <= 1.0 + 1.0e-5);
+}
+
+#[test]
+fn adf_index_rejects_excessive_finest_grid_budget() {
+    let grid = sdf_grid();
+    let field = build_adf_from_sdf_grid(
+        &grid,
+        AdfBuildConfig {
+            max_depth: 2,
+            max_cells: 512,
+            error_tolerance: 0.01,
+        },
+    )
+    .expect("ADF builds");
+    let error = field
+        .build_index(AdaptiveDistanceFieldIndexConfig { max_grid_cells: 1 })
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        AdfError::IndexGridBudgetExceeded {
+            requested: 64,
+            max: 1
+        }
+    ));
+}
+
+#[test]
 fn adf_rejects_invalid_config() {
     let error = build_adf_from_sdf_grid_report(
         &sdf_grid(),

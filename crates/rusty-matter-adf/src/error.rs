@@ -31,12 +31,33 @@ pub enum AdfError {
     InvalidMaxDepth(u32),
     /// Maximum leaf-cell budget was invalid.
     InvalidCellBudget,
+    /// Maximum finest-grid index-cell budget was invalid.
+    InvalidIndexGridBudget,
     /// Builder cell budget was exceeded.
     CellBudgetExceeded {
         /// Requested or minimum required leaf-cell count.
         requested: usize,
         /// Maximum allowed leaf-cell count.
         max: usize,
+    },
+    /// ADF finest-grid index budget was exceeded.
+    IndexGridBudgetExceeded {
+        /// Requested finest-grid lookup cell count.
+        requested: usize,
+        /// Maximum allowed finest-grid lookup cell count.
+        max: usize,
+    },
+    /// ADF finest-grid index dimensions overflowed native addressable size.
+    IndexGridOverflow,
+    /// ADF leaf cell cannot be represented by the finest-grid index.
+    IndexCellOutOfBounds {
+        /// Rejected cell index.
+        index: usize,
+    },
+    /// ADF finest-grid index does not cover every finest cell.
+    IncompleteIndexGrid {
+        /// Number of unassigned finest cells.
+        missing: usize,
     },
     /// Error tolerance was invalid.
     InvalidErrorTolerance(f32),
@@ -83,8 +104,25 @@ impl fmt::Display for AdfError {
                 write!(formatter, "ADF max_depth is too large: {value}")
             }
             Self::InvalidCellBudget => formatter.write_str("ADF max_cells must be non-zero"),
+            Self::InvalidIndexGridBudget => {
+                formatter.write_str("ADF index max_grid_cells must be non-zero")
+            }
             Self::CellBudgetExceeded { requested, max } => {
                 write!(formatter, "requested {requested} ADF cells, max is {max}")
+            }
+            Self::IndexGridBudgetExceeded { requested, max } => write!(
+                formatter,
+                "requested {requested} ADF index cells, max is {max}"
+            ),
+            Self::IndexGridOverflow => formatter.write_str("ADF index grid dimensions overflowed"),
+            Self::IndexCellOutOfBounds { index } => {
+                write!(formatter, "ADF cell {index} is outside the index grid")
+            }
+            Self::IncompleteIndexGrid { missing } => {
+                write!(
+                    formatter,
+                    "ADF index grid has {missing} unassigned finest cells"
+                )
             }
             Self::InvalidErrorTolerance(value) => {
                 write!(

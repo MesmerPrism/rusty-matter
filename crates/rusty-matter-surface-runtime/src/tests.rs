@@ -663,6 +663,54 @@ fn sdf_particle_force_update_interval_reuses_cached_field() {
 }
 
 #[test]
+fn adf_particle_force_update_interval_reuses_cached_indexed_field() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_force_source: MatterSurfaceParticleForceSource::AdfField,
+        particle_force_update_interval_frames: NonZeroUsize::new(2).unwrap(),
+        particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy::Disabled,
+        particle_force_sdf: test_particle_force_sdf_config(),
+        particle_force_adf: test_particle_force_adf_config(),
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+
+    let first = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("first step succeeds");
+    let second = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("second step succeeds");
+    let third = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("third step succeeds");
+
+    assert_eq!(
+        first.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Fresh
+    );
+    assert!(first.particles.closest_samples >= 8);
+    assert_eq!(first.particles.surface_triangle_tests, 0);
+    assert_eq!(
+        second.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Reused
+    );
+    assert!(second.particles.closest_samples >= 8);
+    assert_eq!(second.particles.surface_triangle_tests, 0);
+    assert_eq!(
+        third.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Fresh
+    );
+    assert!(third.particles.closest_samples >= 8);
+    assert_eq!(third.particles.surface_triangle_tests, 0);
+}
+
+#[test]
 fn runtime_builds_sdf_grid_from_current_surface() {
     let mut runtime = MatterSurfaceRuntime::default();
     runtime

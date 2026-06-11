@@ -1,4 +1,7 @@
-use rusty_matter_adf::{build_adf_from_sdf_grid, AdaptiveDistanceField, AdfBuildConfig};
+use rusty_matter_adf::{
+    build_adf_from_sdf_grid, AdaptiveDistanceField, AdaptiveDistanceFieldIndex,
+    AdaptiveDistanceFieldIndexConfig, AdfBuildConfig,
+};
 use rusty_matter_batch::{BatchConfig, BatchExecutor, BatchReduce};
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, DynamicMeshColliderContact,
@@ -490,6 +493,7 @@ pub struct MatterSurfaceRuntime {
     particle_force_frame_counter: usize,
     particle_force_sdf: Option<PackedSdfGrid>,
     particle_force_adf: Option<AdaptiveDistanceField>,
+    particle_force_adf_index: Option<AdaptiveDistanceFieldIndex>,
     last_particle_distances: Vec<Option<f32>>,
     last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics,
     last_particle_distance_execution: ParticleExecutionDiagnostics,
@@ -506,6 +510,7 @@ impl PartialEq for MatterSurfaceRuntime {
             && self.particles == other.particles
             && self.particle_force_sdf == other.particle_force_sdf
             && self.particle_force_adf == other.particle_force_adf
+            && self.particle_force_adf_index == other.particle_force_adf_index
             && self.last_particle_distances == other.last_particle_distances
             && self.last_particle_distance_diagnostics == other.last_particle_distance_diagnostics
             && self.last_particle_distance_execution == other.last_particle_distance_execution
@@ -540,6 +545,7 @@ impl MatterSurfaceRuntime {
             particle_force_frame_counter: 0,
             particle_force_sdf: None,
             particle_force_adf: None,
+            particle_force_adf_index: None,
             last_particle_distances: Vec::new(),
             last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics::default(),
             last_particle_distance_execution,
@@ -800,7 +806,11 @@ impl MatterSurfaceRuntime {
                     .particle_force_adf
                     .as_ref()
                     .expect("ADF force field exists after refresh");
-                let sampler = AdfParticleForceSampler { field };
+                let index = self
+                    .particle_force_adf_index
+                    .as_ref()
+                    .expect("ADF force index exists after refresh");
+                let sampler = AdfParticleForceSampler { field, index };
                 (
                     self.particles.step_with_force_sampler(
                         &sampler,
@@ -899,11 +909,16 @@ impl MatterSurfaceRuntime {
         &mut self,
         should_refresh_force: bool,
     ) -> Result<MatterSurfaceParticleForceRefresh, MatterSurfaceRuntimeError> {
-        if should_refresh_force || self.particle_force_adf.is_none() {
+        if should_refresh_force
+            || self.particle_force_adf.is_none()
+            || self.particle_force_adf_index.is_none()
+        {
             let grid = self.build_sdf_grid(self.config.particle_force_sdf)?;
             let field = build_adf_from_sdf_grid(&grid, self.config.particle_force_adf)?;
+            let index = field.build_index(AdaptiveDistanceFieldIndexConfig::default())?;
             self.particle_force_sdf = Some(grid);
             self.particle_force_adf = Some(field);
+            self.particle_force_adf_index = Some(index);
             Ok(MatterSurfaceParticleForceRefresh::Fresh)
         } else {
             Ok(MatterSurfaceParticleForceRefresh::Reused)
@@ -1220,12 +1235,18 @@ impl SurfaceParticleForceSampler for SdfParticleForceSampler<'_> {
 
 struct AdfParticleForceSampler<'a> {
     field: &'a AdaptiveDistanceField,
+    index: &'a AdaptiveDistanceFieldIndex,
 }
 
 impl SurfaceParticleForceSampler for AdfParticleForceSampler<'_> {
     fn sample_particle_force(&self, position: Vec3) -> Option<SurfaceParticleForceSample> {
-        let sample = self.field.sample_nearest_clamped(position)?;
-        let outward = normalize_or(position - sample.cell_center, Vec3::new(0.0, 1.0, 0.0));
+        let sample = self.index.sample_nearest_clamped(self.field, position)?;
+        let outward = normalize_or(
+            self.index
+                .gradient_nearest(self.field, position)
+                .unwrap_or(Vec3::ZERO),
+            normalize_or(position - sample.cell_center, Vec3::new(0.0, 1.0, 0.0)),
+        );
         Some(SurfaceParticleForceSample {
             distance: sample.distance,
             outward,

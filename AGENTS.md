@@ -61,8 +61,8 @@ sockets, media stacks, or downstream app crates.
 - Keep particle integration/render cadence, particle force-source refresh,
   animated hand-surface updates, and SDF/ADF field builds as independent
   runtime clocks. Normal profiling selects exactly one particle-force
-  authority at a time: `mesh-distance`, future `sdf-field`, future
-  `adf-field`, or `none`. Dual mesh/field computation is a bounded
+  authority at a time: `mesh-distance`, `sdf-field`, `adf-field`, or `none`.
+  Dual mesh/field computation is a bounded
   compare-probe diagnostic only, never the default particle path.
 
 ## File Organization Rules
@@ -99,8 +99,8 @@ Current crate-root maps:
   and shared `math`.
 - `rusty-matter-sdf/src/lib.rs`: facade over `builder`, `config`,
   `grid`, `geometry`, and `error`.
-- `rusty-matter-adf/src/lib.rs`: facade over `builder`, `config`, `field`,
-  and `error`.
+- `rusty-matter-adf/src/lib.rs`: facade over `builder`, `config`, `field`
+  including runtime ADF lookup indexes, and `error`.
 - `rusty-matter-particles/src/lib.rs`: facade over `ids`, `state`, `render`,
   `config`, `interactions`, `spatial_hash`, `diagnostics`, `simulator`, and
   `error`.
