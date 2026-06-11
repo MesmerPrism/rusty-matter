@@ -46,6 +46,26 @@ fn mesh_to_sdf_builds_packed_grid() {
 }
 
 #[test]
+fn mesh_to_sdf_report_exposes_serial_diagnostics() {
+    let report = build_sdf_from_mesh_report(
+        &triangle_mesh(),
+        MeshToSdfConfig {
+            voxel_size: 0.5,
+            padding_voxels: 1,
+            max_voxels: 1_000,
+            sign_mode: MeshSdfSignMode::UnsignedOnly,
+        },
+    )
+    .expect("grid builds");
+
+    assert_eq!(report.grid.dimensions, [4, 4, 2]);
+    assert_eq!(report.diagnostics.voxel_count, 32);
+    assert_eq!(report.diagnostics.triangle_count, 1);
+    assert_eq!(report.diagnostics.triangle_tests, 32);
+    assert_eq!(report.diagnostics.rejected_voxels, 0);
+}
+
+#[test]
 fn tetrahedron_fixture_builds_unsigned_grid() {
     let grid = build_sdf_from_mesh(
         &tetrahedron_mesh(),
@@ -107,6 +127,74 @@ fn sample_nearest_returns_distance() {
         .sample_nearest(Vec3::new(0.0, 0.0, 0.0))
         .expect("sample exists");
     assert!(sample.distance >= 0.0);
+}
+
+#[test]
+fn grid_linear_cell_helpers_round_trip_x_fastest_order() {
+    let grid = build_sdf_from_mesh(
+        &triangle_mesh(),
+        MeshToSdfConfig {
+            voxel_size: 0.5,
+            padding_voxels: 1,
+            max_voxels: 1_000,
+            sign_mode: MeshSdfSignMode::UnsignedOnly,
+        },
+    )
+    .expect("grid builds");
+
+    for linear in 0..grid.sample_count() {
+        let [x, y, z] = grid.linear_to_cell(linear).expect("cell exists");
+        assert_eq!(grid.packed_index(x, y, z), Some(linear));
+        assert_eq!(grid.cell_center(x, y, z), grid.linear_cell_center(linear));
+    }
+    assert_eq!(grid.linear_to_cell(grid.sample_count()), None);
+    assert_eq!(grid.linear_cell_center(grid.sample_count()), None);
+}
+
+#[test]
+fn grid_checked_and_clamped_sampling_have_explicit_boundary_behavior() {
+    let grid = build_sdf_from_mesh(
+        &triangle_mesh(),
+        MeshToSdfConfig {
+            voxel_size: 0.5,
+            padding_voxels: 1,
+            max_voxels: 1_000,
+            sign_mode: MeshSdfSignMode::UnsignedOnly,
+        },
+    )
+    .expect("grid builds");
+
+    let outside = grid.origin - Vec3::new(10.0, 10.0, 10.0);
+    assert_eq!(grid.sample_nearest_checked(outside), None);
+    assert_eq!(
+        grid.sample_nearest_clamped(outside)
+            .expect("clamped sample exists")
+            .cell,
+        [0, 0, 0]
+    );
+}
+
+#[test]
+fn grid_gradient_nearest_returns_finite_vector() {
+    let grid = build_sdf_from_mesh(
+        &triangle_mesh(),
+        MeshToSdfConfig {
+            voxel_size: 0.5,
+            padding_voxels: 1,
+            max_voxels: 1_000,
+            sign_mode: MeshSdfSignMode::UnsignedOnly,
+        },
+    )
+    .expect("grid builds");
+    let point = grid
+        .cell_center(1, 1, 0)
+        .expect("interior-ish cell center exists");
+    let gradient = grid
+        .gradient_nearest(point)
+        .expect("gradient sample exists");
+
+    assert!(gradient.is_finite());
+    assert!(gradient.length() <= 1.0 + 1.0e-6);
 }
 
 #[test]

@@ -69,6 +69,18 @@ surface-only release sweep such as:
 cargo run --release -p rusty-matter-particles --features parallel --example particle_batch_sweep -- --counts 32768 --batch-sizes 256 --leaf-triangle-counts 4,8,16,32 --frames 4 --warmup-frames 1 --workload surface
 ```
 
+For packed SDF grid and mesh-to-SDF reference work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-sdf
+```
+
+Those tests verify packed-grid validation, mesh-to-SDF construction, voxel
+budget enforcement, build-report diagnostics, x-fastest linear/cell helper
+round trips, explicit checked-vs-clamped nearest-neighbor sampling behavior,
+finite nearest-gradient helpers, unsigned tetrahedron fixture coverage, and
+damaged mesh/config/grid inputs.
+
 For accelerated mesh-distance work, the narrow test route is:
 
 ```powershell

@@ -98,6 +98,48 @@ impl PackedSdfGrid {
             .checked_add(x)
     }
 
+    /// Returns the grid coordinate for a packed x-fastest sample index.
+    #[must_use]
+    pub fn linear_to_cell(&self, linear: usize) -> Option<[u32; 3]> {
+        if linear >= voxel_count(self.dimensions).ok()? {
+            return None;
+        }
+        let [width, height, _] = self.dimensions;
+        let width = usize::try_from(width).ok()?;
+        let height = usize::try_from(height).ok()?;
+        let plane = width.checked_mul(height)?;
+        let z = linear / plane;
+        let remainder = linear % plane;
+        let y = remainder / width;
+        let x = remainder % width;
+        Some([
+            u32::try_from(x).ok()?,
+            u32::try_from(y).ok()?,
+            u32::try_from(z).ok()?,
+        ])
+    }
+
+    /// Returns the world-space center of a grid cell.
+    #[must_use]
+    pub fn cell_center(&self, x: u32, y: u32, z: u32) -> Option<Vec3> {
+        self.packed_index(x, y, z)?;
+        Some(
+            self.origin
+                + Vec3::new(
+                    (x as f32 + 0.5) * self.voxel_size,
+                    (y as f32 + 0.5) * self.voxel_size,
+                    (z as f32 + 0.5) * self.voxel_size,
+                ),
+        )
+    }
+
+    /// Returns the world-space center of a packed x-fastest sample index.
+    #[must_use]
+    pub fn linear_cell_center(&self, linear: usize) -> Option<Vec3> {
+        let [x, y, z] = self.linear_to_cell(linear)?;
+        self.cell_center(x, y, z)
+    }
+
     /// Returns a distance at a grid coordinate.
     #[must_use]
     pub fn distance_at(&self, x: u32, y: u32, z: u32) -> Option<f32> {
@@ -108,6 +150,12 @@ impl PackedSdfGrid {
     /// Samples the nearest grid cell.
     #[must_use]
     pub fn sample_nearest(&self, point: Vec3) -> Option<SdfSample> {
+        self.sample_nearest_checked(point)
+    }
+
+    /// Samples the nearest grid cell and returns `None` outside the grid.
+    #[must_use]
+    pub fn sample_nearest_checked(&self, point: Vec3) -> Option<SdfSample> {
         if !point.is_finite() {
             return None;
         }
@@ -121,6 +169,40 @@ impl PackedSdfGrid {
             distance,
             cell: [x, y, z],
         })
+    }
+
+    /// Samples the nearest grid cell after clamping the requested cell to the
+    /// grid bounds.
+    #[must_use]
+    pub fn sample_nearest_clamped(&self, point: Vec3) -> Option<SdfSample> {
+        if !point.is_finite() {
+            return None;
+        }
+        let local = (point - self.origin) / self.voxel_size - Vec3::new(0.5, 0.5, 0.5);
+        let x = round_clamped_to_u32(local.x, self.dimensions[0])?;
+        let y = round_clamped_to_u32(local.y, self.dimensions[1])?;
+        let z = round_clamped_to_u32(local.z, self.dimensions[2])?;
+        let distance = self.distance_at(x, y, z)?;
+        Some(SdfSample {
+            point,
+            distance,
+            cell: [x, y, z],
+        })
+    }
+
+    /// Returns a normalized finite-difference gradient at the nearest clamped
+    /// cell, or zero when the local field is flat.
+    #[must_use]
+    pub fn gradient_nearest(&self, point: Vec3) -> Option<Vec3> {
+        let sample = self.sample_nearest_clamped(point)?;
+        let [x, y, z] = sample.cell;
+        let dx = self.distance_at(neighbor_plus(x, self.dimensions[0]), y, z)?
+            - self.distance_at(neighbor_minus(x), y, z)?;
+        let dy = self.distance_at(x, neighbor_plus(y, self.dimensions[1]), z)?
+            - self.distance_at(x, neighbor_minus(y), z)?;
+        let dz = self.distance_at(x, y, neighbor_plus(z, self.dimensions[2]))?
+            - self.distance_at(x, y, neighbor_minus(z))?;
+        Some(normalize_or_zero(Vec3::new(dx, dy, dz)))
     }
 
     /// Returns the number of grid samples.
@@ -165,4 +247,43 @@ fn round_to_u32(value: f32) -> Option<u32> {
         return None;
     }
     Some(rounded as u32)
+}
+
+fn round_clamped_to_u32(value: f32, dimension: u32) -> Option<u32> {
+    if !value.is_finite() || dimension == 0 {
+        return None;
+    }
+    let rounded = value.round();
+    if rounded <= 0.0 {
+        return Some(0);
+    }
+    let maximum = dimension - 1;
+    if rounded >= maximum as f32 {
+        return Some(maximum);
+    }
+    Some(rounded as u32)
+}
+
+const fn neighbor_minus(value: u32) -> u32 {
+    value.saturating_sub(1)
+}
+
+const fn neighbor_plus(value: u32, dimension: u32) -> u32 {
+    if value.saturating_add(1) >= dimension {
+        value
+    } else {
+        value + 1
+    }
+}
+
+fn normalize_or_zero(vector: Vec3) -> Vec3 {
+    if !vector.is_finite() {
+        return Vec3::ZERO;
+    }
+    let length = vector.length();
+    if length <= 1.0e-6 {
+        Vec3::ZERO
+    } else {
+        vector / length
+    }
 }
