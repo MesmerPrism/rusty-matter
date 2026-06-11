@@ -14,10 +14,12 @@ serde = [
     "rusty-matter-mesh/serde",
     "rusty-matter-model/serde",
     "rusty-matter-particles/serde",
+    "rusty-matter-adf/serde",
     "rusty-matter-sdf/serde",
 ]
 
 [dependencies]
+rusty-matter-adf = { path = "../rusty-matter-adf" }
 rusty-matter-batch = { path = "../rusty-matter-batch" }
 rusty-matter-mesh = { path = "../rusty-matter-mesh" }
 rusty-matter-model = { path = "../rusty-matter-model" }

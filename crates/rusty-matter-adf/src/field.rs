@@ -123,6 +123,19 @@ impl AdaptiveDistanceField {
         if !point.is_finite() || !contains_point(point, self.origin, self.extent) {
             return None;
         }
+        self.sample_containing_cell(point)
+    }
+
+    /// Samples the nearest field cell after clamping `point` to the root cell.
+    #[must_use]
+    pub fn sample_nearest_clamped(&self, point: Vec3) -> Option<AdfSample> {
+        if !point.is_finite() {
+            return None;
+        }
+        self.sample_containing_cell(clamp_point_to_field(point, self.origin, self.extent))
+    }
+
+    fn sample_containing_cell(&self, point: Vec3) -> Option<AdfSample> {
         let (cell_index, cell) = self
             .cells
             .iter()
@@ -133,6 +146,7 @@ impl AdaptiveDistanceField {
             point,
             distance: cell.center_distance,
             cell_index,
+            cell_center: cell.center(),
             level: cell.level,
         })
     }
@@ -154,6 +168,8 @@ pub struct AdfSample {
     pub distance: f32,
     /// Leaf cell index.
     pub cell_index: usize,
+    /// Center of the selected leaf cell.
+    pub cell_center: Vec3,
     /// Leaf cell subdivision level.
     pub level: u32,
 }
@@ -166,6 +182,16 @@ pub(crate) fn contains_point(point: Vec3, origin: Vec3, extent: f32) -> bool {
         && point.x < max.x
         && point.y < max.y
         && point.z < max.z
+}
+
+fn clamp_point_to_field(point: Vec3, origin: Vec3, extent: f32) -> Vec3 {
+    let max = origin + Vec3::new(extent, extent, extent);
+    let epsilon = (extent.abs() * 1.0e-6).max(1.0e-6);
+    Vec3::new(
+        point.x.clamp(origin.x, max.x - epsilon),
+        point.y.clamp(origin.y, max.y - epsilon),
+        point.z.clamp(origin.z, max.z - epsilon),
+    )
 }
 
 fn validate_cell(index: usize, cell: &AdfCell, max_depth: u32) -> Result<(), AdfError> {

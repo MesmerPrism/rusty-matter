@@ -111,6 +111,7 @@ fn adf_samples_containing_leaf_cell() {
     assert!(sample.distance.is_finite());
     assert!(sample.level <= field.max_depth);
     assert!(sample.cell_index < field.cells.len());
+    assert_eq!(sample.cell_center, field.cells[sample.cell_index].center());
 }
 
 #[test]

@@ -1,5 +1,6 @@
 use core::fmt;
 
+use rusty_matter_adf::AdfError;
 use rusty_matter_batch::BatchError;
 use rusty_matter_mesh::MatterMeshError;
 use rusty_matter_particles::ParticleError;
@@ -30,6 +31,8 @@ pub enum MatterSurfaceRuntimeError {
     Particle(ParticleError),
     /// SDF operation failed.
     Sdf(SdfError),
+    /// ADF operation failed.
+    Adf(AdfError),
     /// Batch execution failed.
     Batch(BatchError),
 }
@@ -62,6 +65,7 @@ impl fmt::Display for MatterSurfaceRuntimeError {
             Self::Mesh(error) => write!(formatter, "{error}"),
             Self::Particle(error) => write!(formatter, "{error}"),
             Self::Sdf(error) => write!(formatter, "{error}"),
+            Self::Adf(error) => write!(formatter, "{error}"),
             Self::Batch(error) => write!(formatter, "{error}"),
         }
     }
@@ -84,6 +88,12 @@ impl From<ParticleError> for MatterSurfaceRuntimeError {
 impl From<SdfError> for MatterSurfaceRuntimeError {
     fn from(value: SdfError) -> Self {
         Self::Sdf(value)
+    }
+}
+
+impl From<AdfError> for MatterSurfaceRuntimeError {
+    fn from(value: AdfError) -> Self {
+        Self::Adf(value)
     }
 }
 

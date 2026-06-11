@@ -154,6 +154,64 @@ pub struct SurfaceParticleStepDiagnostics {
     pub execution: ParticleExecutionDiagnostics,
 }
 
+/// Diagnostics for one particle force sample.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SurfaceParticleForceSampleDiagnostics {
+    /// Number of force-source samples performed.
+    pub closest_samples: usize,
+    /// BVH node tests performed when the source is a mesh-distance sampler.
+    pub surface_node_tests: usize,
+    /// BVH leaf tests performed when the source is a mesh-distance sampler.
+    pub surface_leaf_tests: usize,
+    /// Exact triangle tests performed when the source is a mesh-distance sampler.
+    pub surface_triangle_tests: usize,
+}
+
+/// Distance-band force sample used by surface particle integration.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SurfaceParticleForceSample {
+    /// Distance to the selected surface or field band.
+    pub distance: f32,
+    /// Outward direction for correcting the particle toward the target band.
+    pub outward: Vec3,
+    /// Diagnostics for this force sample.
+    pub diagnostics: SurfaceParticleForceSampleDiagnostics,
+}
+
+/// Renderer-independent Matter particle force sampler.
+///
+/// Implementations may query direct mesh distance, dense SDF fields, adaptive
+/// fields, or future CPU/GPU reference buffers. The particle integrator consumes
+/// only distance-band force samples and remains independent from field storage.
+pub trait SurfaceParticleForceSampler: Sync {
+    /// Samples the selected force source at `position`.
+    #[must_use]
+    fn sample_particle_force(&self, position: Vec3) -> Option<SurfaceParticleForceSample>;
+}
+
+impl SurfaceParticleForceSampler for SurfaceDistanceSampler {
+    fn sample_particle_force(&self, position: Vec3) -> Option<SurfaceParticleForceSample> {
+        let sample = self.sample(position)?;
+        let outward = if sample.distance > 1.0e-7 {
+            normalize_or(position - sample.point, sample.normal)
+        } else {
+            normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
+        };
+        Some(SurfaceParticleForceSample {
+            distance: sample.distance,
+            outward,
+            diagnostics: SurfaceParticleForceSampleDiagnostics {
+                closest_samples: 1,
+                surface_node_tests: sample.diagnostics.node_tests,
+                surface_leaf_tests: sample.diagnostics.leaf_tests,
+                surface_triangle_tests: sample.diagnostics.triangle_tests,
+            },
+        })
+    }
+}
+
 /// Matter-owned particle runtime for attraction to an accelerated mesh surface.
 #[derive(Clone, Debug)]
 pub struct SurfaceParticleRuntime {
@@ -265,7 +323,26 @@ impl SurfaceParticleRuntime {
         sequence_cloud_radius: f32,
         delta_seconds: f32,
     ) -> SurfaceParticleStepDiagnostics {
-        self.step_with_surface_sampler(
+        self.step_with_force_sampler(
+            sampler,
+            surface_radius,
+            sequence_center,
+            sequence_cloud_radius,
+            delta_seconds,
+        )
+    }
+
+    /// Advances particles against a Matter-owned distance-band force sampler.
+    #[must_use]
+    pub fn step_with_force_sampler(
+        &mut self,
+        sampler: &dyn SurfaceParticleForceSampler,
+        surface_radius: f32,
+        sequence_center: Vec3,
+        sequence_cloud_radius: f32,
+        delta_seconds: f32,
+    ) -> SurfaceParticleStepDiagnostics {
+        self.step_with_optional_force_sampler(
             Some(sampler),
             surface_radius,
             sequence_center,
@@ -286,7 +363,7 @@ impl SurfaceParticleRuntime {
         sequence_cloud_radius: f32,
         delta_seconds: f32,
     ) -> SurfaceParticleStepDiagnostics {
-        self.step_with_surface_sampler(
+        self.step_with_optional_force_sampler(
             None,
             surface_radius,
             sequence_center,
@@ -295,9 +372,9 @@ impl SurfaceParticleRuntime {
         )
     }
 
-    fn step_with_surface_sampler(
+    fn step_with_optional_force_sampler(
         &mut self,
-        sampler: Option<&SurfaceDistanceSampler>,
+        sampler: Option<&dyn SurfaceParticleForceSampler>,
         surface_radius: f32,
         sequence_center: Vec3,
         sequence_cloud_radius: f32,
@@ -386,7 +463,7 @@ impl From<&ParticleState> for SurfaceParticleStepInput {
 
 struct SurfaceParticleStepSnapshot<'a> {
     previous_particles: &'a [SurfaceParticleStepInput],
-    sampler: Option<&'a SurfaceDistanceSampler>,
+    sampler: Option<&'a dyn SurfaceParticleForceSampler>,
     config: &'a SurfaceParticleRuntimeConfig,
     max_speed: f32,
     sequence_center: Vec3,
@@ -471,20 +548,16 @@ fn step_one_surface_particle(
     let mut acceleration = Vec3::ZERO;
     let mut force_applied = false;
     if let Some(sampler) = snapshot.sampler {
-        let Some(sample) = sampler.sample(position) else {
+        let Some(sample) = sampler.sample_particle_force(position) else {
             diagnostics.rejected_particles += 1;
             return;
         };
-        diagnostics.closest_samples += 1;
-        diagnostics.surface_node_tests += sample.diagnostics.node_tests;
-        diagnostics.surface_leaf_tests += sample.diagnostics.leaf_tests;
-        diagnostics.surface_triangle_tests += sample.diagnostics.triangle_tests;
+        diagnostics.closest_samples += sample.diagnostics.closest_samples;
+        diagnostics.surface_node_tests += sample.diagnostics.surface_node_tests;
+        diagnostics.surface_leaf_tests += sample.diagnostics.surface_leaf_tests;
+        diagnostics.surface_triangle_tests += sample.diagnostics.surface_triangle_tests;
 
-        let outward = if sample.distance > 1.0e-7 {
-            normalize_or(position - sample.point, sample.normal)
-        } else {
-            normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
-        };
+        let outward = normalize_or(sample.outward, Vec3::new(0.0, 1.0, 0.0));
         let target_distance = (particle.radius * snapshot.config.target_distance_radius_scale)
             .max(snapshot.config.minimum_target_distance);
         let error = sample.distance - target_distance;

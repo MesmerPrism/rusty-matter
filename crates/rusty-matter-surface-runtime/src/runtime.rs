@@ -1,3 +1,4 @@
+use rusty_matter_adf::{build_adf_from_sdf_grid, AdaptiveDistanceField, AdfBuildConfig};
 use rusty_matter_batch::{BatchConfig, BatchExecutor, BatchReduce};
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, DynamicMeshColliderContact,
@@ -8,6 +9,7 @@ use rusty_matter_mesh::{
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_particles::{
     ParticleExecutionConfig, ParticleExecutionDiagnostics, ParticleRenderPayload,
+    SurfaceParticleForceSample, SurfaceParticleForceSampleDiagnostics, SurfaceParticleForceSampler,
     SurfaceParticleRuntime, SurfaceParticleRuntimeConfig, SurfaceParticleStepDiagnostics,
 };
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig, PackedSdfGrid};
@@ -36,9 +38,9 @@ pub const DEFAULT_PARTICLE_FORCE_UPDATE_INTERVAL_FRAMES: usize = 1;
 
 /// Particle force source selected by the Matter surface runtime.
 ///
-/// Only `MeshDistance` and `None` have active CPU behavior in this crate today.
-/// `SdfField` and `AdfField` are reserved runtime contract values so adapters
-/// can hot-switch settings without falling back to direct mesh distance.
+/// Field-backed modes build and cache Matter-owned CPU reference fields at the
+/// selected force-refresh cadence, then sample that cached field every particle
+/// integration step.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MatterSurfaceParticleForceSource {
@@ -48,9 +50,9 @@ pub enum MatterSurfaceParticleForceSource {
     /// No attraction source; particles continue integrating velocity and cloud
     /// confinement without sampling mesh, SDF, or ADF.
     None,
-    /// Future SDF field sampler.
+    /// Dense SDF field sampler.
     SdfField,
-    /// Future ADF field sampler.
+    /// Adaptive distance field sampler.
     AdfField,
 }
 
@@ -72,8 +74,8 @@ impl MatterSurfaceParticleForceSource {
         match self {
             Self::MeshDistance => "matter-mesh-distance-sampler",
             Self::None => "none",
-            Self::SdfField => "unsupported-sdf-field-sampler",
-            Self::AdfField => "unsupported-adf-field-sampler",
+            Self::SdfField => "matter-sdf-field-sampler",
+            Self::AdfField => "matter-adf-field-sampler",
         }
     }
 
@@ -83,8 +85,8 @@ impl MatterSurfaceParticleForceSource {
         match self {
             Self::MeshDistance => "current-mesh-distance",
             Self::None => "none",
-            Self::SdfField => "sdf-field-unavailable",
-            Self::AdfField => "adf-field-unavailable",
+            Self::SdfField => "current-sdf-field",
+            Self::AdfField => "current-adf-field",
         }
     }
 
@@ -222,6 +224,10 @@ pub struct MatterSurfaceRuntimeConfig {
     pub particle_force_update_interval_frames: NonZeroUsize,
     /// Bounded compare-probe count for future mesh/field diagnostics.
     pub particle_force_compare_probe_count: usize,
+    /// SDF config used when particles are driven by a dense or adaptive field.
+    pub particle_force_sdf: MeshToSdfConfig,
+    /// ADF config used when particles are driven by an adaptive field.
+    pub particle_force_adf: AdfBuildConfig,
 }
 
 impl Default for MatterSurfaceRuntimeConfig {
@@ -240,6 +246,8 @@ impl Default for MatterSurfaceRuntimeConfig {
             )
             .expect("default particle force update interval is non-zero"),
             particle_force_compare_probe_count: 0,
+            particle_force_sdf: MeshToSdfConfig::default(),
+            particle_force_adf: AdfBuildConfig::default(),
         }
     }
 }
@@ -260,6 +268,8 @@ impl MatterSurfaceRuntimeConfig {
         }
         self.collider.validate()?;
         self.particles.validate()?;
+        self.particle_force_sdf.validate()?;
+        self.particle_force_adf.validate()?;
         Ok(())
     }
 }
@@ -478,6 +488,8 @@ pub struct MatterSurfaceRuntime {
     particles: SurfaceParticleRuntime,
     particle_distance_refresh_executor: BatchExecutor,
     particle_force_frame_counter: usize,
+    particle_force_sdf: Option<PackedSdfGrid>,
+    particle_force_adf: Option<AdaptiveDistanceField>,
     last_particle_distances: Vec<Option<f32>>,
     last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics,
     last_particle_distance_execution: ParticleExecutionDiagnostics,
@@ -492,6 +504,8 @@ impl PartialEq for MatterSurfaceRuntime {
             && self.sampler == other.sampler
             && self.collider == other.collider
             && self.particles == other.particles
+            && self.particle_force_sdf == other.particle_force_sdf
+            && self.particle_force_adf == other.particle_force_adf
             && self.last_particle_distances == other.last_particle_distances
             && self.last_particle_distance_diagnostics == other.last_particle_distance_diagnostics
             && self.last_particle_distance_execution == other.last_particle_distance_execution
@@ -524,6 +538,8 @@ impl MatterSurfaceRuntime {
             particles,
             particle_distance_refresh_executor,
             particle_force_frame_counter: 0,
+            particle_force_sdf: None,
+            particle_force_adf: None,
             last_particle_distances: Vec::new(),
             last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics::default(),
             last_particle_distance_execution,
@@ -759,17 +775,44 @@ impl MatterSurfaceRuntime {
                 MatterSurfaceParticleForceSourceStatus::Disabled,
                 MatterSurfaceParticleForceRefresh::Disabled,
             ),
-            MatterSurfaceParticleForceSource::SdfField
-            | MatterSurfaceParticleForceSource::AdfField => (
-                self.particles.step_without_surface_force(
-                    surface_radius,
-                    sequence_center,
-                    sequence_cloud_radius,
-                    delta_seconds,
-                ),
-                MatterSurfaceParticleForceSourceStatus::UnsupportedFuture,
-                MatterSurfaceParticleForceRefresh::UnsupportedFuture,
-            ),
+            MatterSurfaceParticleForceSource::SdfField => {
+                let force_refresh = self.refresh_particle_sdf_force_grid(should_refresh_force)?;
+                let grid = self
+                    .particle_force_sdf
+                    .as_ref()
+                    .expect("SDF force grid exists after refresh");
+                let sampler = SdfParticleForceSampler { grid };
+                (
+                    self.particles.step_with_force_sampler(
+                        &sampler,
+                        surface_radius,
+                        sequence_center,
+                        sequence_cloud_radius,
+                        delta_seconds,
+                    ),
+                    MatterSurfaceParticleForceSourceStatus::Ready,
+                    force_refresh,
+                )
+            }
+            MatterSurfaceParticleForceSource::AdfField => {
+                let force_refresh = self.refresh_particle_adf_force_field(should_refresh_force)?;
+                let field = self
+                    .particle_force_adf
+                    .as_ref()
+                    .expect("ADF force field exists after refresh");
+                let sampler = AdfParticleForceSampler { field };
+                (
+                    self.particles.step_with_force_sampler(
+                        &sampler,
+                        surface_radius,
+                        sequence_center,
+                        sequence_cloud_radius,
+                        delta_seconds,
+                    ),
+                    MatterSurfaceParticleForceSourceStatus::Ready,
+                    force_refresh,
+                )
+            }
         };
         if self.should_refresh_particle_distances_after_step() {
             self.refresh_particle_distances();
@@ -838,6 +881,33 @@ impl MatterSurfaceRuntime {
         }
         ParticleRenderPayload::from_particle_set(payload_id, self.particles.particles())
             .map_err(Into::into)
+    }
+
+    fn refresh_particle_sdf_force_grid(
+        &mut self,
+        should_refresh_force: bool,
+    ) -> Result<MatterSurfaceParticleForceRefresh, MatterSurfaceRuntimeError> {
+        if should_refresh_force || self.particle_force_sdf.is_none() {
+            self.particle_force_sdf = Some(self.build_sdf_grid(self.config.particle_force_sdf)?);
+            Ok(MatterSurfaceParticleForceRefresh::Fresh)
+        } else {
+            Ok(MatterSurfaceParticleForceRefresh::Reused)
+        }
+    }
+
+    fn refresh_particle_adf_force_field(
+        &mut self,
+        should_refresh_force: bool,
+    ) -> Result<MatterSurfaceParticleForceRefresh, MatterSurfaceRuntimeError> {
+        if should_refresh_force || self.particle_force_adf.is_none() {
+            let grid = self.build_sdf_grid(self.config.particle_force_sdf)?;
+            let field = build_adf_from_sdf_grid(&grid, self.config.particle_force_adf)?;
+            self.particle_force_sdf = Some(grid);
+            self.particle_force_adf = Some(field);
+            Ok(MatterSurfaceParticleForceRefresh::Fresh)
+        } else {
+            Ok(MatterSurfaceParticleForceRefresh::Reused)
+        }
     }
 
     /// Builds a packed SDF grid from the current surface.
@@ -1123,5 +1193,58 @@ impl BatchReduce for ParticleDistanceRefreshChunkDiagnostics {
         self.query.node_tests += other.query.node_tests;
         self.query.leaf_tests += other.query.leaf_tests;
         self.query.triangle_tests += other.query.triangle_tests;
+    }
+}
+
+struct SdfParticleForceSampler<'a> {
+    grid: &'a PackedSdfGrid,
+}
+
+impl SurfaceParticleForceSampler for SdfParticleForceSampler<'_> {
+    fn sample_particle_force(&self, position: Vec3) -> Option<SurfaceParticleForceSample> {
+        let sample = self.grid.sample_nearest_clamped(position)?;
+        let outward = normalize_or(
+            self.grid.gradient_nearest(position)?,
+            Vec3::new(0.0, 1.0, 0.0),
+        );
+        Some(SurfaceParticleForceSample {
+            distance: sample.distance,
+            outward,
+            diagnostics: SurfaceParticleForceSampleDiagnostics {
+                closest_samples: 1,
+                ..SurfaceParticleForceSampleDiagnostics::default()
+            },
+        })
+    }
+}
+
+struct AdfParticleForceSampler<'a> {
+    field: &'a AdaptiveDistanceField,
+}
+
+impl SurfaceParticleForceSampler for AdfParticleForceSampler<'_> {
+    fn sample_particle_force(&self, position: Vec3) -> Option<SurfaceParticleForceSample> {
+        let sample = self.field.sample_nearest_clamped(position)?;
+        let outward = normalize_or(position - sample.cell_center, Vec3::new(0.0, 1.0, 0.0));
+        Some(SurfaceParticleForceSample {
+            distance: sample.distance,
+            outward,
+            diagnostics: SurfaceParticleForceSampleDiagnostics {
+                closest_samples: 1,
+                ..SurfaceParticleForceSampleDiagnostics::default()
+            },
+        })
+    }
+}
+
+fn normalize_or(vector: Vec3, fallback: Vec3) -> Vec3 {
+    if !vector.is_finite() {
+        return fallback;
+    }
+    let length = vector.length();
+    if length <= 1.0e-6 {
+        fallback
+    } else {
+        vector / length
     }
 }
