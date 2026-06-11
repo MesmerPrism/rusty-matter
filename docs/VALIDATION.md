@@ -85,6 +85,20 @@ mesh/config/grid inputs, and byte-identical serial-vs-batched dense SDF output.
 With the `parallel` feature enabled, they also verify the Rayon-backed batched
 dense SDF builder against the serial reference output and diagnostics.
 
+For adaptive distance field reference work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-adf
+cargo run -p rusty-matter-fixtures -- validate
+```
+
+Those tests verify ADF construction from Matter packed SDF grids, tolerance
+collapse, cell-budget rejection, schema validation, and nearest leaf-cell
+sampling. The fixture route validates
+`fixtures/adf/unit-triangle-adaptive-field.json` and its compact summary so
+future ADF acceleration work has a deterministic CPU reference artifact before
+Quest or GPU adapters consume it.
+
 For accelerated mesh-distance work, the narrow test route is:
 
 ```powershell

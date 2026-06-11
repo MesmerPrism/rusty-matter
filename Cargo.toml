@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/rusty-matter-adf",
     "crates/rusty-matter-batch",
     "crates/rusty-matter-fixtures",
     "crates/rusty-matter-fields",

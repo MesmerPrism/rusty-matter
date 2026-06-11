@@ -4,7 +4,7 @@ Rusty Matter is the computational-matter layer for the Rusty stack. It owns
 geometry, fields, SDF/TSDF grids, particle state, sampling, dynamics, schemas,
 fixtures, diagnostics, and deterministic CPU reference behavior.
 
-This repository starts with a narrow mesh, SDF, and particle foundation:
+This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
 
 - `rusty-matter-batch`: deterministic dependency-light batch execution helpers
   for Matter CPU reference kernels, with a default serial backend, optional
@@ -32,6 +32,9 @@ This repository starts with a narrow mesh, SDF, and particle foundation:
   sampling, accelerated surface-distance sampling, coordinate maps, hand
   validation mesh payloads, and dynamic mesh collider CPU reference behavior;
 - `rusty-matter-sdf`: packed SDF grids and mesh-to-SDF CPU reference behavior;
+- `rusty-matter-adf`: adaptive distance fields built from Matter SDF grids,
+  with CPU reference construction, compact diagnostics, and deterministic
+  fixtures for future acceleration parity;
 - `rusty-matter-particles`: particle state, SDF interaction, spatial hashes,
   influence points, impulses, simple bodies, render-neutral payload data,
   diagnostics, fixed-step CPU simulation contracts, and batch-backed execution
@@ -57,12 +60,13 @@ Mesh code is split by surface, sampling/live updates, accelerated distance
 queries, coordinate maps, hand payloads, dynamic collider, and error/math
 helpers. Batch code is split by config, chunks, executor, report, and errors.
 SDF code is split by builder, config, packed grid, geometry helpers, and
-errors. Particle code is split by IDs, state, render-neutral payloads, configs,
+errors. ADF code is split by builder, config, field, and errors. Particle code
+is split by IDs, state, render-neutral payloads, configs,
 interactions, spatial hash, diagnostics, simulation, and errors. Surface
 runtime code is split by facade/runtime types and orchestration errors.
 Fixture generation is split by artifact dispatch,
-summaries, fields, SDF, mesh, particle, and damaged-input families. Schema
-export is split by catalog, CLI, and error modules.
+summaries, fields, SDF, ADF, mesh, particle, and damaged-input families.
+Schema export is split by catalog, CLI, and error modules.
 
 ## Boundary
 

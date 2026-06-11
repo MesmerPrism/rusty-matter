@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::Serialize;
 
+use crate::adf::{adf_fixture_case_for_grid, build_adf_fixture, summarize_adf_fixture};
 use crate::damaged::damaged_fixture_reports;
 use crate::error::CliError;
 use crate::fields::{
@@ -80,6 +81,12 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
         artifacts.push(FixtureArtifact::new(case.mesh_path, &mesh)?);
         artifacts.push(FixtureArtifact::new(case.grid_path, &grid)?);
         artifacts.push(FixtureArtifact::new(case.summary_path, &summary)?);
+        if let Some(adf_case) = adf_fixture_case_for_grid(&grid) {
+            let report = build_adf_fixture(&grid, adf_case).map_err(CliError::Adf)?;
+            let summary = summarize_adf_fixture(adf_case.fixture_id, &report.field, &report);
+            artifacts.push(FixtureArtifact::new(adf_case.field_path, &report.field)?);
+            artifacts.push(FixtureArtifact::new(adf_case.summary_path, &summary)?);
+        }
     }
 
     let surface = unit_square_surface();

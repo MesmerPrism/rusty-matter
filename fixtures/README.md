@@ -25,6 +25,8 @@ The SDF foundation bundle currently includes:
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
+- adaptive distance field fixtures and compact ADF summary goldens in
+  `fixtures/adf`;
 - damaged-input rejection reports in `fixtures/damaged`, including
   surface-field state and perturbation rejection cases;
 - particle step summaries in `fixtures/particles`, including SDF attraction and

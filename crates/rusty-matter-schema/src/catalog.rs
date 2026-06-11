@@ -53,6 +53,8 @@ impl SchemaCatalog {
             "fixtures/sdf/unit-triangle-sdf-summary.json",
             "fixtures/sdf/unit-tetrahedron-sdf-summary.json",
         ];
+        let adf_field_fixtures = &["fixtures/adf/unit-triangle-adaptive-field.json"];
+        let adf_summary_fixtures = &["fixtures/adf/unit-triangle-adf-summary.json"];
         let damaged_fixtures = &[
             "fixtures/damaged/invalid-coordinate-frame-config.json",
             "fixtures/damaged/invalid-hand-validation-mesh-frame.json",
@@ -291,6 +293,16 @@ impl SchemaCatalog {
                     "rusty.matter.fixture.sdf_summary.v1",
                     "SdfFixtureSummary",
                     sdf_summary_fixtures,
+                ),
+                entry(
+                    "rusty.matter.adf.adaptive_distance_field.v1",
+                    "AdaptiveDistanceField",
+                    adf_field_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fixture.adf_summary.v1",
+                    "AdfFixtureSummary",
+                    adf_summary_fixtures,
                 ),
                 entry(
                     "rusty.matter.fixture.damaged_input_report.v1",

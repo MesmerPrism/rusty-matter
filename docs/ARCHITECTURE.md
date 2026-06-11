@@ -37,6 +37,7 @@ Matter owns:
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
 - fields and packed SDF grids;
+- adaptive distance fields derived from Matter SDF grids;
 - particle state and dynamics;
 - render-neutral particle payload data derived from Matter state;
 - native animated-surface runtime orchestration over mesh distance, dynamic
@@ -114,6 +115,7 @@ The implemented foundation slices are intentionally CPU/data-only:
   reference behavior backed by the shared accelerated distance sampler;
 - packed SDF grid contracts;
 - mesh-to-SDF CPU reference builder;
+- SDF-grid-to-ADF CPU reference builder with compact build diagnostics;
 - particle state and SDF interaction contracts;
 - fixed-step particle simulation;
 - render-neutral particle payload preparation;
@@ -234,6 +236,12 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-sdf/src/config.rs`: mesh-to-SDF builder configuration.
 - `rusty-matter-sdf/src/grid.rs`: packed SDF grid and nearest-cell sampling.
 - `rusty-matter-sdf/src/geometry.rs`: private triangle distance helpers.
+- `rusty-matter-adf/src/builder.rs`: SDF-grid-to-ADF CPU reference builder
+  and build diagnostics.
+- `rusty-matter-adf/src/config.rs`: adaptive-distance-field builder
+  configuration.
+- `rusty-matter-adf/src/field.rs`: adaptive distance field, leaf-cell, and
+  nearest-cell sample contracts.
 - `rusty-matter-particles/src/state.rs`: particle state and set snapshots.
 - `rusty-matter-particles/src/render.rs`: render-neutral particle payloads for
   Optics or renderer adapters.

@@ -16,6 +16,23 @@ pub(crate) struct SdfFixtureSummary {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub(crate) struct AdfFixtureSummary {
+    pub(crate) schema_id: String,
+    pub(crate) fixture_id: String,
+    pub(crate) field_id: String,
+    pub(crate) source_grid_id: String,
+    pub(crate) root_origin: Vec3,
+    pub(crate) root_extent: f32,
+    pub(crate) max_depth: u32,
+    pub(crate) source_sample_count: usize,
+    pub(crate) cell_count: usize,
+    pub(crate) split_count: usize,
+    pub(crate) max_level: u32,
+    pub(crate) min_cell_distance: f32,
+    pub(crate) max_cell_distance: f32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub(crate) struct DamagedFixtureReport {
     pub(crate) schema_id: String,
     pub(crate) fixture_id: String,

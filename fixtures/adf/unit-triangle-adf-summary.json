@@ -1,0 +1,19 @@
+{
+  "schema_id": "rusty.matter.fixture.adf_summary.v1",
+  "fixture_id": "fixture.adf.unit_triangle.v1",
+  "field_id": "adf.sdf.mesh.unit_triangle",
+  "source_grid_id": "sdf.mesh.unit_triangle",
+  "root_origin": {
+    "x": -0.5,
+    "y": -0.5,
+    "z": -0.5
+  },
+  "root_extent": 2.0,
+  "max_depth": 3,
+  "source_sample_count": 32,
+  "cell_count": 36,
+  "split_count": 5,
+  "max_level": 2,
+  "min_cell_distance": -1.0897248,
+  "max_cell_distance": 1.0897248
+}

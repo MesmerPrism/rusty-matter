@@ -360,6 +360,22 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.adf.adaptive_distance_field.v1",
+      "rust_type": "AdaptiveDistanceField",
+      "fixture_paths": [
+        "fixtures/adf/unit-triangle-adaptive-field.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.adf_summary.v1",
+      "rust_type": "AdfFixtureSummary",
+      "fixture_paths": [
+        "fixtures/adf/unit-triangle-adf-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
       "rust_type": "DamagedFixtureReport",
       "fixture_paths": [

@@ -150,6 +150,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
+name = "rusty-matter-adf"
+version = "0.1.0"
+dependencies = [
+ "rusty-matter-model",
+ "rusty-matter-sdf",
+ "serde",
+]
+
+[[package]]
 name = "rusty-matter-batch"
 version = "0.1.0"
 dependencies = [
@@ -180,6 +189,7 @@ dependencies = [
 name = "rusty-matter-fixtures"
 version = "0.1.0"
 dependencies = [
+ "rusty-matter-adf",
  "rusty-matter-fields",
  "rusty-matter-mesh",
  "rusty-matter-model",

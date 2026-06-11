@@ -3,6 +3,7 @@
 use std::env;
 use std::process::ExitCode;
 
+mod adf;
 mod artifact;
 mod cli;
 mod damaged;

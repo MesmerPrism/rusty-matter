@@ -93,14 +93,16 @@ Current crate-root maps:
   and shared `math`.
 - `rusty-matter-sdf/src/lib.rs`: facade over `builder`, `config`,
   `grid`, `geometry`, and `error`.
+- `rusty-matter-adf/src/lib.rs`: facade over `builder`, `config`, `field`,
+  and `error`.
 - `rusty-matter-particles/src/lib.rs`: facade over `ids`, `state`, `render`,
   `config`, `interactions`, `spatial_hash`, `diagnostics`, `simulator`, and
   `error`.
 - `rusty-matter-handmesh-wasm/src/lib.rs`: target-gated browser adapter over
   the shared Matter hand-mesh distance sampler.
 - `rusty-matter-fixtures/src/main.rs`: dispatch-only binary over `cli`,
-  `artifact`, `summary`, `fields`, `sdf`, `mesh`, `particles`, `damaged`, and
-  `error`.
+  `artifact`, `summary`, `fields`, `sdf`, `adf`, `mesh`, `particles`,
+  `damaged`, and `error`.
 - `rusty-matter-schema/src/main.rs`: dispatch-only binary over `cli`,
   `catalog`, and `error`.
 

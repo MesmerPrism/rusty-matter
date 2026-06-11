@@ -1,0 +1,482 @@
+{
+  "schema_id": "rusty.matter.adf.adaptive_distance_field.v1",
+  "field_id": "adf.sdf.mesh.unit_triangle",
+  "source_grid_id": "sdf.mesh.unit_triangle",
+  "origin": {
+    "x": -0.5,
+    "y": -0.5,
+    "z": -0.5
+  },
+  "extent": 2.0,
+  "max_depth": 3,
+  "cells": [
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": -0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": -0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.35355338,
+      "min_distance": -0.35355338,
+      "max_distance": -0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 0.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.35355338,
+      "min_distance": -0.35355338,
+      "max_distance": -0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.25,
+      "min_distance": -0.25,
+      "max_distance": -0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": -0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": -0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.35355338,
+      "min_distance": 0.35355338,
+      "max_distance": 0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.35355338,
+      "min_distance": 0.35355338,
+      "max_distance": 0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.25,
+      "min_distance": 0.25,
+      "max_distance": 0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": -0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.35355338,
+      "min_distance": -0.35355338,
+      "max_distance": -0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": -0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 0.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.25,
+      "min_distance": -0.25,
+      "max_distance": -0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": -0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.35355338,
+      "min_distance": 0.35355338,
+      "max_distance": 0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": -0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.25,
+      "min_distance": 0.25,
+      "max_distance": 0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.35355338,
+      "min_distance": -0.35355338,
+      "max_distance": -0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.25,
+      "min_distance": -0.25,
+      "max_distance": -0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 1.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.35355338,
+      "min_distance": 0.35355338,
+      "max_distance": 0.35355338,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.25,
+      "min_distance": 0.25,
+      "max_distance": 0.25,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": -0.5,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.4330127,
+      "min_distance": -0.4330127,
+      "max_distance": -0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.75,
+      "min_distance": -0.75,
+      "max_distance": -0.75,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -0.75,
+      "min_distance": -0.75,
+      "max_distance": -0.75,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": -0.5
+      },
+      "extent": 0.5,
+      "center_distance": -1.0897248,
+      "min_distance": -1.0897248,
+      "max_distance": -1.0897248,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.75,
+      "min_distance": 0.75,
+      "max_distance": 0.75,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 0.75,
+      "min_distance": 0.75,
+      "max_distance": 0.75,
+      "source_sample_count": 1
+    },
+    {
+      "level": 2,
+      "origin": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "extent": 0.5,
+      "center_distance": 1.0897248,
+      "min_distance": 1.0897248,
+      "max_distance": 1.0897248,
+      "source_sample_count": 1
+    },
+    {
+      "level": 1,
+      "origin": {
+        "x": -0.5,
+        "y": -0.5,
+        "z": 0.5
+      },
+      "extent": 1.0,
+      "center_distance": 0.25,
+      "min_distance": 0.25,
+      "max_distance": 0.25,
+      "source_sample_count": 0
+    },
+    {
+      "level": 1,
+      "origin": {
+        "x": 0.5,
+        "y": -0.5,
+        "z": 0.5
+      },
+      "extent": 1.0,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 0
+    },
+    {
+      "level": 1,
+      "origin": {
+        "x": -0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "extent": 1.0,
+      "center_distance": 0.4330127,
+      "min_distance": 0.4330127,
+      "max_distance": 0.4330127,
+      "source_sample_count": 0
+    },
+    {
+      "level": 1,
+      "origin": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "extent": 1.0,
+      "center_distance": 1.0897248,
+      "min_distance": 1.0897248,
+      "max_distance": 1.0897248,
+      "source_sample_count": 0
+    }
+  ]
+}
