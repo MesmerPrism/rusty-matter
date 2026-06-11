@@ -265,6 +265,44 @@ impl SurfaceParticleRuntime {
         sequence_cloud_radius: f32,
         delta_seconds: f32,
     ) -> SurfaceParticleStepDiagnostics {
+        self.step_with_surface_sampler(
+            Some(sampler),
+            surface_radius,
+            sequence_center,
+            sequence_cloud_radius,
+            delta_seconds,
+        )
+    }
+
+    /// Advances particles without sampling a surface force.
+    ///
+    /// This keeps particle integration independent from force-source refresh
+    /// cadence for callers that intentionally reuse or disable attraction.
+    #[must_use]
+    pub fn step_without_surface_force(
+        &mut self,
+        surface_radius: f32,
+        sequence_center: Vec3,
+        sequence_cloud_radius: f32,
+        delta_seconds: f32,
+    ) -> SurfaceParticleStepDiagnostics {
+        self.step_with_surface_sampler(
+            None,
+            surface_radius,
+            sequence_center,
+            sequence_cloud_radius,
+            delta_seconds,
+        )
+    }
+
+    fn step_with_surface_sampler(
+        &mut self,
+        sampler: Option<&SurfaceDistanceSampler>,
+        surface_radius: f32,
+        sequence_center: Vec3,
+        sequence_cloud_radius: f32,
+        delta_seconds: f32,
+    ) -> SurfaceParticleStepDiagnostics {
         let mut diagnostics = SurfaceParticleStepDiagnostics {
             particle_count: self.particles.len(),
             ..SurfaceParticleStepDiagnostics::default()
@@ -348,7 +386,7 @@ impl From<&ParticleState> for SurfaceParticleStepInput {
 
 struct SurfaceParticleStepSnapshot<'a> {
     previous_particles: &'a [SurfaceParticleStepInput],
-    sampler: &'a SurfaceDistanceSampler,
+    sampler: Option<&'a SurfaceDistanceSampler>,
     config: &'a SurfaceParticleRuntimeConfig,
     max_speed: f32,
     sequence_center: Vec3,
@@ -430,24 +468,29 @@ fn step_one_surface_particle(
     }
 
     let position = snapshot.previous_particles[index].position;
-    let Some(sample) = snapshot.sampler.sample(position) else {
-        diagnostics.rejected_particles += 1;
-        return;
-    };
-    diagnostics.closest_samples += 1;
-    diagnostics.surface_node_tests += sample.diagnostics.node_tests;
-    diagnostics.surface_leaf_tests += sample.diagnostics.leaf_tests;
-    diagnostics.surface_triangle_tests += sample.diagnostics.triangle_tests;
+    let mut acceleration = Vec3::ZERO;
+    let mut force_applied = false;
+    if let Some(sampler) = snapshot.sampler {
+        let Some(sample) = sampler.sample(position) else {
+            diagnostics.rejected_particles += 1;
+            return;
+        };
+        diagnostics.closest_samples += 1;
+        diagnostics.surface_node_tests += sample.diagnostics.node_tests;
+        diagnostics.surface_leaf_tests += sample.diagnostics.leaf_tests;
+        diagnostics.surface_triangle_tests += sample.diagnostics.triangle_tests;
 
-    let outward = if sample.distance > 1.0e-7 {
-        normalize_or(position - sample.point, sample.normal)
-    } else {
-        normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
-    };
-    let target_distance = (particle.radius * snapshot.config.target_distance_radius_scale)
-        .max(snapshot.config.minimum_target_distance);
-    let error = sample.distance - target_distance;
-    let mut acceleration = outward * (-error * snapshot.config.attraction_strength);
+        let outward = if sample.distance > 1.0e-7 {
+            normalize_or(position - sample.point, sample.normal)
+        } else {
+            normalize_or(sample.normal, Vec3::new(0.0, 1.0, 0.0))
+        };
+        let target_distance = (particle.radius * snapshot.config.target_distance_radius_scale)
+            .max(snapshot.config.minimum_target_distance);
+        let error = sample.distance - target_distance;
+        acceleration = outward * (-error * snapshot.config.attraction_strength);
+        force_applied = true;
+    }
 
     let cloud_offset = position - snapshot.sequence_center;
     let cloud_distance = cloud_offset.length();
@@ -458,8 +501,11 @@ fn step_one_surface_particle(
             + normalize_or(cloud_offset, Vec3::new(0.0, 1.0, 0.0))
                 * (-(cloud_distance - snapshot.sequence_cloud_radius)
                     * snapshot.config.cloud_confinement_strength);
+        force_applied = true;
     }
-    diagnostics.affected_particles += 1;
+    if force_applied {
+        diagnostics.affected_particles += 1;
+    }
 
     let mut velocity =
         snapshot.previous_particles[index].velocity + acceleration * snapshot.delta_seconds;

@@ -58,6 +58,12 @@ sockets, media stacks, or downstream app crates.
 - Add fixtures and damaged-input expectations before runtime adapters.
 - Keep high-rate particle arrays and grids out of command/control JSON routes;
   use artifacts, bounded summaries, or data-plane adapters.
+- Keep particle integration/render cadence, particle force-source refresh,
+  animated hand-surface updates, and SDF/ADF field builds as independent
+  runtime clocks. Normal profiling selects exactly one particle-force
+  authority at a time: `mesh-distance`, future `sdf-field`, future
+  `adf-field`, or `none`. Dual mesh/field computation is a bounded
+  compare-probe diagnostic only, never the default particle path.
 
 ## File Organization Rules
 

@@ -11,6 +11,7 @@ use rusty_matter_particles::{
     SurfaceParticleRuntime, SurfaceParticleRuntimeConfig, SurfaceParticleStepDiagnostics,
 };
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig, PackedSdfGrid};
+use std::num::NonZeroUsize;
 
 use crate::MatterSurfaceRuntimeError;
 
@@ -30,6 +31,122 @@ pub const DEFAULT_SURFACE_RUNTIME_PARTICLE_COUNT: usize = 1_000;
 pub const DEFAULT_SURFACE_RUNTIME_PARTICLE_SEED: u32 = 23;
 /// Maximum particle count accepted by the deterministic native facade.
 pub const MAX_SURFACE_RUNTIME_PARTICLE_COUNT: usize = 32_768;
+/// Default particle force-source refresh interval.
+pub const DEFAULT_PARTICLE_FORCE_UPDATE_INTERVAL_FRAMES: usize = 1;
+
+/// Particle force source selected by the Matter surface runtime.
+///
+/// Only `MeshDistance` and `None` have active CPU behavior in this crate today.
+/// `SdfField` and `AdfField` are reserved runtime contract values so adapters
+/// can hot-switch settings without falling back to direct mesh distance.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MatterSurfaceParticleForceSource {
+    /// Direct Matter mesh-distance sampler.
+    #[default]
+    MeshDistance,
+    /// No attraction source; particles continue integrating velocity and cloud
+    /// confinement without sampling mesh, SDF, or ADF.
+    None,
+    /// Future SDF field sampler.
+    SdfField,
+    /// Future ADF field sampler.
+    AdfField,
+}
+
+impl MatterSurfaceParticleForceSource {
+    /// Stable marker/settings token.
+    #[must_use]
+    pub const fn marker_value(self) -> &'static str {
+        match self {
+            Self::MeshDistance => "mesh-distance",
+            Self::None => "none",
+            Self::SdfField => "sdf-field",
+            Self::AdfField => "adf-field",
+        }
+    }
+
+    /// Stable marker for the active sampling authority.
+    #[must_use]
+    pub const fn sampling_authority_marker(self) -> &'static str {
+        match self {
+            Self::MeshDistance => "matter-mesh-distance-sampler",
+            Self::None => "none",
+            Self::SdfField => "unsupported-sdf-field-sampler",
+            Self::AdfField => "unsupported-adf-field-sampler",
+        }
+    }
+
+    /// Stable marker for the active field/source identity.
+    #[must_use]
+    pub const fn field_source_marker(self) -> &'static str {
+        match self {
+            Self::MeshDistance => "current-mesh-distance",
+            Self::None => "none",
+            Self::SdfField => "sdf-field-unavailable",
+            Self::AdfField => "adf-field-unavailable",
+        }
+    }
+
+    const fn uses_sdf_adf_debug_payload(self) -> bool {
+        match self {
+            Self::MeshDistance | Self::None | Self::SdfField | Self::AdfField => false,
+        }
+    }
+}
+
+/// Runtime status for the selected particle force source.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MatterSurfaceParticleForceSourceStatus {
+    /// The selected source is active.
+    #[default]
+    Ready,
+    /// No force source was selected.
+    Disabled,
+    /// The selected source is a reserved future mode.
+    UnsupportedFuture,
+}
+
+impl MatterSurfaceParticleForceSourceStatus {
+    /// Stable marker token.
+    #[must_use]
+    pub const fn marker_value(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::Disabled => "disabled",
+            Self::UnsupportedFuture => "unsupported-future",
+        }
+    }
+}
+
+/// Refresh/reuse status for the current particle force step.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MatterSurfaceParticleForceRefresh {
+    /// The selected force source was sampled/refreshed this step.
+    #[default]
+    Fresh,
+    /// Particle integration ran without refreshing the selected force source.
+    Reused,
+    /// No force source is active.
+    Disabled,
+    /// The selected force source is not implemented yet.
+    UnsupportedFuture,
+}
+
+impl MatterSurfaceParticleForceRefresh {
+    /// Stable marker token.
+    #[must_use]
+    pub const fn marker_value(self) -> &'static str {
+        match self {
+            Self::Fresh => "fresh",
+            Self::Reused => "reused",
+            Self::Disabled => "disabled",
+            Self::UnsupportedFuture => "unsupported-future",
+        }
+    }
+}
 
 /// Policy for refreshing per-particle surface-distance snapshot evidence.
 ///
@@ -99,6 +216,12 @@ pub struct MatterSurfaceRuntimeConfig {
     pub particle_set_id: String,
     /// Policy for extra per-particle snapshot distance refreshes.
     pub particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy,
+    /// Selected particle force source.
+    pub particle_force_source: MatterSurfaceParticleForceSource,
+    /// Frame interval for refreshing the selected particle force source.
+    pub particle_force_update_interval_frames: NonZeroUsize,
+    /// Bounded compare-probe count for future mesh/field diagnostics.
+    pub particle_force_compare_probe_count: usize,
 }
 
 impl Default for MatterSurfaceRuntimeConfig {
@@ -111,6 +234,12 @@ impl Default for MatterSurfaceRuntimeConfig {
             particle_set_id: "particles.surface_runtime.default".to_owned(),
             particle_distance_refresh_policy:
                 MatterSurfaceParticleDistanceRefreshPolicy::SurfaceUpdateAndStep,
+            particle_force_source: MatterSurfaceParticleForceSource::MeshDistance,
+            particle_force_update_interval_frames: NonZeroUsize::new(
+                DEFAULT_PARTICLE_FORCE_UPDATE_INTERVAL_FRAMES,
+            )
+            .expect("default particle force update interval is non-zero"),
+            particle_force_compare_probe_count: 0,
         }
     }
 }
@@ -214,6 +343,12 @@ pub struct MatterSurfaceRuntimeStats {
     pub particle_count: usize,
     /// Policy used for extra per-particle snapshot distance refreshes.
     pub particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy,
+    /// Selected particle force source.
+    pub particle_force_source: MatterSurfaceParticleForceSource,
+    /// Frame interval for refreshing the selected particle force source.
+    pub particle_force_update_interval_frames: usize,
+    /// Bounded compare-probe count for future mesh/field diagnostics.
+    pub particle_force_compare_probe_count: usize,
     /// Particle closest-distance samples recorded for the latest snapshot.
     pub particle_distance_samples: usize,
 }
@@ -310,6 +445,21 @@ pub struct MatterSurfaceParticleSnapshot {
 pub struct MatterSurfaceStepDiagnostics {
     /// Matter-owned particle step diagnostics.
     pub particles: SurfaceParticleStepDiagnostics,
+    /// Selected particle force source for this step.
+    pub particle_force_source: MatterSurfaceParticleForceSource,
+    /// Status of the selected particle force source.
+    pub particle_force_source_status: MatterSurfaceParticleForceSourceStatus,
+    /// Refresh/reuse state for this particle step.
+    pub particle_force_refresh: MatterSurfaceParticleForceRefresh,
+    /// Frame interval configured for refreshing the selected force source.
+    pub particle_force_update_interval_frames: usize,
+    /// Bounded diagnostic compare probes requested for this step.
+    pub particle_force_compare_probe_count: usize,
+    /// Whether particles are using an SDF/ADF debug payload as authority.
+    ///
+    /// Reserved future field modes keep this false until Matter owns a real
+    /// field-backed particle sampler contract.
+    pub sdf_adf_debug_particle_authority: bool,
     /// Number of particle distance samples refreshed after the step.
     pub refreshed_distance_samples: usize,
     /// Distance-query diagnostics accumulated during refresh.
@@ -327,6 +477,7 @@ pub struct MatterSurfaceRuntime {
     collider: DynamicMeshCollider,
     particles: SurfaceParticleRuntime,
     particle_distance_refresh_executor: BatchExecutor,
+    particle_force_frame_counter: usize,
     last_particle_distances: Vec<Option<f32>>,
     last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics,
     last_particle_distance_execution: ParticleExecutionDiagnostics,
@@ -372,6 +523,7 @@ impl MatterSurfaceRuntime {
             collider,
             particles,
             particle_distance_refresh_executor,
+            particle_force_frame_counter: 0,
             last_particle_distances: Vec::new(),
             last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics::default(),
             last_particle_distance_execution,
@@ -543,11 +695,8 @@ impl MatterSurfaceRuntime {
             surface_radius,
             seed,
         )?;
-        if self
-            .config
-            .particle_distance_refresh_policy
-            .refresh_after_reset()
-        {
+        self.particle_force_frame_counter = 0;
+        if self.should_refresh_particle_distances_after_reset() {
             self.refresh_particle_distances();
         } else {
             self.clear_particle_distances();
@@ -555,11 +704,12 @@ impl MatterSurfaceRuntime {
         Ok(self.particle_snapshot())
     }
 
-    /// Advances particles against the current surface sampler.
+    /// Advances particles with the configured particle force authority.
     ///
     /// # Errors
     ///
-    /// Returns [`MatterSurfaceRuntimeError`] when no sampler is available.
+    /// Returns [`MatterSurfaceRuntimeError`] when direct mesh-distance force
+    /// sampling is selected and no sampler is available.
     pub fn step_particles(
         &mut self,
         surface_radius: f32,
@@ -567,22 +717,61 @@ impl MatterSurfaceRuntime {
         sequence_cloud_radius: f32,
         delta_seconds: f32,
     ) -> Result<MatterSurfaceStepDiagnostics, MatterSurfaceRuntimeError> {
-        let sampler = self
-            .sampler
-            .as_ref()
-            .ok_or(MatterSurfaceRuntimeError::DistanceSamplerUnavailable)?;
-        let particles = self.particles.step_against_surface(
-            sampler,
-            surface_radius,
-            sequence_center,
-            sequence_cloud_radius,
-            delta_seconds,
-        );
-        if self
-            .config
-            .particle_distance_refresh_policy
-            .refresh_after_step()
-        {
+        let interval = self.config.particle_force_update_interval_frames.get();
+        let should_refresh_force = self.particle_force_frame_counter % interval == 0;
+        self.particle_force_frame_counter = self.particle_force_frame_counter.saturating_add(1);
+        let force_source = self.config.particle_force_source;
+        let (particles, force_status, force_refresh) = match force_source {
+            MatterSurfaceParticleForceSource::MeshDistance if should_refresh_force => {
+                let sampler = self
+                    .sampler
+                    .as_ref()
+                    .ok_or(MatterSurfaceRuntimeError::DistanceSamplerUnavailable)?;
+                (
+                    self.particles.step_against_surface(
+                        sampler,
+                        surface_radius,
+                        sequence_center,
+                        sequence_cloud_radius,
+                        delta_seconds,
+                    ),
+                    MatterSurfaceParticleForceSourceStatus::Ready,
+                    MatterSurfaceParticleForceRefresh::Fresh,
+                )
+            }
+            MatterSurfaceParticleForceSource::MeshDistance => (
+                self.particles.step_without_surface_force(
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                ),
+                MatterSurfaceParticleForceSourceStatus::Ready,
+                MatterSurfaceParticleForceRefresh::Reused,
+            ),
+            MatterSurfaceParticleForceSource::None => (
+                self.particles.step_without_surface_force(
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                ),
+                MatterSurfaceParticleForceSourceStatus::Disabled,
+                MatterSurfaceParticleForceRefresh::Disabled,
+            ),
+            MatterSurfaceParticleForceSource::SdfField
+            | MatterSurfaceParticleForceSource::AdfField => (
+                self.particles.step_without_surface_force(
+                    surface_radius,
+                    sequence_center,
+                    sequence_cloud_radius,
+                    delta_seconds,
+                ),
+                MatterSurfaceParticleForceSourceStatus::UnsupportedFuture,
+                MatterSurfaceParticleForceRefresh::UnsupportedFuture,
+            ),
+        };
+        if self.should_refresh_particle_distances_after_step() {
             self.refresh_particle_distances();
         } else {
             self.clear_particle_distances();
@@ -594,6 +783,12 @@ impl MatterSurfaceRuntime {
             .count();
         Ok(MatterSurfaceStepDiagnostics {
             particles,
+            particle_force_source: force_source,
+            particle_force_source_status: force_status,
+            particle_force_refresh: force_refresh,
+            particle_force_update_interval_frames: interval,
+            particle_force_compare_probe_count: self.config.particle_force_compare_probe_count,
+            sdf_adf_debug_particle_authority: force_source.uses_sdf_adf_debug_payload(),
             refreshed_distance_samples,
             refreshed_distance_diagnostics: self.last_particle_distance_diagnostics,
             refreshed_distance_execution: self.last_particle_distance_execution.clone(),
@@ -691,6 +886,12 @@ impl MatterSurfaceRuntime {
             distance_sampler: self.sampler.as_ref().map(|sampler| sampler.stats().clone()),
             particle_count: self.particles.particles().len(),
             particle_distance_refresh_policy: self.config.particle_distance_refresh_policy,
+            particle_force_source: self.config.particle_force_source,
+            particle_force_update_interval_frames: self
+                .config
+                .particle_force_update_interval_frames
+                .get(),
+            particle_force_compare_probe_count: self.config.particle_force_compare_probe_count,
             particle_distance_samples: self
                 .last_particle_distances
                 .iter()
@@ -742,20 +943,48 @@ impl MatterSurfaceRuntime {
         self.surface = Some(surface);
         self.frame_index = frame_index;
         self.time_seconds = time_seconds;
-        if self
-            .config
-            .particle_distance_refresh_policy
-            .refresh_after_surface_update()
-        {
+        if self.should_refresh_particle_distances_after_surface_update() {
             self.refresh_particle_distances();
-        } else if self
-            .config
-            .particle_distance_refresh_policy
-            .clear_when_refresh_skipped()
+        } else if !self.particle_distance_refresh_uses_mesh_distance()
+            || self
+                .config
+                .particle_distance_refresh_policy
+                .clear_when_refresh_skipped()
         {
             self.clear_particle_distances();
         }
         Ok(update)
+    }
+
+    fn particle_distance_refresh_uses_mesh_distance(&self) -> bool {
+        matches!(
+            self.config.particle_force_source,
+            MatterSurfaceParticleForceSource::MeshDistance
+        )
+    }
+
+    fn should_refresh_particle_distances_after_reset(&self) -> bool {
+        self.particle_distance_refresh_uses_mesh_distance()
+            && self
+                .config
+                .particle_distance_refresh_policy
+                .refresh_after_reset()
+    }
+
+    fn should_refresh_particle_distances_after_step(&self) -> bool {
+        self.particle_distance_refresh_uses_mesh_distance()
+            && self
+                .config
+                .particle_distance_refresh_policy
+                .refresh_after_step()
+    }
+
+    fn should_refresh_particle_distances_after_surface_update(&self) -> bool {
+        self.particle_distance_refresh_uses_mesh_distance()
+            && self
+                .config
+                .particle_distance_refresh_policy
+                .refresh_after_surface_update()
     }
 
     fn clear_particle_distances(&mut self) {

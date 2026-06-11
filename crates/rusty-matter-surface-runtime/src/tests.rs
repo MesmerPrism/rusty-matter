@@ -427,6 +427,133 @@ fn disabled_particle_distance_refresh_skips_snapshot_sampling() {
 }
 
 #[test]
+fn none_particle_force_source_steps_without_surface_queries() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_force_source: MatterSurfaceParticleForceSource::None,
+        particle_distance_refresh_policy:
+            MatterSurfaceParticleDistanceRefreshPolicy::SurfaceUpdateAndStep,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+
+    let diagnostics = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("step succeeds");
+
+    assert_eq!(
+        diagnostics.particle_force_source,
+        MatterSurfaceParticleForceSource::None
+    );
+    assert_eq!(
+        diagnostics.particle_force_source_status,
+        MatterSurfaceParticleForceSourceStatus::Disabled
+    );
+    assert_eq!(
+        diagnostics.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Disabled
+    );
+    assert_eq!(diagnostics.particles.closest_samples, 0);
+    assert_eq!(diagnostics.particles.surface_triangle_tests, 0);
+    assert_eq!(diagnostics.refreshed_distance_samples, 0);
+    assert_eq!(runtime.stats().particle_distance_samples, 0);
+    assert_eq!(
+        runtime.stats().particle_force_source,
+        MatterSurfaceParticleForceSource::None
+    );
+}
+
+#[test]
+fn mesh_particle_force_update_interval_reuses_between_refreshes() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_force_source: MatterSurfaceParticleForceSource::MeshDistance,
+        particle_force_update_interval_frames: NonZeroUsize::new(2).unwrap(),
+        particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy::Disabled,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+
+    let first = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("first step succeeds");
+    let second = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("second step succeeds");
+    let third = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("third step succeeds");
+
+    assert_eq!(
+        first.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Fresh
+    );
+    assert!(first.particles.closest_samples >= 8);
+    assert_eq!(
+        second.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Reused
+    );
+    assert_eq!(second.particles.closest_samples, 0);
+    assert_eq!(
+        third.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::Fresh
+    );
+    assert!(third.particles.closest_samples >= 8);
+    assert_eq!(third.particle_force_update_interval_frames, 2);
+}
+
+#[test]
+fn future_field_particle_force_sources_do_not_fall_back_to_mesh_distance() {
+    let mut runtime = MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particle_force_source: MatterSurfaceParticleForceSource::AdfField,
+        particle_distance_refresh_policy:
+            MatterSurfaceParticleDistanceRefreshPolicy::SurfaceUpdateAndStep,
+        particle_force_compare_probe_count: 4,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds");
+    runtime
+        .update_surface(unit_square_surface())
+        .expect("surface update succeeds");
+    runtime
+        .reset_particles(Vec3::new(0.5, 0.5, 0.25), 8, 0.1, 0.01, 0.5, 11)
+        .expect("reset succeeds");
+
+    let diagnostics = runtime
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 1.0 / 90.0)
+        .expect("step succeeds");
+
+    assert_eq!(
+        diagnostics.particle_force_source,
+        MatterSurfaceParticleForceSource::AdfField
+    );
+    assert_eq!(
+        diagnostics.particle_force_source_status,
+        MatterSurfaceParticleForceSourceStatus::UnsupportedFuture
+    );
+    assert_eq!(
+        diagnostics.particle_force_refresh,
+        MatterSurfaceParticleForceRefresh::UnsupportedFuture
+    );
+    assert!(!diagnostics.sdf_adf_debug_particle_authority);
+    assert_eq!(diagnostics.particle_force_compare_probe_count, 4);
+    assert_eq!(diagnostics.particles.closest_samples, 0);
+    assert_eq!(diagnostics.particles.surface_triangle_tests, 0);
+    assert_eq!(diagnostics.refreshed_distance_samples, 0);
+    assert_eq!(runtime.stats().particle_distance_samples, 0);
+}
+
+#[test]
 fn runtime_builds_sdf_grid_from_current_surface() {
     let mut runtime = MatterSurfaceRuntime::default();
     runtime
