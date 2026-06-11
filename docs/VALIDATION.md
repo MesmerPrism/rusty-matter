@@ -111,14 +111,17 @@ batch-backed contact-probe path, accepts reusable contact-probe executors for
 high-rate callers that should not rebuild Rayon pools per frame, builds an SDF
 grid from the current surface,
 steps Matter-owned surface particles, and refreshes browser-parity particle
-distance snapshots without using the Wasm adapter. They also verify that
-consecutive matching-topology frames use the distance-sampler refit path
-exposed on `MatterSurfaceRuntimeUpdate`. With the `parallel` feature enabled,
-they additionally verify serial-vs-Rayon contact probe output equivalence. The
-default particle distance refresh policy remains the exact snapshot path; tests
-also cover the explicit `StepOnly` policy used by headset visual adapters to
-skip redundant pre-step snapshot refreshes without changing particle
-integration samples.
+distance snapshots without using the Wasm adapter. Particle distance refreshes
+use the same low-rate particle execution settings and cached batch executor as
+the particle runtime, while the high-rate distance array stays in Matter memory.
+They also verify that consecutive matching-topology frames use the
+distance-sampler refit path exposed on `MatterSurfaceRuntimeUpdate`. With the
+`parallel` feature enabled, they additionally verify serial-vs-Rayon contact
+probe output equivalence and serial-vs-Rayon particle-distance refresh output
+equivalence. The default particle distance refresh policy remains the exact
+snapshot path; tests also cover the explicit `StepOnly` policy used by headset
+visual adapters to skip redundant pre-step snapshot refreshes without changing
+particle integration samples.
 
 For surface-field contract and dynamics work, the narrow test route is:
 

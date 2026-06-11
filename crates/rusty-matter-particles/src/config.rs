@@ -64,7 +64,13 @@ impl ParticleExecutionConfig {
         Ok(())
     }
 
-    pub(crate) fn batch_config(&self) -> Result<BatchConfig, ParticleError> {
+    /// Converts particle execution settings into the shared Matter batch
+    /// executor config.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParticleError`] when execution settings are invalid.
+    pub fn batch_config(&self) -> Result<BatchConfig, ParticleError> {
         self.validate()?;
         Ok(BatchConfig {
             backend: match self.backend {

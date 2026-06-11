@@ -7,8 +7,8 @@ use rusty_matter_mesh::{
 };
 use rusty_matter_model::{TriangleMeshSnapshot, Vec3};
 use rusty_matter_particles::{
-    ParticleRenderPayload, SurfaceParticleRuntime, SurfaceParticleRuntimeConfig,
-    SurfaceParticleStepDiagnostics,
+    ParticleExecutionConfig, ParticleExecutionDiagnostics, ParticleRenderPayload,
+    SurfaceParticleRuntime, SurfaceParticleRuntimeConfig, SurfaceParticleStepDiagnostics,
 };
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshToSdfConfig, PackedSdfGrid};
 
@@ -314,20 +314,39 @@ pub struct MatterSurfaceStepDiagnostics {
     pub refreshed_distance_samples: usize,
     /// Distance-query diagnostics accumulated during refresh.
     pub refreshed_distance_diagnostics: SurfaceDistanceQueryDiagnostics,
+    /// Low-rate execution diagnostics for the refresh pass.
+    pub refreshed_distance_execution: ParticleExecutionDiagnostics,
 }
 
 /// Native Matter surface runtime facade.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct MatterSurfaceRuntime {
     config: MatterSurfaceRuntimeConfig,
     surface: Option<TriangleMeshSurface>,
     sampler: Option<SurfaceDistanceSampler>,
     collider: DynamicMeshCollider,
     particles: SurfaceParticleRuntime,
+    particle_distance_refresh_executor: BatchExecutor,
     last_particle_distances: Vec<Option<f32>>,
     last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics,
+    last_particle_distance_execution: ParticleExecutionDiagnostics,
     frame_index: Option<usize>,
     time_seconds: Option<f32>,
+}
+
+impl PartialEq for MatterSurfaceRuntime {
+    fn eq(&self, other: &Self) -> bool {
+        self.config == other.config
+            && self.surface == other.surface
+            && self.sampler == other.sampler
+            && self.collider == other.collider
+            && self.particles == other.particles
+            && self.last_particle_distances == other.last_particle_distances
+            && self.last_particle_distance_diagnostics == other.last_particle_distance_diagnostics
+            && self.last_particle_distance_execution == other.last_particle_distance_execution
+            && self.frame_index == other.frame_index
+            && self.time_seconds == other.time_seconds
+    }
 }
 
 impl MatterSurfaceRuntime {
@@ -342,14 +361,20 @@ impl MatterSurfaceRuntime {
         let collider = DynamicMeshCollider::new(config.collider.clone());
         let particles =
             SurfaceParticleRuntime::new(config.particle_set_id.clone(), config.particles.clone())?;
+        let particle_distance_refresh_executor =
+            BatchExecutor::new(config.particles.execution.batch_config()?)?;
+        let last_particle_distance_execution =
+            empty_particle_distance_execution(&config.particles.execution, 0);
         Ok(Self {
             config,
             surface: None,
             sampler: None,
             collider,
             particles,
+            particle_distance_refresh_executor,
             last_particle_distances: Vec::new(),
             last_particle_distance_diagnostics: SurfaceDistanceQueryDiagnostics::default(),
+            last_particle_distance_execution,
             frame_index: None,
             time_seconds: None,
         })
@@ -571,6 +596,7 @@ impl MatterSurfaceRuntime {
             particles,
             refreshed_distance_samples,
             refreshed_distance_diagnostics: self.last_particle_distance_diagnostics,
+            refreshed_distance_execution: self.last_particle_distance_execution.clone(),
         })
     }
 
@@ -737,24 +763,42 @@ impl MatterSurfaceRuntime {
         self.last_particle_distances.clear();
         self.last_particle_distances.resize(len, None);
         self.last_particle_distance_diagnostics = SurfaceDistanceQueryDiagnostics::default();
+        self.last_particle_distance_execution =
+            empty_particle_distance_execution(&self.config.particles.execution, len);
     }
 
     fn refresh_particle_distances(&mut self) {
         self.clear_particle_distances();
-        let particles = self.particles.particles();
+        let particle_rows = &self.particles.particles().particles;
         let Some(sampler) = self.sampler.as_ref() else {
             return;
         };
-        for (index, particle) in particles.particles.iter().enumerate() {
-            let Some(sample) = sampler.sample(particle.position) else {
-                continue;
-            };
-            self.last_particle_distances[index] = Some(sample.distance);
-            self.last_particle_distance_diagnostics.node_tests += sample.diagnostics.node_tests;
-            self.last_particle_distance_diagnostics.leaf_tests += sample.diagnostics.leaf_tests;
-            self.last_particle_distance_diagnostics.triangle_tests +=
-                sample.diagnostics.triangle_tests;
-        }
+        let report = self.particle_distance_refresh_executor.run_slice_chunks(
+            &mut self.last_particle_distances,
+            |chunk, output| {
+                let mut diagnostics = ParticleDistanceRefreshChunkDiagnostics::default();
+                for (particle, slot) in particle_rows[chunk.range].iter().zip(output.iter_mut()) {
+                    let Some(sample) = sampler.sample(particle.position) else {
+                        continue;
+                    };
+                    *slot = Some(sample.distance);
+                    diagnostics.refreshed_samples += 1;
+                    diagnostics.query.node_tests += sample.diagnostics.node_tests;
+                    diagnostics.query.leaf_tests += sample.diagnostics.leaf_tests;
+                    diagnostics.query.triangle_tests += sample.diagnostics.triangle_tests;
+                }
+                diagnostics
+            },
+        );
+        self.last_particle_distance_diagnostics = report.diagnostics.query;
+        self.last_particle_distance_execution = ParticleExecutionDiagnostics {
+            backend: self.config.particles.execution.backend,
+            batch_size: report.batch_size,
+            chunk_count: report.chunk_count,
+            worker_count: report.worker_count,
+            particle_count: report.len,
+            elapsed_micros: report.elapsed.as_micros(),
+        };
     }
 
     fn resolve_contact_probe(
@@ -811,6 +855,20 @@ fn validate_particle_reset(
     Ok(())
 }
 
+fn empty_particle_distance_execution(
+    execution: &ParticleExecutionConfig,
+    particle_count: usize,
+) -> ParticleExecutionDiagnostics {
+    ParticleExecutionDiagnostics {
+        backend: execution.backend,
+        batch_size: execution.batch_size.get(),
+        chunk_count: 0,
+        worker_count: 0,
+        particle_count,
+        elapsed_micros: 0,
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct ContactProbeChunkDiagnostics {
     contact_count: usize,
@@ -821,5 +879,20 @@ impl BatchReduce for ContactProbeChunkDiagnostics {
     fn reduce(&mut self, other: Self) {
         self.contact_count += other.contact_count;
         self.overlap_count += other.overlap_count;
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct ParticleDistanceRefreshChunkDiagnostics {
+    refreshed_samples: usize,
+    query: SurfaceDistanceQueryDiagnostics,
+}
+
+impl BatchReduce for ParticleDistanceRefreshChunkDiagnostics {
+    fn reduce(&mut self, other: Self) {
+        self.refreshed_samples += other.refreshed_samples;
+        self.query.node_tests += other.query.node_tests;
+        self.query.leaf_tests += other.query.leaf_tests;
+        self.query.triangle_tests += other.query.triangle_tests;
     }
 }

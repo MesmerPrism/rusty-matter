@@ -5,6 +5,8 @@ use rusty_matter_mesh::{
     DynamicMeshColliderUpdateStatus, SurfaceDistanceQueryDiagnostics, TriangleMeshSurface,
 };
 use rusty_matter_model::Vec3;
+#[cfg(feature = "parallel")]
+use rusty_matter_particles::SurfaceParticleRuntimeConfig;
 use rusty_matter_sdf::{MeshSdfSignMode, MeshToSdfConfig};
 
 fn unit_square_surface() -> TriangleMeshSurface {
@@ -247,12 +249,71 @@ fn runtime_steps_particles_and_refreshes_last_distances() {
     assert_eq!(diagnostics.particles.execution.worker_count, 1);
     assert_eq!(diagnostics.particles.execution.particle_count, 16);
     assert_eq!(diagnostics.refreshed_distance_samples, 16);
+    assert_eq!(
+        diagnostics.refreshed_distance_execution.backend,
+        ParticleExecutionBackend::Serial
+    );
+    assert_eq!(diagnostics.refreshed_distance_execution.batch_size, 256);
+    assert_eq!(diagnostics.refreshed_distance_execution.worker_count, 1);
+    assert_eq!(diagnostics.refreshed_distance_execution.particle_count, 16);
     assert_eq!(snapshot.samples.len(), 16);
     assert!(snapshot
         .samples
         .iter()
         .all(|sample| sample.last_surface_distance.is_some()));
     assert_eq!(payload.samples.len(), 16);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn particle_distance_refresh_parallel_execution_matches_serial_output() {
+    let mut serial = runtime_with_particle_execution(ParticleExecutionBackend::Serial);
+    let mut parallel = runtime_with_particle_execution(ParticleExecutionBackend::Parallel);
+
+    for runtime in [&mut serial, &mut parallel] {
+        runtime
+            .update_surface(unit_square_surface())
+            .expect("surface update succeeds");
+        runtime
+            .reset_particles(Vec3::new(0.5, 0.5, 0.25), 17, 0.4, 0.01, 0.5, 31)
+            .expect("reset succeeds");
+    }
+
+    let serial_step = serial
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 0.0)
+        .expect("serial step succeeds");
+    let parallel_step = parallel
+        .step_particles(0.5, Vec3::new(0.5, 0.5, 0.0), 0.8, 0.0)
+        .expect("parallel step succeeds");
+    let serial_distances = serial
+        .particle_snapshot()
+        .samples
+        .iter()
+        .map(|sample| sample.last_surface_distance)
+        .collect::<Vec<_>>();
+    let parallel_distances = parallel
+        .particle_snapshot()
+        .samples
+        .iter()
+        .map(|sample| sample.last_surface_distance)
+        .collect::<Vec<_>>();
+
+    assert_eq!(parallel_distances, serial_distances);
+    assert_eq!(
+        parallel_step.refreshed_distance_diagnostics,
+        serial_step.refreshed_distance_diagnostics
+    );
+    assert_eq!(
+        parallel_step.refreshed_distance_execution.backend,
+        ParticleExecutionBackend::Parallel
+    );
+    assert_eq!(parallel_step.refreshed_distance_execution.batch_size, 3);
+    assert_eq!(parallel_step.refreshed_distance_execution.chunk_count, 6);
+    assert_eq!(parallel_step.refreshed_distance_execution.worker_count, 2);
+    assert_eq!(
+        parallel_step.refreshed_distance_execution.particle_count,
+        17
+    );
 }
 
 #[test]
@@ -307,6 +368,23 @@ fn step_only_particle_distance_refresh_skips_surface_update_refresh() {
         runtime.stats().particle_distance_refresh_policy,
         MatterSurfaceParticleDistanceRefreshPolicy::StepOnly
     );
+}
+
+#[cfg(feature = "parallel")]
+fn runtime_with_particle_execution(backend: ParticleExecutionBackend) -> MatterSurfaceRuntime {
+    MatterSurfaceRuntime::new(MatterSurfaceRuntimeConfig {
+        particles: SurfaceParticleRuntimeConfig {
+            execution: ParticleExecutionConfig {
+                backend,
+                batch_size: NonZeroUsize::new(3).expect("test batch size is non-zero"),
+                max_threads: Some(2),
+            },
+            ..SurfaceParticleRuntimeConfig::default()
+        },
+        particle_distance_refresh_policy: MatterSurfaceParticleDistanceRefreshPolicy::StepOnly,
+        ..MatterSurfaceRuntimeConfig::default()
+    })
+    .expect("runtime builds")
 }
 
 #[test]
