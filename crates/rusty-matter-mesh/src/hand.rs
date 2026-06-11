@@ -8,6 +8,8 @@ pub const HAND_RIG_CAPTURE_SCHEMA_ID: &str = "rusty.matter.hand.rig_capture.v1";
 pub const HAND_JOINT_FRAME_SCHEMA_ID: &str = "rusty.matter.hand.joint_frame.v1";
 /// Schema ID for hand validation mesh frames.
 pub const HAND_VALIDATION_MESH_FRAME_SCHEMA_ID: &str = "rusty.matter.hand.validation_mesh_frame.v1";
+/// Maximum weighted joint influences used by Matter hand skinning.
+pub const HAND_SKINNING_MATRIX_INFLUENCE_COUNT: usize = 4;
 
 /// Hand side for hand-specific mesh payloads.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -25,6 +27,27 @@ impl Default for Handedness {
     fn default() -> Self {
         Self::Unknown
     }
+}
+
+/// One bounded joint-matrix skinning oracle sample.
+///
+/// This is a compact diagnostic/oracle payload for GPU adapters. It carries
+/// one bind vertex, up to four weighted bind-pose-to-frame joint matrices, and
+/// the Matter CPU-skinned expected position for that vertex.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct HandSkinningMatrixSample {
+    /// Source bind-mesh vertex index.
+    pub vertex_index: usize,
+    /// Bind-pose vertex position as `[x, y, z, 1]`.
+    pub bind_position: [f32; 4],
+    /// Influencing joint indices in the original rig.
+    pub joint_indices: [u16; HAND_SKINNING_MATRIX_INFLUENCE_COUNT],
+    /// Skinning weights in the same order as `joint_indices`.
+    pub joint_weights: [f32; HAND_SKINNING_MATRIX_INFLUENCE_COUNT],
+    /// Row-major matrices mapping bind positions to current joint-frame space.
+    pub joint_matrices: [[[f32; 4]; 4]; HAND_SKINNING_MATRIX_INFLUENCE_COUNT],
+    /// Matter CPU-skinned oracle position as `[x, y, z, 1]`.
+    pub expected_position: [f32; 4],
 }
 
 /// Hand rig capture metadata around a bind-pose triangle mesh.
@@ -200,6 +223,41 @@ impl HandRigCapture {
         Ok(validation_frame)
     }
 
+    /// Builds bounded joint-matrix skinning samples with Matter CPU-oracle outputs.
+    ///
+    /// GPU adapters can submit these compact samples to prove that a shader is
+    /// applying the same bind-pose-to-frame skinning transform as Matter's CPU
+    /// reference path. This method never returns the full mesh unless
+    /// `max_samples` requests it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the rig, joint frame, or skinning
+    /// metadata is invalid.
+    pub fn skinning_matrix_samples(
+        &self,
+        frame: &HandJointFrame,
+        max_samples: usize,
+    ) -> Result<Vec<HandSkinningMatrixSample>, MatterMeshError> {
+        self.validate()?;
+        frame.validate()?;
+        validate_rig_frame_match(self, frame)?;
+        validate_full_bind_joint_frame(self, frame)?;
+
+        let vertex_count = self.bind_surface.vertex_count();
+        let sample_count = vertex_count.min(max_samples);
+        if sample_count == 0 {
+            return Ok(Vec::new());
+        }
+
+        (0..sample_count)
+            .map(|sample_index| {
+                let vertex_index = selected_vertex_index(vertex_count, sample_count, sample_index);
+                self.skinning_matrix_sample(vertex_index, frame)
+            })
+            .collect()
+    }
+
     fn skin_vertex(
         &self,
         vertex_index: usize,
@@ -246,6 +304,68 @@ impl HandRigCapture {
         } else {
             Ok(bind_vertex)
         }
+    }
+
+    fn skinning_matrix_sample(
+        &self,
+        vertex_index: usize,
+        frame: &HandJointFrame,
+    ) -> Result<HandSkinningMatrixSample, MatterMeshError> {
+        let bind_vertex = *self.bind_surface.positions.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning sample vertex index must be in range"),
+        )?;
+        let expected = self.skin_vertex(vertex_index, bind_vertex, frame)?;
+        let mut sample = HandSkinningMatrixSample {
+            vertex_index,
+            bind_position: [bind_vertex.x, bind_vertex.y, bind_vertex.z, 1.0],
+            expected_position: [expected.x, expected.y, expected.z, 1.0],
+            ..HandSkinningMatrixSample::default()
+        };
+
+        if self.vertex_joint_indices.is_empty() || self.vertex_joint_weights.is_empty() {
+            sample.joint_weights[0] = 1.0;
+            sample.joint_matrices[0] = identity_matrix4();
+            return Ok(sample);
+        }
+
+        let blend_indices = self.vertex_joint_indices.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let blend_weights = self.vertex_joint_weights.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let mut total_weight = 0.0;
+        for slot in 0..HAND_SKINNING_MATRIX_INFLUENCE_COUNT {
+            let weight = blend_weights[slot];
+            sample.joint_indices[slot] = blend_indices[slot];
+            sample.joint_weights[slot] = weight;
+            if weight <= 0.0 || !weight.is_finite() {
+                continue;
+            }
+            let joint_index = usize::from(blend_indices[slot]);
+            let bind_pose = self.joint_bind_poses.get(joint_index).ok_or(
+                MatterMeshError::InvalidHandPayload(
+                    "skinning joint index must reference a bind pose",
+                ),
+            )?;
+            let joint_pose =
+                frame
+                    .poses
+                    .get(joint_index)
+                    .ok_or(MatterMeshError::InvalidHandPayload(
+                        "skinning joint index must reference a frame pose",
+                    ))?;
+            sample.joint_matrices[slot] = joint_skinning_matrix(bind_pose, joint_pose)?;
+            total_weight += weight;
+        }
+
+        if total_weight <= 0.0 || !total_weight.is_finite() {
+            sample.joint_indices = [0; HAND_SKINNING_MATRIX_INFLUENCE_COUNT];
+            sample.joint_weights = [1.0, 0.0, 0.0, 0.0];
+            sample.joint_matrices = [[[0.0; 4]; 4]; HAND_SKINNING_MATRIX_INFLUENCE_COUNT];
+            sample.joint_matrices[0] = identity_matrix4();
+        }
+        Ok(sample)
     }
 
     fn skin_normals(&self, frame: &HandJointFrame) -> Result<Vec<Vec3>, MatterMeshError> {
@@ -742,6 +862,51 @@ fn validate_full_bind_joint_frame(
         ));
     }
     Ok(())
+}
+
+fn selected_vertex_index(vertex_count: usize, sample_count: usize, sample_index: usize) -> usize {
+    if sample_count <= 1 {
+        0
+    } else {
+        sample_index * (vertex_count - 1) / (sample_count - 1)
+    }
+}
+
+fn joint_skinning_matrix(
+    bind_pose: &HandJointPose,
+    joint_pose: &HandJointPose,
+) -> Result<[[f32; 4]; 4], MatterMeshError> {
+    let origin = joint_skinning_transform_point(bind_pose, joint_pose, Vec3::ZERO)?;
+    let x_axis =
+        joint_skinning_transform_point(bind_pose, joint_pose, Vec3::new(1.0, 0.0, 0.0))? - origin;
+    let y_axis =
+        joint_skinning_transform_point(bind_pose, joint_pose, Vec3::new(0.0, 1.0, 0.0))? - origin;
+    let z_axis =
+        joint_skinning_transform_point(bind_pose, joint_pose, Vec3::new(0.0, 0.0, 1.0))? - origin;
+
+    Ok([
+        [x_axis.x, y_axis.x, z_axis.x, origin.x],
+        [x_axis.y, y_axis.y, z_axis.y, origin.y],
+        [x_axis.z, y_axis.z, z_axis.z, origin.z],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
+}
+
+fn joint_skinning_transform_point(
+    bind_pose: &HandJointPose,
+    joint_pose: &HandJointPose,
+    point: Vec3,
+) -> Result<Vec3, MatterMeshError> {
+    transform_point(joint_pose, inverse_transform_point(bind_pose, point)?)
+}
+
+fn identity_matrix4() -> [[f32; 4]; 4] {
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
 }
 
 fn transform_point(pose: &HandJointPose, point: Vec3) -> Result<Vec3, MatterMeshError> {

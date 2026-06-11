@@ -405,6 +405,19 @@ fn hand_rig_skins_joint_frame_to_validation_mesh() {
     assert_eq!(comparison.position_mismatch_count, 0);
     assert_eq!(comparison.normal_mismatch_count, 0);
     assert_eq!(actual.topology_key, rig.bind_surface.topology_key());
+
+    let samples = rig
+        .skinning_matrix_samples(&joint_frame, 4)
+        .expect("matrix samples build");
+    assert_eq!(samples.len(), 4);
+    let blended = samples[2];
+    assert_eq!(blended.vertex_index, 2);
+    assert_eq!(blended.bind_position, [1.0, 1.0, 0.0, 1.0]);
+    assert_eq!(blended.joint_indices, [0, 1, 0, 0]);
+    assert_eq!(blended.joint_weights, [0.5, 0.5, 0.0, 0.0]);
+    assert_eq!(blended.joint_matrices[0][2][3], 0.25);
+    assert_eq!(blended.joint_matrices[1][2][3], 0.5);
+    assert_eq!(blended.expected_position, [1.0, 1.0, 0.375, 1.0]);
 }
 
 #[test]
