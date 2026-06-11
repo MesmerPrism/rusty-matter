@@ -278,6 +278,18 @@ fn hand_rig_and_joint_frame_validate_recording_payloads() {
     );
     rig.joint_parent_indices = vec![-1, 0];
     rig.joint_radii_m = vec![0.01, 0.008];
+    rig.joint_bind_poses = vec![
+        HandJointPose {
+            position: Vec3::ZERO,
+            orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+            radius_m: 0.01,
+        },
+        HandJointPose {
+            position: Vec3::new(0.1, 0.0, 0.0),
+            orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+            radius_m: 0.008,
+        },
+    ];
     rig.vertex_joint_indices = vec![[0, 1, 0, 0]; rig.bind_surface.vertex_count()];
     rig.vertex_joint_weights = vec![[0.75, 0.25, 0.0, 0.0]; rig.bind_surface.vertex_count()];
 
@@ -305,6 +317,131 @@ fn hand_rig_and_joint_frame_validate_recording_payloads() {
 
     rig.validate().expect("rig validates");
     joint_frame.validate().expect("joint frame validates");
+}
+
+#[test]
+fn hand_rig_skins_joint_frame_to_validation_mesh() {
+    let surface = unit_square_surface();
+    let mut rig = HandRigCapture::from_bind_surface(
+        "hand.rig_capture.skinning",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        surface,
+    );
+    rig.bind_normals = vec![Vec3::new(0.0, 0.0, 1.0); rig.bind_surface.vertex_count()];
+    rig.joint_parent_indices = vec![-1, 0];
+    rig.joint_radii_m = vec![0.01, 0.008];
+    rig.joint_bind_poses = vec![
+        HandJointPose {
+            position: Vec3::ZERO,
+            orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+            radius_m: 0.01,
+        },
+        HandJointPose {
+            position: Vec3::new(1.0, 0.0, 0.0),
+            orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+            radius_m: 0.008,
+        },
+    ];
+    rig.vertex_joint_indices = vec![[0, 0, 0, 0], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]];
+    rig.vertex_joint_weights = vec![
+        [1.0, 0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.5, 0.5, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+    ];
+    let joint_frame = HandJointFrame {
+        schema_id: HAND_JOINT_FRAME_SCHEMA_ID.to_owned(),
+        frame_id: "hand.joint_frame.skinning.0001".to_owned(),
+        handedness: Handedness::Left,
+        reference_space: "local_floor".to_owned(),
+        source: "meta.hand_tracking_mesh".to_owned(),
+        time_seconds: 0.25,
+        poses: vec![
+            HandJointPose {
+                position: Vec3::new(0.0, 0.0, 0.25),
+                orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+                radius_m: 0.01,
+            },
+            HandJointPose {
+                position: Vec3::new(1.0, 0.0, 0.5),
+                orientation_xyzw: [0.0, 0.0, 0.0, 1.0],
+                radius_m: 0.008,
+            },
+        ],
+        confidence: vec![1.0, 1.0],
+    };
+
+    let actual = rig
+        .skin_to_validation_frame(&joint_frame, "hand.validation_mesh.skinning.0001")
+        .expect("rig skins");
+    let expected_surface = TriangleMeshSurface::new(
+        "hand.validation_mesh.skinning.0001.surface",
+        vec![
+            Vec3::new(0.0, 0.0, 0.25),
+            Vec3::new(1.0, 0.0, 0.5),
+            Vec3::new(1.0, 1.0, 0.375),
+            Vec3::new(0.0, 1.0, 0.25),
+        ],
+        rig.bind_surface.triangles.clone(),
+    );
+    let mut expected = HandValidationMeshFrame::from_surface(
+        "hand.validation_mesh.skinning.0001",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        0.25,
+        expected_surface,
+    );
+    expected.normals = vec![Vec3::new(0.0, 0.0, 1.0); 4];
+
+    let comparison = expected
+        .compare_with(&actual, HandValidationMeshTolerance::default())
+        .expect("comparison builds");
+
+    actual.validate().expect("skinned frame validates");
+    assert!(comparison.passed, "{comparison:?}");
+    assert_eq!(comparison.position_mismatch_count, 0);
+    assert_eq!(comparison.normal_mismatch_count, 0);
+    assert_eq!(actual.topology_key, rig.bind_surface.topology_key());
+}
+
+#[test]
+fn hand_validation_comparison_reports_position_mismatch() {
+    let surface = unit_square_surface();
+    let mut shifted = surface.clone();
+    shifted.positions[0].z = 0.01;
+    let expected = HandValidationMeshFrame::from_surface(
+        "hand.validation_mesh.expected",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        0.25,
+        surface,
+    );
+    let actual = HandValidationMeshFrame::from_surface(
+        "hand.validation_mesh.actual",
+        Handedness::Left,
+        "local_floor",
+        "meta.hand_tracking_mesh",
+        0.25,
+        shifted,
+    );
+
+    let comparison = expected
+        .compare_with(
+            &actual,
+            HandValidationMeshTolerance {
+                max_position_error_m: 0.001,
+                max_normal_error: 0.001,
+            },
+        )
+        .expect("comparison builds");
+
+    assert!(!comparison.passed);
+    assert_eq!(comparison.position_mismatch_count, 1);
+    assert!(comparison.max_position_error_m > 0.009);
 }
 
 #[test]

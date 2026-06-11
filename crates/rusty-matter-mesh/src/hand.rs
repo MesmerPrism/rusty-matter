@@ -51,6 +51,8 @@ pub struct HandRigCapture {
     pub joint_parent_indices: Vec<i16>,
     /// Optional joint radii in meters.
     pub joint_radii_m: Vec<f32>,
+    /// Bind-pose joint transforms in the same reference space as bind vertices.
+    pub joint_bind_poses: Vec<HandJointPose>,
     /// Up to four influencing joint indices per vertex.
     pub vertex_joint_indices: Vec<[u16; 4]>,
     /// Up to four skinning weights per vertex.
@@ -79,6 +81,7 @@ impl HandRigCapture {
             topology_key,
             joint_parent_indices: Vec::new(),
             joint_radii_m: Vec::new(),
+            joint_bind_poses: Vec::new(),
             vertex_joint_indices: Vec::new(),
             vertex_joint_weights: Vec::new(),
         }
@@ -107,11 +110,16 @@ impl HandRigCapture {
             ));
         }
         validate_optional_normals(&self.bind_normals, self.bind_surface.vertex_count())?;
-        validate_joint_metadata(&self.joint_parent_indices, &self.joint_radii_m)?;
+        validate_joint_metadata(
+            &self.joint_parent_indices,
+            &self.joint_radii_m,
+            &self.joint_bind_poses,
+        )?;
         validate_skinning_metadata(
             &self.vertex_joint_indices,
             &self.vertex_joint_weights,
             self.bind_surface.vertex_count(),
+            self.joint_count(),
         )?;
         Ok(())
     }
@@ -120,6 +128,184 @@ impl HandRigCapture {
     #[must_use]
     pub fn bind_surface(&self) -> &TriangleMeshSurface {
         &self.bind_surface
+    }
+
+    /// Returns the number of joints described by the rig metadata.
+    #[must_use]
+    pub fn joint_count(&self) -> usize {
+        self.joint_parent_indices
+            .len()
+            .max(self.joint_radii_m.len())
+            .max(self.joint_bind_poses.len())
+    }
+
+    /// CPU-skins the bind mesh through a full bind-joint pose frame.
+    ///
+    /// This is the Matter-owned reference path used by GPU adapters as an
+    /// oracle. Compact provider packets should be expanded to bind-joint
+    /// poses before calling this method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the rig, joint frame, or skinning
+    /// metadata is invalid.
+    pub fn skin_to_surface(
+        &self,
+        frame: &HandJointFrame,
+        surface_id: impl Into<String>,
+    ) -> Result<TriangleMeshSurface, MatterMeshError> {
+        self.validate()?;
+        frame.validate()?;
+        validate_rig_frame_match(self, frame)?;
+        validate_full_bind_joint_frame(self, frame)?;
+
+        let positions = self
+            .bind_surface
+            .positions
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(index, position)| self.skin_vertex(index, position, frame))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(TriangleMeshSurface::new(
+            surface_id,
+            positions,
+            self.bind_surface.triangles.clone(),
+        ))
+    }
+
+    /// CPU-skins the bind mesh into a hand validation frame.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the rig, joint frame, or skinning
+    /// metadata is invalid.
+    pub fn skin_to_validation_frame(
+        &self,
+        frame: &HandJointFrame,
+        frame_id: impl Into<String>,
+    ) -> Result<HandValidationMeshFrame, MatterMeshError> {
+        let frame_id = frame_id.into();
+        let surface = self.skin_to_surface(frame, format!("{frame_id}.surface"))?;
+        let mut validation_frame = HandValidationMeshFrame::from_surface(
+            frame_id,
+            frame.handedness,
+            frame.reference_space.clone(),
+            frame.source.clone(),
+            frame.time_seconds,
+            surface,
+        );
+        validation_frame.normals = self.skin_normals(frame)?;
+        Ok(validation_frame)
+    }
+
+    fn skin_vertex(
+        &self,
+        vertex_index: usize,
+        bind_vertex: Vec3,
+        frame: &HandJointFrame,
+    ) -> Result<Vec3, MatterMeshError> {
+        if self.vertex_joint_indices.is_empty() || self.vertex_joint_weights.is_empty() {
+            return Ok(bind_vertex);
+        }
+
+        let blend_indices = self.vertex_joint_indices.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let blend_weights = self.vertex_joint_weights.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let mut out = Vec3::ZERO;
+        let mut total_weight = 0.0;
+        for slot in 0..4 {
+            let weight = blend_weights[slot];
+            if weight <= 0.0 || !weight.is_finite() {
+                continue;
+            }
+            let joint_index = usize::from(blend_indices[slot]);
+            let bind_pose = self.joint_bind_poses.get(joint_index).ok_or(
+                MatterMeshError::InvalidHandPayload(
+                    "skinning joint index must reference a bind pose",
+                ),
+            )?;
+            let joint_pose =
+                frame
+                    .poses
+                    .get(joint_index)
+                    .ok_or(MatterMeshError::InvalidHandPayload(
+                        "skinning joint index must reference a frame pose",
+                    ))?;
+            let local = inverse_transform_point(bind_pose, bind_vertex)?;
+            let skinned = transform_point(joint_pose, local)?;
+            out = out + skinned * weight;
+            total_weight += weight;
+        }
+        if total_weight > 0.0 && total_weight.is_finite() {
+            Ok(out / total_weight)
+        } else {
+            Ok(bind_vertex)
+        }
+    }
+
+    fn skin_normals(&self, frame: &HandJointFrame) -> Result<Vec<Vec3>, MatterMeshError> {
+        if self.bind_normals.is_empty() {
+            return Ok(Vec::new());
+        }
+        if self.vertex_joint_indices.is_empty() || self.vertex_joint_weights.is_empty() {
+            return Ok(self.bind_normals.clone());
+        }
+
+        self.bind_normals
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(index, normal)| self.skin_normal(index, normal, frame))
+            .collect()
+    }
+
+    fn skin_normal(
+        &self,
+        vertex_index: usize,
+        bind_normal: Vec3,
+        frame: &HandJointFrame,
+    ) -> Result<Vec3, MatterMeshError> {
+        let blend_indices = self.vertex_joint_indices.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let blend_weights = self.vertex_joint_weights.get(vertex_index).ok_or(
+            MatterMeshError::InvalidHandPayload("skinning metadata must match vertex count"),
+        )?;
+        let mut out = Vec3::ZERO;
+        let mut total_weight = 0.0;
+        for slot in 0..4 {
+            let weight = blend_weights[slot];
+            if weight <= 0.0 || !weight.is_finite() {
+                continue;
+            }
+            let joint_index = usize::from(blend_indices[slot]);
+            let bind_pose = self.joint_bind_poses.get(joint_index).ok_or(
+                MatterMeshError::InvalidHandPayload(
+                    "skinning joint index must reference a bind pose",
+                ),
+            )?;
+            let joint_pose =
+                frame
+                    .poses
+                    .get(joint_index)
+                    .ok_or(MatterMeshError::InvalidHandPayload(
+                        "skinning joint index must reference a frame pose",
+                    ))?;
+            let local = inverse_rotate_vec3(bind_pose, bind_normal)?;
+            let skinned = rotate_vec3(joint_pose, local)?;
+            out = out + skinned * weight;
+            total_weight += weight;
+        }
+        if total_weight > 0.0 && total_weight.is_finite() {
+            normalize_vec3(out)
+        } else {
+            Ok(bind_normal)
+        }
     }
 }
 
@@ -295,6 +481,135 @@ impl HandValidationMeshFrame {
     pub fn surface(&self) -> &TriangleMeshSurface {
         &self.surface
     }
+
+    /// Compares this expected validation frame with an actual frame.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when either frame or the tolerance is
+    /// invalid.
+    pub fn compare_with(
+        &self,
+        actual: &Self,
+        tolerance: HandValidationMeshTolerance,
+    ) -> Result<HandValidationMeshComparison, MatterMeshError> {
+        self.validate()?;
+        actual.validate()?;
+        tolerance.validate()?;
+
+        let mut max_position_error_m = 0.0_f32;
+        let mut position_mismatch_count = 0_usize;
+        for (expected, actual) in self
+            .surface
+            .positions
+            .iter()
+            .copied()
+            .zip(actual.surface.positions.iter().copied())
+        {
+            let error = expected.distance_squared(actual).sqrt();
+            max_position_error_m = max_position_error_m.max(error);
+            if error > tolerance.max_position_error_m {
+                position_mismatch_count += 1;
+            }
+        }
+
+        let mut max_normal_error = 0.0_f32;
+        let mut normal_mismatch_count = 0_usize;
+        for (expected, actual) in self
+            .normals
+            .iter()
+            .copied()
+            .zip(actual.normals.iter().copied())
+        {
+            let error = (expected - actual).length();
+            max_normal_error = max_normal_error.max(error);
+            if error > tolerance.max_normal_error {
+                normal_mismatch_count += 1;
+            }
+        }
+
+        let expected_vertex_count = self.surface.vertex_count();
+        let actual_vertex_count = actual.surface.vertex_count();
+        let expected_normal_count = self.normals.len();
+        let actual_normal_count = actual.normals.len();
+        let topology_matched = self.topology_key == actual.topology_key;
+        let passed = topology_matched
+            && expected_vertex_count == actual_vertex_count
+            && expected_normal_count == actual_normal_count
+            && position_mismatch_count == 0
+            && normal_mismatch_count == 0;
+
+        Ok(HandValidationMeshComparison {
+            expected_vertex_count,
+            actual_vertex_count,
+            expected_normal_count,
+            actual_normal_count,
+            topology_matched,
+            position_mismatch_count,
+            normal_mismatch_count,
+            max_position_error_m,
+            max_normal_error,
+            passed,
+        })
+    }
+}
+
+/// Tolerances for recorded hand validation mesh comparisons.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HandValidationMeshTolerance {
+    /// Maximum accepted vertex-position error in meters.
+    pub max_position_error_m: f32,
+    /// Maximum accepted vector difference between normals.
+    pub max_normal_error: f32,
+}
+
+impl Default for HandValidationMeshTolerance {
+    fn default() -> Self {
+        Self {
+            max_position_error_m: 1.0e-4,
+            max_normal_error: 1.0e-3,
+        }
+    }
+}
+
+impl HandValidationMeshTolerance {
+    fn validate(self) -> Result<(), MatterMeshError> {
+        if !self.max_position_error_m.is_finite()
+            || self.max_position_error_m < 0.0
+            || !self.max_normal_error.is_finite()
+            || self.max_normal_error < 0.0
+        {
+            return Err(MatterMeshError::InvalidHandPayload(
+                "hand validation tolerances must be finite and non-negative",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Result of comparing a skinned hand frame with a validation mesh frame.
+#[derive(Clone, Debug, PartialEq)]
+pub struct HandValidationMeshComparison {
+    /// Vertex count in the expected validation frame.
+    pub expected_vertex_count: usize,
+    /// Vertex count in the actual validation frame.
+    pub actual_vertex_count: usize,
+    /// Normal count in the expected validation frame.
+    pub expected_normal_count: usize,
+    /// Normal count in the actual validation frame.
+    pub actual_normal_count: usize,
+    /// Whether topology keys matched exactly.
+    pub topology_matched: bool,
+    /// Number of compared vertices outside the position tolerance.
+    pub position_mismatch_count: usize,
+    /// Number of compared normals outside the normal tolerance.
+    pub normal_mismatch_count: usize,
+    /// Largest vertex-position error in meters.
+    pub max_position_error_m: f32,
+    /// Largest normal vector difference.
+    pub max_normal_error: f32,
+    /// Whether topology, counts, and tolerances all passed.
+    pub passed: bool,
 }
 
 fn validate_source_labels(reference_space: &str, source: &str) -> Result<(), MatterMeshError> {
@@ -317,10 +632,27 @@ fn validate_optional_normals(normals: &[Vec3], vertex_count: usize) -> Result<()
     Ok(())
 }
 
-fn validate_joint_metadata(parents: &[i16], radii: &[f32]) -> Result<(), MatterMeshError> {
-    if !radii.is_empty() && radii.len() != parents.len() {
+fn validate_joint_metadata(
+    parents: &[i16],
+    radii: &[f32],
+    bind_poses: &[HandJointPose],
+) -> Result<(), MatterMeshError> {
+    let joint_count = parents.len().max(radii.len()).max(bind_poses.len());
+    if !parents.is_empty() && parents.len() != joint_count {
         return Err(MatterMeshError::InvalidHandPayload(
-            "joint radii must match joint parent count",
+            "joint parent count must match joint count",
+        ));
+    }
+    if !radii.is_empty() && radii.len() != joint_count {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "joint radii must match joint count",
+        ));
+    }
+    if !bind_poses.is_empty()
+        && (bind_poses.len() != joint_count || !bind_poses.iter().all(HandJointPose::is_valid))
+    {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "joint bind poses must match joint count and be finite",
         ));
     }
     if !radii
@@ -332,9 +664,12 @@ fn validate_joint_metadata(parents: &[i16], radii: &[f32]) -> Result<(), MatterM
         ));
     }
     for (index, parent) in parents.iter().copied().enumerate() {
-        if parent >= 0 && usize::try_from(parent).map_or(true, |parent| parent >= index) {
+        if parent >= 0
+            && usize::try_from(parent)
+                .map_or(true, |parent| parent >= joint_count || parent == index)
+        {
             return Err(MatterMeshError::InvalidHandPayload(
-                "joint parent indices must refer to earlier joints",
+                "joint parent indices must refer to another in-range joint",
             ));
         }
     }
@@ -345,6 +680,7 @@ fn validate_skinning_metadata(
     joint_indices: &[[u16; 4]],
     joint_weights: &[[f32; 4]],
     vertex_count: usize,
+    joint_count: usize,
 ) -> Result<(), MatterMeshError> {
     if joint_indices.is_empty() && joint_weights.is_empty() {
         return Ok(());
@@ -354,7 +690,7 @@ fn validate_skinning_metadata(
             "skinning metadata must match vertex count",
         ));
     }
-    for weights in joint_weights {
+    for (indices, weights) in joint_indices.iter().zip(joint_weights.iter()) {
         let sum: f32 = weights.iter().sum();
         if !weights
             .iter()
@@ -365,6 +701,105 @@ fn validate_skinning_metadata(
                 "skinning weights must be finite, non-negative, and sum to at most one",
             ));
         }
+        for slot in 0..4 {
+            if weights[slot] > 0.0 && usize::from(indices[slot]) >= joint_count {
+                return Err(MatterMeshError::InvalidHandPayload(
+                    "skinning joint indices must reference existing joints",
+                ));
+            }
+        }
     }
     Ok(())
+}
+
+fn validate_rig_frame_match(
+    rig: &HandRigCapture,
+    frame: &HandJointFrame,
+) -> Result<(), MatterMeshError> {
+    if rig.handedness != frame.handedness
+        || rig.reference_space != frame.reference_space
+        || rig.source != frame.source
+    {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "rig and joint frame metadata must match",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_full_bind_joint_frame(
+    rig: &HandRigCapture,
+    frame: &HandJointFrame,
+) -> Result<(), MatterMeshError> {
+    if rig.joint_bind_poses.is_empty() {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "joint bind poses are required for skinning",
+        ));
+    }
+    if frame.poses.len() != rig.joint_bind_poses.len() {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "joint frame must contain one pose per bind joint",
+        ));
+    }
+    Ok(())
+}
+
+fn transform_point(pose: &HandJointPose, point: Vec3) -> Result<Vec3, MatterMeshError> {
+    Ok(rotate_by_quat(pose.orientation_xyzw, point)? + pose.position)
+}
+
+fn inverse_transform_point(pose: &HandJointPose, point: Vec3) -> Result<Vec3, MatterMeshError> {
+    rotate_by_quat(quat_inverse(pose.orientation_xyzw)?, point - pose.position)
+}
+
+fn rotate_vec3(pose: &HandJointPose, vector: Vec3) -> Result<Vec3, MatterMeshError> {
+    rotate_by_quat(pose.orientation_xyzw, vector)
+}
+
+fn inverse_rotate_vec3(pose: &HandJointPose, vector: Vec3) -> Result<Vec3, MatterMeshError> {
+    rotate_by_quat(quat_inverse(pose.orientation_xyzw)?, vector)
+}
+
+fn rotate_by_quat(quat: [f32; 4], vector: Vec3) -> Result<Vec3, MatterMeshError> {
+    let [x, y, z, w] = normalize_quat(quat)?;
+    let q_vec = Vec3::new(x, y, z);
+    let uv = q_vec.cross(vector);
+    let uuv = q_vec.cross(uv);
+    Ok(vector + uv * (2.0 * w) + uuv * 2.0)
+}
+
+fn quat_inverse(quat: [f32; 4]) -> Result<[f32; 4], MatterMeshError> {
+    let [x, y, z, w] = normalize_quat(quat)?;
+    Ok([-x, -y, -z, w])
+}
+
+fn normalize_quat(quat: [f32; 4]) -> Result<[f32; 4], MatterMeshError> {
+    let length_squared: f32 = quat.iter().map(|value| value * value).sum();
+    if !length_squared.is_finite() || length_squared <= 1.0e-12 {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "joint orientation must be finite and non-zero",
+        ));
+    }
+    let scale = 1.0 / length_squared.sqrt();
+    Ok([
+        quat[0] * scale,
+        quat[1] * scale,
+        quat[2] * scale,
+        quat[3] * scale,
+    ])
+}
+
+fn normalize_vec3(vector: Vec3) -> Result<Vec3, MatterMeshError> {
+    if !vector.is_finite() {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "skinned normal must be finite",
+        ));
+    }
+    let length = vector.length();
+    if length <= 1.0e-12 {
+        return Err(MatterMeshError::InvalidHandPayload(
+            "skinned normal must be non-zero",
+        ));
+    }
+    Ok(vector / length)
 }
