@@ -330,6 +330,7 @@ fn sdf_rejection_code(error: &SdfError) -> String {
         SdfError::EmptyGridId => "sdf.empty_grid_id",
         SdfError::NonFiniteOrigin => "sdf.non_finite_origin",
         SdfError::DegenerateTriangle => "sdf.degenerate_triangle",
+        SdfError::BatchExecution(_) => "sdf.batch_execution",
     }
     .to_owned()
 }

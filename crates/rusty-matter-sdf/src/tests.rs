@@ -1,4 +1,7 @@
 use super::*;
+use std::num::NonZeroUsize;
+
+use rusty_matter_batch::{BatchBackendKind, BatchConfig};
 use rusty_matter_model::{MatterModelError, TriangleMeshSnapshot, Vec3, TRIANGLE_MESH_SCHEMA_ID};
 
 fn triangle_mesh() -> TriangleMeshSnapshot {
@@ -63,6 +66,77 @@ fn mesh_to_sdf_report_exposes_serial_diagnostics() {
     assert_eq!(report.diagnostics.triangle_count, 1);
     assert_eq!(report.diagnostics.triangle_tests, 32);
     assert_eq!(report.diagnostics.rejected_voxels, 0);
+}
+
+#[test]
+fn mesh_to_sdf_batched_matches_serial_grid_and_diagnostics() {
+    let config = MeshToSdfConfig {
+        voxel_size: 0.5,
+        padding_voxels: 1,
+        max_voxels: 1_000,
+        sign_mode: MeshSdfSignMode::TriangleNormal,
+    };
+    let serial = build_sdf_from_mesh_report(&triangle_mesh(), config).expect("serial grid builds");
+    let batched = build_sdf_from_mesh_batched(
+        &triangle_mesh(),
+        config,
+        BatchConfig {
+            backend: BatchBackendKind::Serial,
+            batch_size: NonZeroUsize::new(3).expect("batch size is non-zero"),
+            max_threads: None,
+        },
+    )
+    .expect("batched grid builds");
+
+    assert_eq!(batched.build, serial);
+    assert_eq!(batched.execution.backend, BatchBackendKind::Serial);
+    assert_eq!(batched.execution.batch_size, 3);
+    assert_eq!(batched.execution.chunk_count, 11);
+    assert_eq!(batched.execution.worker_count, 1);
+}
+
+#[test]
+fn mesh_to_sdf_batched_rejects_invalid_batch_config() {
+    let error = build_sdf_from_mesh_batched(
+        &triangle_mesh(),
+        MeshToSdfConfig::default(),
+        BatchConfig {
+            backend: BatchBackendKind::Serial,
+            batch_size: NonZeroUsize::new(8).expect("batch size is non-zero"),
+            max_threads: Some(0),
+        },
+    )
+    .unwrap_err();
+
+    assert!(matches!(error, SdfError::BatchExecution(_)));
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn mesh_to_sdf_rayon_batched_matches_serial_grid_and_diagnostics() {
+    let config = MeshToSdfConfig {
+        voxel_size: 0.5,
+        padding_voxels: 1,
+        max_voxels: 1_000,
+        sign_mode: MeshSdfSignMode::UnsignedOnly,
+    };
+    let serial = build_sdf_from_mesh_report(&tetrahedron_mesh(), config).expect("serial builds");
+    let rayon = build_sdf_from_mesh_batched(
+        &tetrahedron_mesh(),
+        config,
+        BatchConfig {
+            backend: BatchBackendKind::Rayon,
+            batch_size: NonZeroUsize::new(5).expect("batch size is non-zero"),
+            max_threads: Some(2),
+        },
+    )
+    .expect("rayon build succeeds");
+
+    assert_eq!(rayon.build, serial);
+    assert_eq!(rayon.execution.backend, BatchBackendKind::Rayon);
+    assert_eq!(rayon.execution.batch_size, 5);
+    assert_eq!(rayon.execution.chunk_count, 13);
+    assert_eq!(rayon.execution.worker_count, 2);
 }
 
 #[test]

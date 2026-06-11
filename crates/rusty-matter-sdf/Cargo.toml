@@ -8,12 +8,13 @@ rust-version.workspace = true
 
 [features]
 default = []
+parallel = ["rusty-matter-batch/rayon"]
 serde = ["dep:serde", "rusty-matter-model/serde"]
 
 [dependencies]
+rusty-matter-batch = { path = "../rusty-matter-batch" }
 rusty-matter-model = { path = "../rusty-matter-model" }
 serde = { version = "1", features = ["derive"], optional = true }
 
 [lints]
 workspace = true
-

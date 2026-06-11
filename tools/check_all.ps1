@@ -21,6 +21,7 @@ try {
     Invoke-Checked "cargo fmt" "cargo" @("fmt", "--all", "--check")
     Invoke-Checked "cargo test" "cargo" @("test", "--workspace")
     Invoke-Checked "batch rayon tests" "cargo" @("test", "-p", "rusty-matter-batch", "--features", "rayon")
+    Invoke-Checked "SDF parallel tests" "cargo" @("test", "-p", "rusty-matter-sdf", "--features", "parallel")
     Invoke-Checked "particle parallel tests" "cargo" @("test", "-p", "rusty-matter-particles", "--features", "parallel")
     Invoke-Checked "surface runtime parallel tests" "cargo" @("test", "-p", "rusty-matter-surface-runtime", "--features", "parallel")
     Invoke-Checked "fixture validate" "cargo" @("run", "-p", "rusty-matter-fixtures", "--", "validate")

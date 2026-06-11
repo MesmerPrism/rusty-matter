@@ -1,5 +1,6 @@
 use core::fmt;
 
+use rusty_matter_batch::BatchError;
 use rusty_matter_model::MatterModelError;
 
 /// SDF operation failure.
@@ -47,6 +48,8 @@ pub enum SdfError {
     },
     /// Triangle had no area.
     DegenerateTriangle,
+    /// Batch executor creation failed.
+    BatchExecution(BatchError),
 }
 
 impl fmt::Display for SdfError {
@@ -74,6 +77,7 @@ impl fmt::Display for SdfError {
                 write!(formatter, "distance {index} is non-finite")
             }
             Self::DegenerateTriangle => formatter.write_str("triangle has no area"),
+            Self::BatchExecution(error) => write!(formatter, "{error}"),
         }
     }
 }
@@ -83,5 +87,11 @@ impl std::error::Error for SdfError {}
 impl From<MatterModelError> for SdfError {
     fn from(value: MatterModelError) -> Self {
         Self::Model(value)
+    }
+}
+
+impl From<BatchError> for SdfError {
+    fn from(value: BatchError) -> Self {
+        Self::BatchExecution(value)
     }
 }

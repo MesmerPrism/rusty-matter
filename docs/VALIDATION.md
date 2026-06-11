@@ -11,6 +11,7 @@ The check covers:
 - `cargo fmt --all --check`;
 - `cargo test --workspace`;
 - `cargo test -p rusty-matter-batch --features rayon`;
+- `cargo test -p rusty-matter-sdf --features parallel`;
 - `cargo test -p rusty-matter-particles --features parallel`;
 - `cargo test -p rusty-matter-surface-runtime --features parallel`;
 - fixture validation;
@@ -73,13 +74,16 @@ For packed SDF grid and mesh-to-SDF reference work, the narrow test route is:
 
 ```powershell
 cargo test -p rusty-matter-sdf
+cargo test -p rusty-matter-sdf --features parallel
 ```
 
 Those tests verify packed-grid validation, mesh-to-SDF construction, voxel
 budget enforcement, build-report diagnostics, x-fastest linear/cell helper
 round trips, explicit checked-vs-clamped nearest-neighbor sampling behavior,
-finite nearest-gradient helpers, unsigned tetrahedron fixture coverage, and
-damaged mesh/config/grid inputs.
+finite nearest-gradient helpers, unsigned tetrahedron fixture coverage, damaged
+mesh/config/grid inputs, and byte-identical serial-vs-batched dense SDF output.
+With the `parallel` feature enabled, they also verify the Rayon-backed batched
+dense SDF builder against the serial reference output and diagnostics.
 
 For accelerated mesh-distance work, the narrow test route is:
 
