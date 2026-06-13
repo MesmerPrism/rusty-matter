@@ -35,7 +35,7 @@ Matter owns:
   comparison trace sets over the deterministic scenario family;
 - normalized, non-calibrated planarian morphology/readout metric fixtures,
   rights-safe categorical species-like head label taxonomies, source-reviewed
-  qualitative dynamics target metadata, and tiny PlanformDB-derived review
+  qualitative dynamics target metadata, and small PlanformDB-derived review
   fixtures that preserve source IDs, citations, and notice text without
   becoming runtime dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
@@ -222,7 +222,7 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/planarian_evidence.rs`: source-derived planarian
   evidence contracts that are not runtime dynamics, including the rights-safe
   species-like head label taxonomy, source-reviewed qualitative dynamics
-  target metadata, and the tiny PlanformDB-derived review fixture with notice
+  target metadata, and the small PlanformDB-derived review fixture with notice
   text, citation IDs, source IDs, normalized labels, and damaged-input
   validation.
 - `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated reviewed

@@ -30,7 +30,7 @@ The SDF foundation bundle currently includes:
 - a source-reviewed qualitative dynamics-target fixture in `fixtures/fields`,
   mapping high-confidence literature targets to current synthetic scenarios,
   future fixture gates, and explicit blocked calibration claims;
-- a tiny PlanformDB-derived review fixture in `fixtures/fields`, preserving
+- a small PlanformDB-derived review fixture in `fixtures/fields`, preserving
   source IDs, citation IDs, notice text, normalized labels, sample counts, and
   outcome frequencies without importing raw database rows or runtime dynamics;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;

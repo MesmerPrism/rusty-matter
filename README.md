@@ -22,7 +22,7 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   mesh-anchored substrate nodes, plus compact scenario outcome traces and
   comparison trace sets, normalized non-calibrated morphology/readout metrics,
   a rights-safe species-like head-label taxonomy, source-reviewed qualitative
-  dynamics target metadata, and a tiny PlanformDB-derived review fixture that
+  dynamics target metadata, and a small PlanformDB-derived review fixture that
   stays out of runtime dynamics;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric

@@ -25,7 +25,13 @@ fn source_dynamics_targets_preserve_non_calibrated_boundaries() {
         .iter()
         .find(|target| target.target_id == "gap_block_conductance")
         .expect("gap-block target exists");
-    assert_eq!(gap_target.planformdb_record_ids.len(), 4);
+    assert_eq!(gap_target.planformdb_record_ids.len(), 14);
+    assert!(gap_target
+        .planformdb_record_ids
+        .contains(&"planformdb:experiment:444:resultset:496".to_owned()));
+    assert!(gap_target
+        .planformdb_record_ids
+        .contains(&"planformdb:experiment:450:resultset:502".to_owned()));
     assert!(gap_target
         .blocked_uses
         .iter()
@@ -71,12 +77,23 @@ fn planformdb_derived_fixture_preserves_source_notice_and_records() {
     let fixture = default_planformdb_derived_fixture().expect("PlanformDB fixture validates");
 
     assert_eq!(fixture.fixture_id, "planformdb-derived-v0");
-    assert_eq!(fixture.records.len(), 4);
+    assert_eq!(fixture.records.len(), 14);
     assert!(fixture.notice_text.contains("notice may not be removed"));
     assert!(fixture
         .selection_policy
         .non_scope
         .contains(&"Matter runtime dynamics".to_owned()));
+    assert!(fixture.records.iter().any(|record| record
+        .normalized_labels
+        .manipulation
+        .contains("vnc_disruption_t1d")));
+    assert!(fixture
+        .records
+        .iter()
+        .any(
+            |record| record.normalized_labels.teaching_target == "innexin_gap_junction_label"
+                && record.source_ids.experiment_id == 450
+        ));
     for record in &fixture.records {
         assert_eq!(record.evidence_type, "derived_planformdb_record");
         let frequency_sum = record

@@ -152,7 +152,7 @@ realtime edit request/result/revision behavior, debug-sequence emission,
 planarian AP circuit behavior over the reviewed GLB-derived educational mesh,
 scenario outcome trace and trace-set contracts, normalized non-calibrated
 planarian morphology/readout metric contracts, rights-safe species-like head
-taxonomy contracts, source-reviewed dynamics target metadata contracts, tiny
+taxonomy contracts, source-reviewed dynamics target metadata contracts, small
 PlanformDB-derived review fixture contracts,
 synthetic fallback coverage, and damaged neighbor/buffer/runtime/edit/trace/
 mesh-anchor/source-evidence inputs.

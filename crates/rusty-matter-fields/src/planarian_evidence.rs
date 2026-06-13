@@ -8,7 +8,7 @@ const SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE: &str = "source_reviewed_dynamics_t
 const SPECIES_LIKE_HEAD_TAXONOMY_EVIDENCE_TYPE: &str = "rights_safe_teaching_taxonomy";
 const SPECIES_LIKE_HEAD_SOURCE_TARGET_ANCHOR: &str =
     "source:emmons_bell_2015_ijms::target:species_like_head_labels::future_outcome_taxonomy";
-const PLANFORMDB_NOTICE_TEXT: &str = "Planform / PlanformDB Notice\n\nSource: Lobo Lab PlanformDB 2.5.0\nSource page: https://lobolab.umbc.edu/planform/download/\n\nThis Rusty Matter fixture is a tiny transformed subset of PlanformDB metadata. It does not redistribute the raw SQLite database, paper figures, or morphology images.\n\nPlanform and PlanformDB are provided as-is, without any express or implied warranty. The authors are not liable for damages arising from use of this software or database.\n\nPermission is granted to use and redistribute Planform and PlanformDB freely, subject to these restrictions:\n\n1. The origin of the software and database must not be misrepresented.\n2. Works using the software or database require acknowledgment and citation of the Planform publications.\n3. This notice may not be removed or altered from any distribution.\n\nCitation for the database/application:\n\nLobo D, Malone TJ, Levin M. Planform: an application and database of graph-encoded planarian regenerative experiments. Bioinformatics 29(8), 1098-1100, 2013. DOI: 10.1093/bioinformatics/btt088";
+const PLANFORMDB_NOTICE_TEXT: &str = "Planform / PlanformDB Notice\n\nSource: Lobo Lab PlanformDB 2.5.0\nSource page: https://lobolab.umbc.edu/planform/download/\n\nThis Rusty Matter fixture is a small transformed subset of PlanformDB metadata. It does not redistribute the raw SQLite database, paper figures, or morphology images.\n\nPlanform and PlanformDB are provided as-is, without any express or implied warranty. The authors are not liable for damages arising from use of this software or database.\n\nPermission is granted to use and redistribute Planform and PlanformDB freely, subject to these restrictions:\n\n1. The origin of the software and database must not be misrepresented.\n2. Works using the software or database require acknowledgment and citation of the Planform publications.\n3. This notice may not be removed or altered from any distribution.\n\nCitation for the database/application:\n\nLobo D, Malone TJ, Levin M. Planform: an application and database of graph-encoded planarian regenerative experiments. Bioinformatics 29(8), 1098-1100, 2013. DOI: 10.1093/bioinformatics/btt088";
 
 /// One source-reviewed checkpoint for a qualitative planarian dynamics target.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -310,7 +310,7 @@ impl PlanformDbCitation {
 pub struct PlanformDbSelectionPolicy {
     /// Selection date in ISO-8601 calendar form.
     pub selected_on: String,
-    /// Short explanation for the selected tiny subset.
+    /// Short explanation for the selected curated subset.
     pub selection_basis: String,
     /// Explicit non-scope strings.
     pub non_scope: Vec<String>,
@@ -547,7 +547,7 @@ impl PlanformDbDerivedRecord {
     }
 }
 
-/// Curated Matter fixture containing tiny PlanformDB-derived review records.
+/// Curated Matter fixture containing small PlanformDB-derived review records.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanformDbDerivedFixture {
@@ -860,8 +860,18 @@ pub fn default_planarian_source_dynamics_targets(
                 &[
                     "planformdb:experiment:415:resultset:467",
                     "planformdb:experiment:416:resultset:468",
+                    "planformdb:experiment:417:resultset:469",
+                    "planformdb:experiment:418:resultset:470",
+                    "planformdb:experiment:419:resultset:471",
                     "planformdb:experiment:441:resultset:493",
+                    "planformdb:experiment:442:resultset:494",
+                    "planformdb:experiment:443:resultset:495",
+                    "planformdb:experiment:444:resultset:496",
+                    "planformdb:experiment:446:resultset:498",
+                    "planformdb:experiment:447:resultset:499",
+                    "planformdb:experiment:448:resultset:500",
                     "planformdb:experiment:449:resultset:501",
+                    "planformdb:experiment:450:resultset:502",
                 ],
                 &[
                     "qualitative conductance-block scenario labels",
@@ -965,7 +975,7 @@ pub fn default_planarian_source_dynamics_targets(
     Ok(fixture)
 }
 
-/// Builds the default tiny PlanformDB-derived fixture.
+/// Builds the default small PlanformDB-derived fixture.
 ///
 /// # Errors
 ///
@@ -976,7 +986,7 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
         fixture_id: "planformdb-derived-v0".to_owned(),
         schema_version: 1,
         evidence_type: PLANFORMDB_DERIVED_RECORD_EVIDENCE_TYPE.to_owned(),
-        scope: "Tiny reviewed PlanformDB-derived metadata fixture for Matter validation; not runtime dynamics.".to_owned(),
+        scope: "Small reviewed PlanformDB-derived metadata fixture for Matter validation; not runtime dynamics.".to_owned(),
         source_database: PlanformDbSourceDatabase {
             id: "planformdb_250".to_owned(),
             version: "2.5.0".to_owned(),
@@ -1000,8 +1010,8 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
             },
         ],
         selection_policy: PlanformDbSelectionPolicy {
-            selected_on: "2026-06-12".to_owned(),
-            selection_basis: "Small PlanformDB records from one Oviedo 2010 cluster that exercise octanol, VNC disruption, and innexin RNAi labels.".to_owned(),
+            selected_on: "2026-06-13".to_owned(),
+            selection_basis: "Small curated PlanformDB records from source-reviewed Oviedo 2010 clusters that exercise octanol crop-position labels, VNC-disruption timing labels, and innexin RNAi crop-position labels.".to_owned(),
             non_scope: vec![
                 "calibrated physiology".to_owned(),
                 "Matter runtime dynamics".to_owned(),
@@ -1026,6 +1036,7 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
                     "PlanformDB IDs are preserved; raw database rows remain private.",
                     "Normalized labels are for teaching and validation metadata only.",
                     "No calibrated bioelectric physiology is inferred from this record.",
+                    "This record is part of a curated octanol crop-position series for qualitative gap-block review.",
                 ],
             ),
             planformdb_record(
@@ -1043,13 +1054,68 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
                     "PlanformDB IDs are preserved; raw database rows remain private.",
                     "Normalized labels are for teaching and validation metadata only.",
                     "No calibrated bioelectric physiology is inferred from this record.",
+                    "This record is part of a curated octanol crop-position series for qualitative gap-block review.",
+                ],
+            ),
+            planformdb_record(
+                417,
+                469,
+                4,
+                "pharyngeal_crop",
+                &["octanol_gap_junction_blockade"],
+                "gap_block_conductance",
+                115,
+                14.0,
+                &[(779, 1, "wild_type_like", 0.50), (780, 2, "double_head_two_pharynxes", 0.50)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "Normalized labels are for teaching and validation metadata only.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                    "This record is part of a curated octanol crop-position series for qualitative gap-block review.",
+                ],
+            ),
+            planformdb_record(
+                418,
+                470,
+                20,
+                "post_pharyngeal_crop",
+                &["octanol_gap_junction_blockade"],
+                "gap_block_conductance",
+                145,
+                14.0,
+                &[(781, 2, "double_head_two_pharynxes", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "Normalized labels are for teaching and validation metadata only.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                    "This record is part of a curated octanol crop-position series for qualitative gap-block review.",
+                ],
+            ),
+            planformdb_record(
+                419,
+                471,
+                33,
+                "tail_crop",
+                &["octanol_gap_junction_blockade"],
+                "gap_block_conductance",
+                178,
+                14.0,
+                &[(782, 1, "wild_type_like", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "Normalized labels are for teaching and validation metadata only.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                    "This record is part of a curated octanol crop-position series for qualitative gap-block review.",
                 ],
             ),
             planformdb_record(
                 441,
                 493,
                 161,
-                "head_plus_post_pharyngeal_crop_with_vnc_disruption",
+                "head_plus_post_pharyngeal_crop_with_vnc_disruption_t0d",
                 &["octanol_gap_junction_blockade", "vnc_disruption"],
                 "gap_block_vnc_disruption_boundary",
                 10,
@@ -1058,6 +1124,115 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
                 &[
                     "Hand-selected from PlanformDB 2.5.0.",
                     "This record separates VNC-disruption labeling from generic conductance semantics.",
+                    "This record is part of a curated VNC-disruption timing series; timing remains source metadata, not runtime state.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                442,
+                494,
+                161,
+                "head_plus_post_pharyngeal_crop_with_vnc_disruption_t0_125d",
+                &["octanol_gap_junction_blockade", "vnc_disruption"],
+                "gap_block_vnc_disruption_boundary",
+                10,
+                0.0,
+                &[(826, 1, "wild_type_like", 0.25), (827, 2, "double_head_two_pharynxes", 0.75)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "This record separates VNC-disruption labeling from generic conductance semantics.",
+                    "This record is part of a curated VNC-disruption timing series; timing remains source metadata, not runtime state.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                443,
+                495,
+                161,
+                "head_plus_post_pharyngeal_crop_with_vnc_disruption_t0_5d",
+                &["octanol_gap_junction_blockade", "vnc_disruption"],
+                "gap_block_vnc_disruption_boundary",
+                10,
+                0.0,
+                &[(828, 1, "wild_type_like", 0.80), (829, 2, "double_head_two_pharynxes", 0.20)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "This record separates VNC-disruption labeling from generic conductance semantics.",
+                    "This record is part of a curated VNC-disruption timing series; timing remains source metadata, not runtime state.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                444,
+                496,
+                161,
+                "head_plus_post_pharyngeal_crop_with_vnc_disruption_t1d",
+                &["octanol_gap_junction_blockade", "vnc_disruption"],
+                "gap_block_vnc_disruption_boundary",
+                10,
+                0.0,
+                &[(830, 1, "wild_type_like", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "This record separates VNC-disruption labeling from generic conductance semantics.",
+                    "This record is part of a curated VNC-disruption timing series; timing remains source metadata, not runtime state.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                446,
+                498,
+                2,
+                "head_crop",
+                &["dj_inx_12_rnai", "dj_inx_5_13_rnai"],
+                "innexin_gap_junction_label",
+                20,
+                35.0,
+                &[(832, 1, "wild_type_like", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "Innexin RNAi labels are preserved as metadata, not converted to conductance constants.",
+                    "This record is part of a curated innexin RNAi crop-position series for qualitative gap-junction review.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                447,
+                499,
+                3,
+                "pre_pharyngeal_crop",
+                &["dj_inx_12_rnai", "dj_inx_5_13_rnai"],
+                "innexin_gap_junction_label",
+                20,
+                35.0,
+                &[(833, 1, "wild_type_like", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "Innexin RNAi labels are preserved as metadata, not converted to conductance constants.",
+                    "This record is part of a curated innexin RNAi crop-position series for qualitative gap-junction review.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                448,
+                500,
+                4,
+                "pharyngeal_crop",
+                &["dj_inx_12_rnai", "dj_inx_5_13_rnai"],
+                "innexin_gap_junction_label",
+                21,
+                35.0,
+                &[(834, 2, "double_head_two_pharynxes", 0.20), (835, 1, "wild_type_like", 0.80)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "Innexin RNAi labels are preserved as metadata, not converted to conductance constants.",
+                    "This record is part of a curated innexin RNAi crop-position series for qualitative gap-junction review.",
                     "PlanformDB IDs are preserved; raw database rows remain private.",
                     "No calibrated bioelectric physiology is inferred from this record.",
                 ],
@@ -1075,6 +1250,25 @@ pub fn default_planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, 
                 &[
                     "Hand-selected from PlanformDB 2.5.0.",
                     "Innexin RNAi labels are preserved as metadata, not converted to conductance constants.",
+                    "This record is part of a curated innexin RNAi crop-position series for qualitative gap-junction review.",
+                    "PlanformDB IDs are preserved; raw database rows remain private.",
+                    "No calibrated bioelectric physiology is inferred from this record.",
+                ],
+            ),
+            planformdb_record(
+                450,
+                502,
+                33,
+                "tail_crop",
+                &["dj_inx_12_rnai", "dj_inx_5_13_rnai"],
+                "innexin_gap_junction_label",
+                20,
+                35.0,
+                &[(838, 1, "wild_type_like", 1.0)],
+                &[
+                    "Hand-selected from PlanformDB 2.5.0.",
+                    "Innexin RNAi labels are preserved as metadata, not converted to conductance constants.",
+                    "This record is part of a curated innexin RNAi crop-position series for qualitative gap-junction review.",
                     "PlanformDB IDs are preserved; raw database rows remain private.",
                     "No calibrated bioelectric physiology is inferred from this record.",
                 ],

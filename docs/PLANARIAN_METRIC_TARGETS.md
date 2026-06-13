@@ -92,12 +92,14 @@ Source target:
 source:planformdb_250::target:planformdb_curated_subset
 ```
 
-Matter now carries `fixtures/fields/planformdb-derived-v0.json`, a tiny
-PlanformDB-derived review fixture with source IDs, citations, notice text,
-normalized manipulation/outcome labels, sample counts, regeneration periods,
-and resultant morphology frequencies. It is a metadata and validation fixture
-only. It does not import raw rows, source images, conductance constants,
-runtime dynamics, or stochastic predictors.
+Matter now carries `fixtures/fields/planformdb-derived-v0.json`, a small
+14-record PlanformDB-derived review fixture with source IDs, citations, notice
+text, normalized manipulation/outcome labels, sample counts, regeneration
+periods, and resultant morphology frequencies. The curated subset covers
+octanol crop-position labels, VNC-disruption timing labels, and innexin RNAi
+crop-position labels. It is a metadata and validation fixture only. It does
+not import raw rows, source images, conductance constants, runtime dynamics, or
+stochastic predictors.
 
 Validation includes damaged cases for invalid frequency normalization and
 fixture metadata in the normal `rusty-matter-fixtures` route.

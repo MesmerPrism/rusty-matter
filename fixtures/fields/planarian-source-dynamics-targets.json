@@ -70,8 +70,18 @@
       "planformdb_record_ids": [
         "planformdb:experiment:415:resultset:467",
         "planformdb:experiment:416:resultset:468",
+        "planformdb:experiment:417:resultset:469",
+        "planformdb:experiment:418:resultset:470",
+        "planformdb:experiment:419:resultset:471",
         "planformdb:experiment:441:resultset:493",
-        "planformdb:experiment:449:resultset:501"
+        "planformdb:experiment:442:resultset:494",
+        "planformdb:experiment:443:resultset:495",
+        "planformdb:experiment:444:resultset:496",
+        "planformdb:experiment:446:resultset:498",
+        "planformdb:experiment:447:resultset:499",
+        "planformdb:experiment:448:resultset:500",
+        "planformdb:experiment:449:resultset:501",
+        "planformdb:experiment:450:resultset:502"
       ],
       "allowed_uses": [
         "qualitative conductance-block scenario labels",

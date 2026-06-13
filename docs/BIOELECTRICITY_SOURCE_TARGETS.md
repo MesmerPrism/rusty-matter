@@ -57,12 +57,12 @@ outcome behavior remain gated.
 | Target ID | Current status in Matter | Gate before strengthening |
 | --- | --- | --- |
 | `ap_transient_memory` | Implemented as qualitative `TransientDepolarizationMemory` and `TransientDepolarizationNoMemoryControl` scenarios. | Extract source-derived timing/value targets before numeric thresholds or prediction claims. |
-| `gap_block_conductance` | Implemented as qualitative `GapBlock` conductance/coupling reduction and outcome trace comparison. | Extract figure/table targets before claiming source-fit behavior. |
+| `gap_block_conductance` | Implemented as qualitative `GapBlock` conductance/coupling reduction and outcome trace comparison, with a curated PlanformDB review subset that keeps octanol, VNC-disruption timing, and innexin RNAi labels distinct. | Extract figure/table targets before claiming source-fit behavior or numeric conductance thresholds. |
 | `head_vs_tail_voltage` | Represented as normalized AP voltage/readout context with read-only Wasm annotation/unit-policy metadata for Optics. | Source-review exact assays/values before named pump/channel constants or calibrated millivolt fixtures. |
 | `persistent_axis_recut_history` | Registered as a future source-reviewed dynamics target only. | Add session/package history fixtures before claiming persistence across repeated regeneration rounds. |
 | `head_size_scaling` | Implemented as `PlanarianNormalizedMorphologyMetrics` with mesh-normalized AP-region/readout extents and no thresholds. | Extract area/location targets before claiming source-fit head or organ size. |
 | `species_like_head_labels` | Implemented as a rights-safe categorical teaching taxonomy fixture with generated-symbol/text label policy. | Add generated silhouettes or source-derived category frequencies only after a rights/provenance review. |
-| `planformdb_curated_subset` | Implemented as a tiny Matter review fixture with source IDs, citations, notice text, normalized labels, and damaged-input tests. | Keep it out of runtime dynamics; expand only through curated, traceable derived records. |
+| `planformdb_curated_subset` | Implemented as a 14-record Matter review fixture with source IDs, citations, notice text, normalized labels, and damaged-input tests. | Keep it out of runtime dynamics; expand only through curated, traceable derived records. |
 
 ## Implementation Rules
 
@@ -73,7 +73,8 @@ outcome behavior remain gated.
   step is source review.
 - Treat PlanformDB as experiment/phenotype evidence, not as Matter runtime
   authority. The current derived fixture validates metadata and frequencies
-  only; it does not drive circuit dynamics or stochastic predictions.
+  only; it does not drive circuit dynamics, conductance constants, timing
+  state, or stochastic predictions.
 - Keep Optics as a consumer of Matter-owned source/target anchors. Optics may
   display source labels and claim boundaries, but it must not invent simulation
   semantics.
