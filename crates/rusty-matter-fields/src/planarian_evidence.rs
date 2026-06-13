@@ -1,13 +1,236 @@
 use crate::{
-    MatterFieldError, PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID,
-    PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
+    MatterFieldError, PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID,
+    PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID, PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
 };
 
 const PLANFORMDB_DERIVED_RECORD_EVIDENCE_TYPE: &str = "derived_planformdb_record";
+const SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE: &str = "source_reviewed_dynamics_target";
 const SPECIES_LIKE_HEAD_TAXONOMY_EVIDENCE_TYPE: &str = "rights_safe_teaching_taxonomy";
 const SPECIES_LIKE_HEAD_SOURCE_TARGET_ANCHOR: &str =
     "source:emmons_bell_2015_ijms::target:species_like_head_labels::future_outcome_taxonomy";
 const PLANFORMDB_NOTICE_TEXT: &str = "Planform / PlanformDB Notice\n\nSource: Lobo Lab PlanformDB 2.5.0\nSource page: https://lobolab.umbc.edu/planform/download/\n\nThis Rusty Matter fixture is a tiny transformed subset of PlanformDB metadata. It does not redistribute the raw SQLite database, paper figures, or morphology images.\n\nPlanform and PlanformDB are provided as-is, without any express or implied warranty. The authors are not liable for damages arising from use of this software or database.\n\nPermission is granted to use and redistribute Planform and PlanformDB freely, subject to these restrictions:\n\n1. The origin of the software and database must not be misrepresented.\n2. Works using the software or database require acknowledgment and citation of the Planform publications.\n3. This notice may not be removed or altered from any distribution.\n\nCitation for the database/application:\n\nLobo D, Malone TJ, Levin M. Planform: an application and database of graph-encoded planarian regenerative experiments. Bioinformatics 29(8), 1098-1100, 2013. DOI: 10.1093/bioinformatics/btt088";
+
+/// One source-reviewed checkpoint for a qualitative planarian dynamics target.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianSourceDynamicsCheckpoint {
+    /// Stable checkpoint identifier.
+    pub checkpoint_id: String,
+    /// Human-readable source relation.
+    pub source_relation: String,
+    /// Time or assay anchor from source review, when available.
+    pub timing_anchor: String,
+    /// Qualitative observation or label carried into Matter planning.
+    pub qualitative_observation: String,
+    /// Explicit boundary for Matter behavior.
+    pub matter_boundary: String,
+}
+
+impl PlanarianSourceDynamicsCheckpoint {
+    fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.checkpoint_id.trim().is_empty()
+            || self.source_relation.trim().is_empty()
+            || self.timing_anchor.trim().is_empty()
+            || self.qualitative_observation.trim().is_empty()
+            || self.matter_boundary.trim().is_empty()
+            || !self.matter_boundary.contains("not calibrated")
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian source dynamics checkpoints must be populated and non-calibrated",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// One source-reviewed dynamics target and its allowed Matter links.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianSourceDynamicsTarget {
+    /// Stable implementation target identifier.
+    pub target_id: String,
+    /// Source identifiers backing the target.
+    pub source_ids: Vec<String>,
+    /// Source-target anchor used by Bioelectricity planning.
+    pub source_target_anchor: String,
+    /// Current implementation status.
+    pub source_target_status: String,
+    /// Qualitative role for Matter dynamics or annotation.
+    pub dynamics_role: String,
+    /// Matter scenario identifiers that may reference this target.
+    pub matter_scenario_ids: Vec<String>,
+    /// PlanformDB-derived record IDs linked to this target, if any.
+    pub planformdb_record_ids: Vec<String>,
+    /// Allowed uses of this source target.
+    pub allowed_uses: Vec<String>,
+    /// Explicitly blocked uses.
+    pub blocked_uses: Vec<String>,
+    /// Source-reviewed checkpoints carried by this target.
+    pub checkpoints: Vec<PlanarianSourceDynamicsCheckpoint>,
+}
+
+impl PlanarianSourceDynamicsTarget {
+    fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.target_id.trim().is_empty()
+            || self.source_ids.is_empty()
+            || self.source_target_anchor.trim().is_empty()
+            || self.source_target_status.trim().is_empty()
+            || self.dynamics_role.trim().is_empty()
+            || self.allowed_uses.is_empty()
+            || self.blocked_uses.is_empty()
+            || self.checkpoints.is_empty()
+            || self
+                .source_ids
+                .iter()
+                .any(|source_id| source_id.trim().is_empty())
+            || self
+                .allowed_uses
+                .iter()
+                .any(|allowed_use| allowed_use.trim().is_empty())
+            || self
+                .blocked_uses
+                .iter()
+                .any(|blocked_use| blocked_use.trim().is_empty())
+            || self
+                .matter_scenario_ids
+                .iter()
+                .any(|scenario_id| scenario_id.trim().is_empty())
+            || self
+                .planformdb_record_ids
+                .iter()
+                .any(|record_id| record_id.trim().is_empty())
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian source dynamics target metadata must be populated",
+            ));
+        }
+        if !self
+            .source_target_anchor
+            .contains(&format!("target:{}", self.target_id))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian source dynamics anchor must reference the target ID",
+            ));
+        }
+        if !self
+            .blocked_uses
+            .iter()
+            .any(|blocked_use| blocked_use.contains("calibrated physiology"))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian source dynamics targets must block calibrated physiology claims",
+            ));
+        }
+        if self
+            .source_ids
+            .iter()
+            .any(|source_id| source_id == "planformdb_250")
+            && self.planformdb_record_ids.is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "PlanformDB-backed dynamics targets must preserve derived record IDs",
+            ));
+        }
+        if self
+            .source_ids
+            .iter()
+            .any(|source_id| source_id == "planformdb_250")
+            && self
+                .planformdb_record_ids
+                .iter()
+                .any(|record_id| !record_id.starts_with("planformdb:experiment:"))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "PlanformDB-backed dynamics targets must use PlanformDB record IDs",
+            ));
+        }
+        let mut seen_checkpoint_ids = Vec::<&str>::with_capacity(self.checkpoints.len());
+        for checkpoint in &self.checkpoints {
+            checkpoint.validate()?;
+            if seen_checkpoint_ids.contains(&checkpoint.checkpoint_id.as_str()) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "planarian source dynamics target must not repeat checkpoint IDs",
+                ));
+            }
+            seen_checkpoint_ids.push(checkpoint.checkpoint_id.as_str());
+        }
+        Ok(())
+    }
+}
+
+/// Matter-owned fixture for source-reviewed planarian dynamics targets.
+///
+/// This fixture is annotation and validation data. It does not change the
+/// synthetic educational voltage, conductance, memory, or readout stepping
+/// behavior.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianSourceDynamicsTargetFixture {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable fixture identifier.
+    pub fixture_id: String,
+    /// Fixture schema version.
+    pub schema_version: u32,
+    /// Evidence type; must be `source_reviewed_dynamics_target`.
+    pub evidence_type: String,
+    /// Human-readable scope.
+    pub scope: String,
+    /// Overall non-calibration policy.
+    pub source_policy: String,
+    /// Source-reviewed target rows.
+    pub targets: Vec<PlanarianSourceDynamicsTarget>,
+}
+
+impl PlanarianSourceDynamicsTargetFixture {
+    /// Validates the source dynamics target fixture.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when schema, policy, target identity, or
+    /// non-calibration boundaries are invalid.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.fixture_id.trim().is_empty()
+            || self.schema_version == 0
+            || self.evidence_type != SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE
+            || self.scope.trim().is_empty()
+            || !self.source_policy.contains("not calibrated")
+            || self.targets.is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian source dynamics fixture metadata must be populated and non-calibrated",
+            ));
+        }
+        let mut seen_target_ids = Vec::<&str>::with_capacity(self.targets.len());
+        for target in &self.targets {
+            target.validate()?;
+            if seen_target_ids.contains(&target.target_id.as_str()) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "planarian source dynamics fixture must not repeat target IDs",
+                ));
+            }
+            seen_target_ids.push(target.target_id.as_str());
+        }
+        for required in [
+            "ap_transient_memory",
+            "gap_block_conductance",
+            "head_vs_tail_voltage",
+        ] {
+            if !seen_target_ids.contains(&required) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "planarian source dynamics fixture is missing a required high-confidence target",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
 
 /// Source database metadata for a curated PlanformDB-derived fixture.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -564,6 +787,184 @@ pub fn default_planarian_species_like_head_taxonomy(
     Ok(taxonomy)
 }
 
+/// Builds the default source-reviewed planarian dynamics target fixture.
+///
+/// # Errors
+///
+/// Returns [`MatterFieldError`] if the generated target fixture fails
+/// validation.
+pub fn default_planarian_source_dynamics_targets(
+) -> Result<PlanarianSourceDynamicsTargetFixture, MatterFieldError> {
+    let fixture = PlanarianSourceDynamicsTargetFixture {
+        schema_id: PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID.to_owned(),
+        fixture_id: "fixture.fields.planarian_ap.source_dynamics_targets".to_owned(),
+        schema_version: 1,
+        evidence_type: SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE.to_owned(),
+        scope: "Source-reviewed qualitative planarian dynamics targets for Matter annotation and validation; not runtime calibration.".to_owned(),
+        source_policy: "Targets may label synthetic educational scenarios and future derived fixtures; source checkpoints are not calibrated physiology and do not alter Matter stepping.".to_owned(),
+        targets: vec![
+            source_dynamics_target(
+                "ap_transient_memory",
+                &["durant_2019_bpj"],
+                "source:durant_2019_bpj::target:ap_transient_memory::synthetic_fixture_source_targets_scoped",
+                "synthetic_fixture_source_targets_scoped",
+                "Early transient depolarization and washout-memory teaching target.",
+                &[
+                    "bioelectric.planarian_ap.transient_depolarization_memory.synthetic",
+                    "bioelectric.planarian_ap.transient_depolarization_no_memory_control.synthetic",
+                ],
+                &[],
+                &[
+                    "metadata checkpoint anchors",
+                    "memory versus no-memory scenario labeling",
+                    "future derived experiment fixture review",
+                ],
+                &[
+                    "calibrated physiology",
+                    "mapping source frequencies to stochastic Matter behavior",
+                    "millivolt or ion-channel constants",
+                ],
+                vec![
+                    dynamics_checkpoint(
+                        "durant_2019_3hpa_window",
+                        "Durant 2019 early post-amputation bioelectric window",
+                        "3 hpa",
+                        "Early depolarization timing is a source checkpoint for transient-memory presets.",
+                    ),
+                    dynamics_checkpoint(
+                        "durant_2019_6hpa_context",
+                        "Durant 2019 early AP-polarity context",
+                        "6 hpa",
+                        "Later early-window context remains annotation until derived experiment data exists.",
+                    ),
+                    dynamics_checkpoint(
+                        "durant_2019_washout_memory",
+                        "Durant 2019 washout and later morphology relation",
+                        "washout/outcome",
+                        "Brief perturbation followed by washout may still label persistent outcome targets.",
+                    ),
+                ],
+            ),
+            source_dynamics_target(
+                "gap_block_conductance",
+                &[
+                    "oviedo_2010_devbiol",
+                    "emmons_bell_2015_ijms",
+                    "planformdb_250",
+                    "lobo_2013_planform",
+                ],
+                "source:oviedo_2010_devbiol;source:emmons_bell_2015_ijms::target:gap_block_conductance::synthetic_fixture_source_targets_scoped",
+                "synthetic_fixture_source_targets_scoped",
+                "Gap-junction-like coupling reduction, VNC disruption labels, and innexin RNAi labels kept distinct.",
+                &["bioelectric.planarian_ap.gap_block.synthetic"],
+                &[
+                    "planformdb:experiment:415:resultset:467",
+                    "planformdb:experiment:416:resultset:468",
+                    "planformdb:experiment:441:resultset:493",
+                    "planformdb:experiment:449:resultset:501",
+                ],
+                &[
+                    "qualitative conductance-block scenario labels",
+                    "PlanformDB-derived phenotype/outcome annotation",
+                    "future source-table threshold review",
+                ],
+                &[
+                    "calibrated physiology",
+                    "converting PlanformDB frequencies into stochastic simulation",
+                    "collapsing octanol, VNC disruption, and innexin RNAi into one mechanism",
+                ],
+                vec![
+                    dynamics_checkpoint(
+                        "oviedo_2010_octanol_gap_block",
+                        "Oviedo 2010 octanol gap-junction blockade records",
+                        "assay/result-set",
+                        "Octanol labels support conductance-block metadata, not conductance constants.",
+                    ),
+                    dynamics_checkpoint(
+                        "oviedo_2010_vnc_disruption",
+                        "Oviedo 2010 VNC disruption records",
+                        "assay/result-set",
+                        "VNC disruption remains a separate label from generic coupling reduction.",
+                    ),
+                    dynamics_checkpoint(
+                        "oviedo_2010_innexin_rnai",
+                        "Oviedo 2010 innexin RNAi records",
+                        "35 day regeneration period",
+                        "Innexin labels are evidence annotations, not direct conductance scalars.",
+                    ),
+                    dynamics_checkpoint(
+                        "emmons_2015_species_like_heads",
+                        "Emmons-Bell 2015 stochastic species-like head taxonomy",
+                        "figure/table target",
+                        "Species-like categories support rights-safe labels and future derived mappings.",
+                    ),
+                ],
+            ),
+            source_dynamics_target(
+                "head_vs_tail_voltage",
+                &["beane_2011_chembiol"],
+                "source:beane_2011_chembiol::target:head_vs_tail_voltage::active_annotation_metadata",
+                "active_annotation_metadata",
+                "Voltage/pump perturbation annotation for head-vs-tail identity context.",
+                &["bioelectric.planarian_ap.baseline.synthetic"],
+                &[],
+                &[
+                    "normalized voltage unit-policy annotation",
+                    "future named pump/channel source review",
+                    "Optics display of source-target metadata",
+                ],
+                &[
+                    "calibrated physiology",
+                    "H,K-ATPase constant import",
+                    "named ion-channel solver behavior",
+                    "millivolt fixture without source-value extraction",
+                ],
+                vec![
+                    dynamics_checkpoint(
+                        "beane_2011_hk_atpase_annotation",
+                        "Beane 2011 H,K-ATPase-mediated membrane-voltage context",
+                        "assay/figure target",
+                        "Pump/channel language can label source context but cannot set constants yet.",
+                    ),
+                    dynamics_checkpoint(
+                        "beane_2011_head_tail_identity",
+                        "Beane 2011 head regeneration identity context",
+                        "source text/figure review pending",
+                        "Head-vs-tail voltage remains normalized annotation until values are extracted.",
+                    ),
+                ],
+            ),
+            source_dynamics_target(
+                "persistent_axis_recut_history",
+                &["oviedo_2010_devbiol"],
+                "source:oviedo_2010_devbiol::target:persistent_axis_recut_history::future_session_trace",
+                "future_session_trace",
+                "Persistent AP-axis and repeated-regeneration history target for future package/session fixtures.",
+                &[],
+                &[],
+                &[
+                    "future experiment/session package target",
+                    "recut history annotation",
+                    "Manifold audit-surface planning",
+                ],
+                &[
+                    "calibrated physiology",
+                    "claiming current Matter scenario reproduces persistent axes",
+                    "storing session history inside one static scenario run",
+                ],
+                vec![dynamics_checkpoint(
+                    "oviedo_2010_ectopic_persistent_axis",
+                    "Oviedo 2010 ectopic anterior and persistent-axis target",
+                    "repeated-regeneration source target",
+                    "Persistent history remains future session/package evidence, not current runtime state.",
+                )],
+            ),
+        ],
+    };
+    fixture.validate()?;
+    Ok(fixture)
+}
+
 /// Builds the default tiny PlanformDB-derived fixture.
 ///
 /// # Errors
@@ -697,6 +1098,64 @@ fn validate_planformdb_notice(notice_text: &str) -> Result<(), MatterFieldError>
         }
     }
     Ok(())
+}
+
+fn source_dynamics_target(
+    target_id: &str,
+    source_ids: &[&str],
+    source_target_anchor: &str,
+    source_target_status: &str,
+    dynamics_role: &str,
+    matter_scenario_ids: &[&str],
+    planformdb_record_ids: &[&str],
+    allowed_uses: &[&str],
+    blocked_uses: &[&str],
+    checkpoints: Vec<PlanarianSourceDynamicsCheckpoint>,
+) -> PlanarianSourceDynamicsTarget {
+    PlanarianSourceDynamicsTarget {
+        target_id: target_id.to_owned(),
+        source_ids: source_ids
+            .iter()
+            .map(|source_id| (*source_id).to_owned())
+            .collect(),
+        source_target_anchor: source_target_anchor.to_owned(),
+        source_target_status: source_target_status.to_owned(),
+        dynamics_role: dynamics_role.to_owned(),
+        matter_scenario_ids: matter_scenario_ids
+            .iter()
+            .map(|scenario_id| (*scenario_id).to_owned())
+            .collect(),
+        planformdb_record_ids: planformdb_record_ids
+            .iter()
+            .map(|record_id| (*record_id).to_owned())
+            .collect(),
+        allowed_uses: allowed_uses
+            .iter()
+            .map(|allowed_use| (*allowed_use).to_owned())
+            .collect(),
+        blocked_uses: blocked_uses
+            .iter()
+            .map(|blocked_use| (*blocked_use).to_owned())
+            .collect(),
+        checkpoints,
+    }
+}
+
+fn dynamics_checkpoint(
+    checkpoint_id: &str,
+    source_relation: &str,
+    timing_anchor: &str,
+    qualitative_observation: &str,
+) -> PlanarianSourceDynamicsCheckpoint {
+    PlanarianSourceDynamicsCheckpoint {
+        checkpoint_id: checkpoint_id.to_owned(),
+        source_relation: source_relation.to_owned(),
+        timing_anchor: timing_anchor.to_owned(),
+        qualitative_observation: qualitative_observation.to_owned(),
+        matter_boundary:
+            "source-reviewed metadata only; not calibrated physiology or runtime dynamics"
+                .to_owned(),
+    }
 }
 
 fn head_label(

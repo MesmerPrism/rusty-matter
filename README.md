@@ -21,8 +21,9 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   reviewed GLB-derived educational body mesh with synthetic fallback and
   mesh-anchored substrate nodes, plus compact scenario outcome traces and
   comparison trace sets, normalized non-calibrated morphology/readout metrics,
-  a rights-safe species-like head-label taxonomy, and a tiny PlanformDB-derived
-  review fixture that stays out of runtime dynamics;
+  a rights-safe species-like head-label taxonomy, source-reviewed qualitative
+  dynamics target metadata, and a tiny PlanformDB-derived review fixture that
+  stays out of runtime dynamics;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
@@ -81,6 +82,10 @@ records into fixtures.
 The current PlanformDB-derived fixture is a small validation/review artifact
 with notice text and damaged-input coverage; it is not a runtime dynamics input
 or a calibrated phenotype predictor.
+The source-reviewed dynamics-target fixture maps high-confidence literature
+targets to existing synthetic educational scenarios and future fixture gates;
+it is metadata/validation evidence, not a new solver or calibrated physiology
+claim.
 
 ## Boundary
 

@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_planarian_source_dynamics_targets.v1",
+  "damaged_input_id": "damaged.fields.invalid_planarian_source_dynamics_targets",
+  "expected_rejection_code": "field.invalid_run_summary",
+  "actual_rejection_code": "field.invalid_run_summary",
+  "message": "invalid surface-field run summary: PlanformDB-backed dynamics targets must preserve derived record IDs"
+}

@@ -1,9 +1,9 @@
 use rusty_matter_fields::{
-    default_planarian_species_like_head_taxonomy, default_planformdb_derived_fixture,
-    MatterFieldError, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
-    PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
+    default_planformdb_derived_fixture, MatterFieldError, PlanarianBioelectricPresetConfig,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun,
+    PlanarianNormalizedMorphologyMetrics, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
 };
 use rusty_matter_mesh::{
     HandValidationMeshFrame, Handedness, MatterMeshError, MeshCoordinateFrameConfig,
@@ -183,6 +183,13 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
             damaged_species_like_head_taxonomy(),
         )?,
         damaged_field_report(
+            "fixtures/damaged/invalid-planarian-source-dynamics-targets.json",
+            "fixture.damaged.invalid_planarian_source_dynamics_targets.v1",
+            "damaged.fields.invalid_planarian_source_dynamics_targets",
+            "field.invalid_run_summary",
+            damaged_planarian_source_dynamics_targets(),
+        )?,
+        damaged_field_report(
             "fixtures/damaged/invalid-planformdb-derived-fixture.json",
             "fixture.damaged.invalid_planformdb_derived_fixture.v1",
             "damaged.fields.invalid_planformdb_derived_fixture",
@@ -360,6 +367,12 @@ fn damaged_species_like_head_taxonomy() -> Result<(), MatterFieldError> {
     let mut taxonomy = default_planarian_species_like_head_taxonomy()?;
     taxonomy.labels[1].label_id = taxonomy.labels[0].label_id.clone();
     taxonomy.validate()
+}
+
+fn damaged_planarian_source_dynamics_targets() -> Result<(), MatterFieldError> {
+    let mut fixture = default_planarian_source_dynamics_targets()?;
+    fixture.targets[1].planformdb_record_ids.clear();
+    fixture.validate()
 }
 
 fn damaged_planformdb_derived_fixture() -> Result<(), MatterFieldError> {

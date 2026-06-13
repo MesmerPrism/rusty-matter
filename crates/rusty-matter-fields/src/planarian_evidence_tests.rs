@@ -1,7 +1,70 @@
 use crate::{
-    default_planarian_species_like_head_taxonomy, default_planformdb_derived_fixture,
-    MatterFieldError,
+    default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
+    default_planformdb_derived_fixture, MatterFieldError,
 };
+
+#[test]
+fn source_dynamics_targets_preserve_non_calibrated_boundaries() {
+    let fixture =
+        default_planarian_source_dynamics_targets().expect("source dynamics fixture validates");
+
+    assert_eq!(
+        fixture.fixture_id,
+        "fixture.fields.planarian_ap.source_dynamics_targets"
+    );
+    assert!(fixture.source_policy.contains("not calibrated"));
+    assert!(fixture
+        .targets
+        .iter()
+        .any(|target| target.target_id == "ap_transient_memory"
+            && target.matter_scenario_ids.contains(
+                &"bioelectric.planarian_ap.transient_depolarization_memory.synthetic".to_owned()
+            )));
+    let gap_target = fixture
+        .targets
+        .iter()
+        .find(|target| target.target_id == "gap_block_conductance")
+        .expect("gap-block target exists");
+    assert_eq!(gap_target.planformdb_record_ids.len(), 4);
+    assert!(gap_target
+        .blocked_uses
+        .iter()
+        .any(|blocked| blocked.contains("stochastic simulation")));
+    assert!(fixture.targets.iter().all(|target| target
+        .blocked_uses
+        .iter()
+        .any(|blocked| blocked.contains("calibrated physiology"))));
+}
+
+#[test]
+fn damaged_source_dynamics_targets_are_rejected() {
+    let mut fixture =
+        default_planarian_source_dynamics_targets().expect("fixture validates before damage");
+    fixture.targets[0].blocked_uses.clear();
+
+    let error = fixture
+        .validate()
+        .expect_err("missing blocked uses rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut fixture =
+        default_planarian_source_dynamics_targets().expect("fixture validates before damage");
+    fixture.targets[1].planformdb_record_ids.clear();
+
+    let error = fixture
+        .validate()
+        .expect_err("PlanformDB target without record IDs rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut fixture =
+        default_planarian_source_dynamics_targets().expect("fixture validates before damage");
+    fixture.targets[1].planformdb_record_ids[0] = "local:experiment:415".to_owned();
+
+    let error = fixture
+        .validate()
+        .expect_err("malformed PlanformDB record IDs reject");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+}
 
 #[test]
 fn planformdb_derived_fixture_preserves_source_notice_and_records() {

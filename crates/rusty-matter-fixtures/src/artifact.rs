@@ -11,8 +11,9 @@ use crate::fields::{
     bioelectric_circuit_state, bioelectric_circuit_step_diagnostics,
     planarian_bioelectric_outcome_trace, planarian_bioelectric_outcome_trace_set,
     planarian_bioelectric_scenario_run, planarian_normalized_morphology_metrics,
-    planarian_species_like_head_taxonomy, planformdb_derived_fixture,
-    surface_field_contract_summary, surface_field_debug_frame, surface_field_debug_sequence,
+    planarian_source_dynamics_targets, planarian_species_like_head_taxonomy,
+    planformdb_derived_fixture, surface_field_contract_summary, surface_field_debug_frame,
+    surface_field_debug_sequence,
 };
 use crate::mesh::{
     dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
@@ -158,6 +159,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/planarian-species-like-head-taxonomy.json",
         &planarian_species_like_head_taxonomy()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-source-dynamics-targets.json",
+        &planarian_source_dynamics_targets()?,
     )?);
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/planformdb-derived-v0.json",

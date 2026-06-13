@@ -1,18 +1,19 @@
 use rusty_matter_fields::{
-    default_planarian_species_like_head_taxonomy, default_planformdb_derived_fixture,
-    planarian_comparison_scenario_kinds, BioelectricCircuitConfig, BioelectricCircuitEdit,
-    BioelectricCircuitEditOperation, BioelectricCircuitEditResult, BioelectricCircuitRuntime,
-    BioelectricCircuitState, BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge,
-    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
-    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
-    BioelectricVoltageUnit, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
+    default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
+    default_planformdb_derived_fixture, planarian_comparison_scenario_kinds,
+    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
+    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
+    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
+    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
+    PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
     PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
-    PlanarianSpeciesLikeHeadTaxonomy, PlanformDbDerivedFixture, SurfaceFieldDebugFrame,
-    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRunSummary, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
-    SurfaceVectorFieldKind,
+    PlanarianSourceDynamicsTargetFixture, PlanarianSpeciesLikeHeadTaxonomy,
+    PlanformDbDerivedFixture, SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary,
+    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
+    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -181,6 +182,11 @@ pub(crate) fn planarian_normalized_morphology_metrics(
 pub(crate) fn planarian_species_like_head_taxonomy(
 ) -> Result<PlanarianSpeciesLikeHeadTaxonomy, CliError> {
     default_planarian_species_like_head_taxonomy().map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_source_dynamics_targets(
+) -> Result<PlanarianSourceDynamicsTargetFixture, CliError> {
+    default_planarian_source_dynamics_targets().map_err(CliError::Field)
 }
 
 pub(crate) fn planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, CliError> {

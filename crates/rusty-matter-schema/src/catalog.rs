@@ -41,6 +41,8 @@ impl SchemaCatalog {
             &["fixtures/fields/planarian-normalized-morphology-metrics.json"];
         let planarian_species_like_head_taxonomy_fixtures =
             &["fixtures/fields/planarian-species-like-head-taxonomy.json"];
+        let planarian_source_dynamics_target_fixtures =
+            &["fixtures/fields/planarian-source-dynamics-targets.json"];
         let planformdb_derived_fixtures = &["fixtures/fields/planformdb-derived-v0.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
@@ -67,6 +69,7 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-mesh-surface-index.json",
             "fixtures/damaged/invalid-planarian-normalized-morphology-metrics.json",
             "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
+            "fixtures/damaged/invalid-planarian-source-dynamics-targets.json",
             "fixtures/damaged/invalid-planformdb-derived-fixture.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
@@ -261,6 +264,11 @@ impl SchemaCatalog {
                     "rusty.matter.fields.planarian_species_like_head_taxonomy.v1",
                     "PlanarianSpeciesLikeHeadTaxonomy",
                     planarian_species_like_head_taxonomy_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_source_dynamics_targets.v1",
+                    "PlanarianSourceDynamicsTargetFixture",
+                    planarian_source_dynamics_target_fixtures,
                 ),
                 entry(
                     "rusty.matter.fields.planformdb_derived_fixture.v1",

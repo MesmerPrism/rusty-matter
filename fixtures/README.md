@@ -27,6 +27,9 @@ The SDF foundation bundle currently includes:
   extent. These are educational summaries, not calibrated area measurements;
 - a rights-safe species-like head-label taxonomy in `fixtures/fields`, using
   generated-symbol/text labels only and no paper figure reuse;
+- a source-reviewed qualitative dynamics-target fixture in `fixtures/fields`,
+  mapping high-confidence literature targets to current synthetic scenarios,
+  future fixture gates, and explicit blocked calibration claims;
 - a tiny PlanformDB-derived review fixture in `fixtures/fields`, preserving
   source IDs, citation IDs, notice text, normalized labels, sample counts, and
   outcome frequencies without importing raw database rows or runtime dynamics;
@@ -65,7 +68,8 @@ comparison bundle for browser overlays and educational checks. It is generated
 from Matter scenario runs, not from Optics or browser-side metric code.
 
 `fixtures/fields/planarian-normalized-morphology-metrics.json`,
-`fixtures/fields/planarian-species-like-head-taxonomy.json`, and
+`fixtures/fields/planarian-species-like-head-taxonomy.json`,
+`fixtures/fields/planarian-source-dynamics-targets.json`, and
 `fixtures/fields/planformdb-derived-v0.json` are source-target validation and
 annotation artifacts. They do not change Matter's voltage, conductance,
 memory/readout, or stepping behavior.

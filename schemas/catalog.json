@@ -294,6 +294,14 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.planarian_source_dynamics_targets.v1",
+      "rust_type": "PlanarianSourceDynamicsTargetFixture",
+      "fixture_paths": [
+        "fixtures/fields/planarian-source-dynamics-targets.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.fields.planformdb_derived_fixture.v1",
       "rust_type": "PlanformDbDerivedFixture",
       "fixture_paths": [
@@ -409,6 +417,7 @@
         "fixtures/damaged/invalid-mesh-surface-index.json",
         "fixtures/damaged/invalid-planarian-normalized-morphology-metrics.json",
         "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
+        "fixtures/damaged/invalid-planarian-source-dynamics-targets.json",
         "fixtures/damaged/invalid-planformdb-derived-fixture.json",
         "fixtures/damaged/invalid-particle-body.json",
         "fixtures/damaged/invalid-particle-influence.json",
