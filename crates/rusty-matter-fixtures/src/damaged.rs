@@ -1,5 +1,8 @@
 use rusty_matter_fields::{
-    MatterFieldError, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
+    default_planarian_species_like_head_taxonomy, default_planformdb_derived_fixture,
+    MatterFieldError, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
+    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
     SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
 };
 use rusty_matter_mesh::{
@@ -165,6 +168,27 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
             )
             .validate(field_node_count),
         )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-planarian-normalized-morphology-metrics.json",
+            "fixture.damaged.invalid_planarian_normalized_morphology_metrics.v1",
+            "damaged.fields.invalid_planarian_normalized_morphology_metrics",
+            "field.invalid_run_summary",
+            damaged_normalized_morphology_metrics(),
+        )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
+            "fixture.damaged.invalid_planarian_species_like_head_taxonomy.v1",
+            "damaged.fields.invalid_planarian_species_like_head_taxonomy",
+            "field.invalid_run_summary",
+            damaged_species_like_head_taxonomy(),
+        )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-planformdb-derived-fixture.json",
+            "fixture.damaged.invalid_planformdb_derived_fixture.v1",
+            "damaged.fields.invalid_planformdb_derived_fixture",
+            "field.invalid_field",
+            damaged_planformdb_derived_fixture(),
+        )?,
     ])
 }
 
@@ -311,6 +335,37 @@ fn unit_surface_field_substrate() -> Result<SurfaceFieldSubstrate, CliError> {
     let samples = surface.sample_points(&config).map_err(CliError::Mesh)?;
     SurfaceFieldSubstrate::from_sample_set("fields.substrate.damaged_fixture", &samples)
         .map_err(CliError::Field)
+}
+
+fn damaged_normalized_morphology_metrics() -> Result<(), MatterFieldError> {
+    let run = PlanarianBioelectricScenarioRun::build(
+        PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+        PlanarianBioelectricPresetConfig {
+            sample_count: 80,
+            step_count: 150,
+            frame_stride: 15,
+            seed: 130_363,
+            ..PlanarianBioelectricPresetConfig::default()
+        },
+    )?;
+    let mut metrics = PlanarianNormalizedMorphologyMetrics::from_scenario_run(
+        "damaged.planarian.normalized_morphology_metrics",
+        &run,
+    )?;
+    metrics.source_target_anchors.clear();
+    metrics.validate()
+}
+
+fn damaged_species_like_head_taxonomy() -> Result<(), MatterFieldError> {
+    let mut taxonomy = default_planarian_species_like_head_taxonomy()?;
+    taxonomy.labels[1].label_id = taxonomy.labels[0].label_id.clone();
+    taxonomy.validate()
+}
+
+fn damaged_planformdb_derived_fixture() -> Result<(), MatterFieldError> {
+    let mut fixture = default_planformdb_derived_fixture()?;
+    fixture.records[0].resultant_morphologies[0].frequency = 1.2;
+    fixture.validate()
 }
 
 fn sdf_rejection_code(error: &SdfError) -> String {

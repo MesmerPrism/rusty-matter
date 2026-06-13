@@ -255077,9 +255077,8 @@
     ]
   },
   "literature_anchors": [
-    "planarian_ap_axis_regeneration",
-    "gap_junction_bioelectric_patterning",
-    "voltage_driven_downstream_pattern_readout",
-    "transient_depolarization_and_pattern_memory_control"
+    "source:beane_2011_chembiol::target:head_vs_tail_voltage",
+    "source:beane_2013_dev::target:head_size_scaling::future_metric",
+    "source:durant_2019_bpj::target:ap_transient_memory"
   ]
 }

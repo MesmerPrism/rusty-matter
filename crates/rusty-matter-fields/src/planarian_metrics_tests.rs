@@ -2,6 +2,7 @@ use crate::{
     planarian_comparison_scenario_kinds, MatterFieldError, PlanarianBioelectricOutcomeTrace,
     PlanarianBioelectricOutcomeTraceSet, PlanarianBioelectricPresetConfig,
     PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun,
+    PlanarianNormalizedMorphologyMetrics,
 };
 
 #[test]
@@ -113,6 +114,53 @@ fn damaged_planarian_outcome_trace_set_is_rejected() {
         .validate()
         .expect_err("duplicate scenario trace rejects");
 
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+}
+
+#[test]
+fn normalized_morphology_metrics_preserve_non_calibrated_source_target() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory);
+    let metrics = PlanarianNormalizedMorphologyMetrics::from_scenario_run(
+        "metrics.planarian.normalized_morphology",
+        &run,
+    )
+    .expect("normalized morphology metrics validate");
+
+    assert_eq!(metrics.region_extents.len(), 5);
+    assert!(metrics.unit_policy.contains("not calibrated"));
+    assert_eq!(
+        metrics.source_target_anchors,
+        vec!["source:beane_2013_dev::target:head_size_scaling::future_metric".to_owned()]
+    );
+    assert!(metrics.head_region_extent_normalized > 0.0);
+    assert!(metrics.pharyngeal_region_extent_normalized > 0.0);
+    assert!((0.0..=1.0).contains(&metrics.head_identity_extent_normalized));
+}
+
+#[test]
+fn damaged_normalized_morphology_metrics_are_rejected() {
+    let run = planarian_run(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory);
+    let mut metrics = PlanarianNormalizedMorphologyMetrics::from_scenario_run(
+        "metrics.planarian.normalized_morphology.damaged",
+        &run,
+    )
+    .expect("normalized morphology metrics validate before damage");
+
+    metrics.head_region_extent_normalized = f32::NAN;
+    let error = metrics
+        .validate()
+        .expect_err("non-finite normalized metric rejects");
+    assert!(matches!(error, MatterFieldError::InvalidField(_)));
+
+    let mut metrics = PlanarianNormalizedMorphologyMetrics::from_scenario_run(
+        "metrics.planarian.normalized_morphology.damaged_anchor",
+        &run,
+    )
+    .expect("normalized morphology metrics validate before anchor damage");
+    metrics.source_target_anchors.clear();
+    let error = metrics
+        .validate()
+        .expect_err("missing source-target anchor rejects");
     assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
 }
 

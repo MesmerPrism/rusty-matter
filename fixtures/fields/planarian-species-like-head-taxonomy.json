@@ -1,0 +1,52 @@
+{
+  "schema_id": "rusty.matter.fields.planarian_species_like_head_taxonomy.v1",
+  "taxonomy_id": "taxonomy.planarian.species_like_head_labels.v1",
+  "evidence_type": "rights_safe_teaching_taxonomy",
+  "source_target_anchor": "source:emmons_bell_2015_ijms::target:species_like_head_labels::future_outcome_taxonomy",
+  "source_id": "emmons_bell_2015_ijms",
+  "image_policy": "generated symbolic labels only; no paper figure reuse",
+  "labels": [
+    {
+      "label_id": "native_gd_like",
+      "display_label": "native G. dorotocephala-like",
+      "label_kind": "derived_source_label",
+      "source_relation": "control/native or pseudo-native outcome category",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    },
+    {
+      "label_id": "pseudo_dj_like",
+      "display_label": "D. japonica-like",
+      "label_kind": "derived_source_label",
+      "source_relation": "species-like pseudo morphology category",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    },
+    {
+      "label_id": "pseudo_pf_like",
+      "display_label": "P. felina-like",
+      "label_kind": "derived_source_label",
+      "source_relation": "species-like pseudo morphology category; source notes incomplete mimicry",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    },
+    {
+      "label_id": "pseudo_sm_like",
+      "display_label": "S. mediterranea-like",
+      "label_kind": "derived_source_label",
+      "source_relation": "species-like pseudo morphology category",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    },
+    {
+      "label_id": "failed_ap_regeneration",
+      "display_label": "failed AP regeneration",
+      "label_kind": "derived_source_label",
+      "source_relation": "scored failure class in source frequency panel",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    },
+    {
+      "label_id": "unclassified_teaching_abstraction",
+      "display_label": "unclassified teaching abstraction",
+      "label_kind": "synthetic_teaching_label",
+      "source_relation": "synthetic or unresolved teaching category",
+      "visual_policy": "generated symbolic silhouette or text label only"
+    }
+  ]
+}

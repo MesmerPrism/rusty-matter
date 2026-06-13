@@ -5,7 +5,8 @@ use rusty_matter_fields::{
     bioelectric_node_voltage_neighborhood_targets, planarian_comparison_scenario_kinds,
     BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitEditResult,
     BioelectricCircuitRuntime, BioelectricCircuitState, BioelectricCircuitStepDiagnostics,
-    PlanarianAxisRegion, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
+    BioelectricCircuitStepScratch, BioelectricVoltageUnit, PlanarianAxisRegion,
+    PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
     PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
     SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldStepDiagnostics,
@@ -326,12 +327,14 @@ impl PlanarianWasmEditEvent {
 pub struct PlanarianBioelectricRealtimeRuntime {
     runtime: BioelectricCircuitRuntime,
     source_run: PlanarianBioelectricScenarioRun,
-    outcome_trace: PlanarianBioelectricOutcomeTrace,
-    outcome_trace_set: PlanarianBioelectricOutcomeTraceSet,
+    outcome_trace: Option<PlanarianBioelectricOutcomeTrace>,
+    outcome_trace_set: Option<PlanarianBioelectricOutcomeTraceSet>,
+    graph_density: PlanarianWasmGraphDensity,
     initial_circuit: BioelectricCircuitState,
     circuit: BioelectricCircuitState,
     step_index: u32,
     last_step: BioelectricCircuitStepDiagnostics,
+    step_scratch: BioelectricCircuitStepScratch,
     last_node_activity: Vec<f32>,
     last_edit: Option<BioelectricCircuitEditResult>,
     edit_events: Vec<PlanarianWasmEditEvent>,
@@ -348,7 +351,20 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// or runtime contracts fail validation.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue> {
-        Self::for_scenario(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory)
+        Self::for_scenario_with_density(
+            PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+            PlanarianWasmGraphDensity::Standard,
+        )
+    }
+
+    /// Creates the deterministic GLB-derived planarian runtime at a graph density tier.
+    ///
+    /// Codes are: `0=standard`, `1=dense`, `2=intricate`, `3=render`.
+    pub fn with_graph_density(density_code: u32) -> Result<Self, JsValue> {
+        Self::for_scenario_with_density(
+            PlanarianBioelectricScenarioKind::TransientDepolarizationMemory,
+            PlanarianWasmGraphDensity::from_code(density_code)?,
+        )
     }
 
     /// Resets circuit state and timestep to the deterministic initial state.
@@ -370,16 +386,19 @@ impl PlanarianBioelectricRealtimeRuntime {
     pub fn reset_to_scenario(&mut self, scenario_code: u32) -> Result<Float32Array, JsValue> {
         let next = Self::for_scenario_with_trace_set(
             scenario_kind_from_code(scenario_code)?,
+            self.graph_density,
             self.outcome_trace_set.clone(),
         )?;
         self.runtime = next.runtime;
         self.source_run = next.source_run;
         self.outcome_trace = next.outcome_trace;
         self.outcome_trace_set = next.outcome_trace_set;
+        self.graph_density = next.graph_density;
         self.initial_circuit = next.initial_circuit;
         self.circuit = next.circuit;
         self.step_index = next.step_index;
         self.last_step = next.last_step;
+        self.step_scratch = next.step_scratch;
         self.last_node_activity = next.last_node_activity;
         self.last_edit = next.last_edit;
         self.edit_events = next.edit_events;
@@ -395,17 +414,12 @@ impl PlanarianBioelectricRealtimeRuntime {
         let steps = requested_steps.clamp(1, 8);
         let mut activity = zero_node_activity(self.circuit.node_count);
         for _ in 0..steps {
-            let previous_voltage = self.circuit.voltage.values.clone();
             self.last_step = self
                 .runtime
-                .step_fixed(
-                    &self.source_run.substrate,
-                    &mut self.circuit,
-                    self.step_index,
-                )
+                .step_fixed_prevalidated(&mut self.circuit, self.step_index, &mut self.step_scratch)
                 .map_err(to_js_error)?;
             accumulate_voltage_activity(
-                &previous_voltage,
+                self.step_scratch.previous_voltage(),
                 &self.circuit.voltage.values,
                 &mut activity,
             );
@@ -714,9 +728,9 @@ impl PlanarianBioelectricRealtimeRuntime {
     /// `[step_index, time_seconds, posterior_memory_average,
     /// posterior_head_identity_average, head_identity_at_head_average,
     /// tail_identity_at_tail_average, cut_band_voltage_average]`.
-    #[must_use]
-    pub fn outcome_trace(&self) -> Float32Array {
-        outcome_trace_values(&self.outcome_trace)
+    pub fn outcome_trace(&mut self) -> Result<Float32Array, JsValue> {
+        let trace = self.ensure_outcome_trace()?;
+        Ok(outcome_trace_values(trace))
     }
 
     /// Returns the number of floats per `outcome_trace()` sample.
@@ -726,31 +740,33 @@ impl PlanarianBioelectricRealtimeRuntime {
     }
 
     /// Returns the number of samples in the current deterministic outcome trace.
-    #[must_use]
-    pub fn outcome_trace_sample_count(&self) -> usize {
-        self.outcome_trace.samples.len()
+    pub fn outcome_trace_sample_count(&mut self) -> Result<usize, JsValue> {
+        Ok(self.ensure_outcome_trace()?.samples.len())
     }
 
     /// Returns the initial cross-cut conductance average for this scenario.
-    #[must_use]
-    pub fn outcome_trace_cross_cut_conductance(&self) -> f32 {
-        self.outcome_trace.cross_cut_base_conductance_average
+    pub fn outcome_trace_cross_cut_conductance(&mut self) -> Result<f32, JsValue> {
+        Ok(self
+            .ensure_outcome_trace()?
+            .cross_cut_base_conductance_average)
     }
 
     /// Returns scenario codes available in the Matter comparison trace set.
     #[must_use]
     pub fn comparison_scenario_codes(&self) -> Uint32Array {
-        let values = self
-            .outcome_trace_set
-            .traces
+        let values = planarian_comparison_scenario_kinds()
             .iter()
-            .map(|trace| scenario_code(trace.scenario_kind))
+            .copied()
+            .map(scenario_code)
             .collect::<Vec<_>>();
         Uint32Array::from(values.as_slice())
     }
 
     /// Returns a Matter-owned deterministic outcome trace for a scenario code.
-    pub fn outcome_trace_for_scenario(&self, scenario_code: u32) -> Result<Float32Array, JsValue> {
+    pub fn outcome_trace_for_scenario(
+        &mut self,
+        scenario_code: u32,
+    ) -> Result<Float32Array, JsValue> {
         Ok(outcome_trace_values(
             self.trace_for_scenario_code(scenario_code)?,
         ))
@@ -758,7 +774,7 @@ impl PlanarianBioelectricRealtimeRuntime {
 
     /// Returns the cross-cut conductance average for a comparison scenario.
     pub fn outcome_trace_cross_cut_conductance_for_scenario(
-        &self,
+        &mut self,
         scenario_code: u32,
     ) -> Result<f32, JsValue> {
         Ok(self
@@ -768,7 +784,7 @@ impl PlanarianBioelectricRealtimeRuntime {
 
     /// Returns the number of samples for a comparison scenario trace.
     pub fn outcome_trace_sample_count_for_scenario(
-        &self,
+        &mut self,
         scenario_code: u32,
     ) -> Result<usize, JsValue> {
         Ok(self.trace_for_scenario_code(scenario_code)?.samples.len())
@@ -1066,6 +1082,60 @@ impl PlanarianBioelectricRealtimeRuntime {
         )
     }
 
+    /// Returns the scenario evidence label owned by Matter.
+    #[must_use]
+    pub fn evidence_type(&self) -> String {
+        self.source_run.evidence_type.clone()
+    }
+
+    /// Returns Matter's expected qualitative outcome label for the scenario.
+    #[must_use]
+    pub fn expected_outcome(&self) -> String {
+        self.source_run.expected_outcome.clone()
+    }
+
+    /// Returns the number of compact source/target anchors on this scenario.
+    #[must_use]
+    pub fn literature_anchor_count(&self) -> usize {
+        self.source_run.literature_anchors.len()
+    }
+
+    /// Returns one compact source/target anchor by index.
+    pub fn literature_anchor(&self, anchor_index: u32) -> Result<String, JsValue> {
+        self.source_run
+            .literature_anchors
+            .get(u32_to_usize(anchor_index))
+            .cloned()
+            .ok_or_else(|| JsValue::from_str("planarian literature anchor index is unavailable"))
+    }
+
+    /// Returns the voltage unit policy code for the active circuit state.
+    ///
+    /// Codes are: `0=normalized`, `1=millivolts`.
+    #[must_use]
+    pub fn voltage_unit_code(&self) -> u32 {
+        voltage_unit_code(self.circuit.voltage.unit)
+    }
+
+    /// Returns the voltage unit policy label for the active circuit state.
+    #[must_use]
+    pub fn voltage_unit_label(&self) -> String {
+        voltage_unit_label(self.circuit.voltage.unit).to_owned()
+    }
+
+    /// Returns a concise Matter-owned voltage-unit policy statement.
+    #[must_use]
+    pub fn voltage_unit_policy(&self) -> String {
+        match self.circuit.voltage.unit {
+            BioelectricVoltageUnit::Normalized => {
+                "normalized qualitative voltage; not calibrated millivolts".to_owned()
+            }
+            BioelectricVoltageUnit::Millivolts => {
+                "explicit millivolt voltage; requires source-calibrated fixtures".to_owned()
+            }
+        }
+    }
+
     /// Returns substrate node count.
     #[must_use]
     pub fn node_count(&self) -> usize {
@@ -1083,20 +1153,50 @@ impl PlanarianBioelectricRealtimeRuntime {
     pub fn body_triangle_count(&self) -> usize {
         self.source_run.source_surface.triangle_count()
     }
+
+    /// Returns the selected Matter graph-density tier code.
+    #[must_use]
+    pub fn graph_density_code(&self) -> u32 {
+        self.graph_density.code()
+    }
+
+    /// Returns the configured sample count for the selected graph-density tier.
+    #[must_use]
+    pub fn graph_density_sample_count(&self) -> usize {
+        self.graph_density.sample_count()
+    }
+
+    /// Returns the configured first-tier neighbor count for the selected graph-density tier.
+    #[must_use]
+    pub fn graph_density_first_tier_neighbor_count(&self) -> usize {
+        self.graph_density.first_tier_neighbor_count()
+    }
+
+    /// Returns the configured second-tier neighbor count for the selected graph-density tier.
+    #[must_use]
+    pub fn graph_density_second_tier_neighbor_count(&self) -> usize {
+        self.graph_density.second_tier_neighbor_count()
+    }
 }
 
 impl PlanarianBioelectricRealtimeRuntime {
-    fn for_scenario(scenario_kind: PlanarianBioelectricScenarioKind) -> Result<Self, JsValue> {
-        Self::for_scenario_with_trace_set(scenario_kind, planarian_wasm_outcome_trace_set()?)
+    fn for_scenario_with_density(
+        scenario_kind: PlanarianBioelectricScenarioKind,
+        graph_density: PlanarianWasmGraphDensity,
+    ) -> Result<Self, JsValue> {
+        Self::for_scenario_with_trace_set(scenario_kind, graph_density, None)
     }
 
     fn for_scenario_with_trace_set(
         scenario_kind: PlanarianBioelectricScenarioKind,
-        outcome_trace_set: PlanarianBioelectricOutcomeTraceSet,
+        graph_density: PlanarianWasmGraphDensity,
+        outcome_trace_set: Option<PlanarianBioelectricOutcomeTraceSet>,
     ) -> Result<Self, JsValue> {
-        let source_run =
-            PlanarianBioelectricScenarioRun::build(scenario_kind, planarian_wasm_config())
-                .map_err(to_js_error)?;
+        let source_run = PlanarianBioelectricScenarioRun::build(
+            scenario_kind,
+            planarian_wasm_config(graph_density),
+        )
+        .map_err(to_js_error)?;
         let mut config = source_run.circuit_config.clone();
         config.config_id.clear();
         config
@@ -1105,16 +1205,18 @@ impl PlanarianBioelectricRealtimeRuntime {
         config.max_steps_per_run = u32::MAX;
         let runtime = BioelectricCircuitRuntime::new(config).map_err(to_js_error)?;
         let outcome_trace = outcome_trace_set
-            .trace_for_scenario(scenario_kind)
-            .ok_or_else(|| JsValue::from_str("missing planarian outcome trace for scenario"))?
-            .clone();
+            .as_ref()
+            .and_then(|trace_set| trace_set.trace_for_scenario(scenario_kind))
+            .cloned();
         let initial_circuit = source_run.initial_circuit.clone();
         Ok(Self {
             runtime,
             source_run,
             outcome_trace,
             outcome_trace_set,
+            graph_density,
             circuit: initial_circuit.clone(),
+            step_scratch: BioelectricCircuitStepScratch::for_node_count(initial_circuit.node_count),
             last_node_activity: zero_node_activity(initial_circuit.node_count),
             initial_circuit,
             step_index: 0,
@@ -1166,13 +1268,50 @@ impl PlanarianBioelectricRealtimeRuntime {
     }
 
     fn trace_for_scenario_code(
-        &self,
+        &mut self,
         scenario_code_value: u32,
     ) -> Result<&PlanarianBioelectricOutcomeTrace, JsValue> {
         let scenario_kind = scenario_kind_from_code(scenario_code_value)?;
-        self.outcome_trace_set
+        if scenario_kind == self.source_run.scenario_kind {
+            return self.ensure_outcome_trace();
+        }
+        self.ensure_outcome_trace_set()?
             .trace_for_scenario(scenario_kind)
             .ok_or_else(|| JsValue::from_str("missing planarian outcome trace for scenario"))
+    }
+
+    fn ensure_outcome_trace(&mut self) -> Result<&PlanarianBioelectricOutcomeTrace, JsValue> {
+        if self.outcome_trace.is_none() {
+            self.outcome_trace = self
+                .outcome_trace_set
+                .as_ref()
+                .and_then(|trace_set| trace_set.trace_for_scenario(self.source_run.scenario_kind))
+                .cloned()
+                .map_or_else(
+                    || {
+                        planarian_wasm_outcome_trace(
+                            self.source_run.scenario_kind,
+                            self.graph_density,
+                        )
+                    },
+                    Ok,
+                )
+                .map(Some)?;
+        }
+        self.outcome_trace
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("missing planarian outcome trace"))
+    }
+
+    fn ensure_outcome_trace_set(
+        &mut self,
+    ) -> Result<&PlanarianBioelectricOutcomeTraceSet, JsValue> {
+        if self.outcome_trace_set.is_none() {
+            self.outcome_trace_set = Some(planarian_wasm_outcome_trace_set(self.graph_density)?);
+        }
+        self.outcome_trace_set
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("missing planarian outcome trace set"))
     }
 }
 
@@ -1280,30 +1419,114 @@ fn dynamic_contracts() -> Result<
     Ok((substrate, state, vec![wound, vmem, polarity, coupling]))
 }
 
-fn planarian_wasm_config() -> PlanarianBioelectricPresetConfig {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PlanarianWasmGraphDensity {
+    Standard,
+    Dense,
+    Intricate,
+    Render,
+}
+
+impl PlanarianWasmGraphDensity {
+    fn from_code(code: u32) -> Result<Self, JsValue> {
+        match code {
+            0 => Ok(Self::Standard),
+            1 => Ok(Self::Dense),
+            2 => Ok(Self::Intricate),
+            3 => Ok(Self::Render),
+            _ => Err(JsValue::from_str("unknown planarian graph density code")),
+        }
+    }
+
+    const fn code(self) -> u32 {
+        match self {
+            Self::Standard => 0,
+            Self::Dense => 1,
+            Self::Intricate => 2,
+            Self::Render => 3,
+        }
+    }
+
+    const fn sample_count(self) -> usize {
+        match self {
+            Self::Standard => 160,
+            Self::Dense => 320,
+            Self::Intricate => 360,
+            Self::Render => 720,
+        }
+    }
+
+    const fn first_tier_neighbor_count(self) -> usize {
+        match self {
+            Self::Standard => 5,
+            Self::Dense => 6,
+            Self::Intricate => 6,
+            Self::Render => 8,
+        }
+    }
+
+    const fn second_tier_neighbor_count(self) -> usize {
+        match self {
+            Self::Standard => 5,
+            Self::Dense => 6,
+            Self::Intricate => 6,
+            Self::Render => 8,
+        }
+    }
+
+    const fn comparison_sample_count(self) -> usize {
+        128
+    }
+}
+
+fn planarian_wasm_config(
+    graph_density: PlanarianWasmGraphDensity,
+) -> PlanarianBioelectricPresetConfig {
     PlanarianBioelectricPresetConfig {
-        sample_count: 160,
-        first_tier_neighbor_count: 5,
-        second_tier_neighbor_count: 5,
-        step_count: 240,
+        sample_count: graph_density.sample_count(),
+        first_tier_neighbor_count: graph_density.first_tier_neighbor_count(),
+        second_tier_neighbor_count: graph_density.second_tier_neighbor_count(),
+        step_count: 24,
         frame_stride: 12,
         seed: 196_613,
         ..PlanarianBioelectricPresetConfig::default()
     }
 }
 
-fn planarian_wasm_outcome_trace_set() -> Result<PlanarianBioelectricOutcomeTraceSet, JsValue> {
+fn planarian_wasm_outcome_trace_set(
+    graph_density: PlanarianWasmGraphDensity,
+) -> Result<PlanarianBioelectricOutcomeTraceSet, JsValue> {
     PlanarianBioelectricOutcomeTraceSet::from_preset_config(
         "fields.planarian_ap.wasm_comparison_outcome_trace_set",
         &planarian_comparison_scenario_kinds(),
-        planarian_wasm_comparison_config(),
+        planarian_wasm_comparison_config(graph_density),
     )
     .map_err(to_js_error)
 }
 
-fn planarian_wasm_comparison_config() -> PlanarianBioelectricPresetConfig {
+fn planarian_wasm_outcome_trace(
+    scenario_kind: PlanarianBioelectricScenarioKind,
+    graph_density: PlanarianWasmGraphDensity,
+) -> Result<PlanarianBioelectricOutcomeTrace, JsValue> {
+    let run = PlanarianBioelectricScenarioRun::build(
+        scenario_kind,
+        planarian_wasm_comparison_config(graph_density),
+    )
+    .map_err(to_js_error)?;
+    PlanarianBioelectricOutcomeTrace::from_scenario_run(
+        format!("{}.outcome_trace", run.scenario_id),
+        &run,
+    )
+    .map_err(to_js_error)
+}
+
+fn planarian_wasm_comparison_config(
+    graph_density: PlanarianWasmGraphDensity,
+) -> PlanarianBioelectricPresetConfig {
     PlanarianBioelectricPresetConfig {
-        sample_count: 128,
+        sample_count: graph_density.comparison_sample_count(),
+        first_tier_neighbor_count: graph_density.first_tier_neighbor_count(),
+        second_tier_neighbor_count: graph_density.second_tier_neighbor_count(),
         step_count: 240,
         frame_stride: 12,
         seed: 196_613,
@@ -1329,6 +1552,20 @@ fn scenario_code(kind: PlanarianBioelectricScenarioKind) -> u32 {
         PlanarianBioelectricScenarioKind::GapBlock => 2,
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory => 3,
         PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl => 4,
+    }
+}
+
+fn voltage_unit_code(unit: BioelectricVoltageUnit) -> u32 {
+    match unit {
+        BioelectricVoltageUnit::Normalized => 0,
+        BioelectricVoltageUnit::Millivolts => 1,
+    }
+}
+
+fn voltage_unit_label(unit: BioelectricVoltageUnit) -> &'static str {
+    match unit {
+        BioelectricVoltageUnit::Normalized => "normalized",
+        BioelectricVoltageUnit::Millivolts => "millivolts",
     }
 }
 

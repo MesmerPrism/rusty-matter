@@ -65,3 +65,12 @@ pub const PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID: &str =
 /// Schema ID for planarian bioelectric outcome trace comparison sets.
 pub const PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID: &str =
     "rusty.matter.fields.planarian_bioelectric_outcome_trace_set.v1";
+/// Schema ID for normalized, non-calibrated planarian morphology metrics.
+pub const PLANARIAN_NORMALIZED_MORPHOLOGY_METRICS_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_normalized_morphology_metrics.v1";
+/// Schema ID for rights-safe planarian species-like head label taxonomies.
+pub const PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_species_like_head_taxonomy.v1";
+/// Schema ID for curated PlanformDB-derived review fixtures.
+pub const PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID: &str =
+    "rusty.matter.fields.planformdb_derived_fixture.v1";

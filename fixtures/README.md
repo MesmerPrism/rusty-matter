@@ -22,6 +22,14 @@ The SDF foundation bundle currently includes:
   cross-cut conductance metrics derived from Matter scenario runs, plus the
   comparison trace set fixture that keeps baseline, wound, gap-block, memory,
   and no-memory traces on shared timing and metric columns;
+- normalized planarian morphology/readout metrics in `fixtures/fields`, with
+  mesh-normalized head and pharyngeal extents plus a head-identity readout
+  extent. These are educational summaries, not calibrated area measurements;
+- a rights-safe species-like head-label taxonomy in `fixtures/fields`, using
+  generated-symbol/text labels only and no paper figure reuse;
+- a tiny PlanformDB-derived review fixture in `fixtures/fields`, preserving
+  source IDs, citation IDs, notice text, normalized labels, sample counts, and
+  outcome frequencies without importing raw database rows or runtime dynamics;
 - synthetic hand validation mesh frame fixtures in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
@@ -55,6 +63,12 @@ data with attribution in `THIRD_PARTY_NOTICES.md`.
 `fixtures/fields/planarian-ap-comparison-outcome-trace-set.json` is the compact
 comparison bundle for browser overlays and educational checks. It is generated
 from Matter scenario runs, not from Optics or browser-side metric code.
+
+`fixtures/fields/planarian-normalized-morphology-metrics.json`,
+`fixtures/fields/planarian-species-like-head-taxonomy.json`, and
+`fixtures/fields/planformdb-derived-v0.json` are source-target validation and
+annotation artifacts. They do not change Matter's voltage, conductance,
+memory/readout, or stepping behavior.
 
 For exported GLB captures, run:
 

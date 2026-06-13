@@ -3,12 +3,17 @@ use crate::{
     PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SCHEMA_ID,
     PLANARIAN_BIOELECTRIC_OUTCOME_TRACE_SET_SCHEMA_ID,
+    PLANARIAN_NORMALIZED_MORPHOLOGY_METRICS_SCHEMA_ID,
 };
 
 const HEAD_IDENTITY_READOUT_ID: &str = "readout.planarian_ap.head_identity";
 const TAIL_IDENTITY_READOUT_ID: &str = "readout.planarian_ap.tail_identity";
 const DEFAULT_CUT_Z: f32 = 0.16;
 const DEFAULT_CUT_HALF_WIDTH: f32 = 0.11;
+const HEAD_SIZE_SCALING_SOURCE_TARGET_ANCHOR: &str =
+    "source:beane_2013_dev::target:head_size_scaling::future_metric";
+const NORMALIZED_MORPHOLOGY_UNIT_POLICY: &str =
+    "mesh-normalized educational geometry/readout extents; not calibrated area or physiology";
 
 /// One sampled educational outcome metric row for a planarian bioelectric run.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -384,6 +389,274 @@ impl PlanarianBioelectricOutcomeTraceSet {
     }
 }
 
+/// One normalized AP-region geometry summary over a planarian sampled graph.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianRegionExtentMetric {
+    /// Region enum.
+    pub region: PlanarianAxisRegion,
+    /// Stable region identifier.
+    pub region_id: String,
+    /// Human-readable label.
+    pub label: String,
+    /// Sampled nodes classified into the region.
+    pub node_count: usize,
+    /// Fraction of all sampled nodes in this region.
+    pub node_fraction: f32,
+    /// Minimum sampled AP coordinate in 0..=1.
+    pub ap_min: f32,
+    /// Maximum sampled AP coordinate in 0..=1.
+    pub ap_max: f32,
+    /// Sampled AP span in 0..=1.
+    pub sampled_ap_span_normalized: f32,
+    /// Mean absolute lateral coordinate over sampled nodes.
+    pub mean_abs_lateral_coordinate: f32,
+}
+
+impl PlanarianRegionExtentMetric {
+    fn from_axis_map(
+        axis_map: &PlanarianAxisMap,
+        region: PlanarianAxisRegion,
+    ) -> Result<Self, MatterFieldError> {
+        let region_nodes = axis_map
+            .node_regions
+            .iter()
+            .filter(|node| node.region == region)
+            .collect::<Vec<_>>();
+        if region_nodes.is_empty() {
+            return Err(MatterFieldError::InvalidField(
+                "planarian morphology metric requires every AP region",
+            ));
+        }
+        let node_count = region_nodes.len();
+        let total_count = axis_map.node_regions.len();
+        let mut ap_min = f32::INFINITY;
+        let mut ap_max = f32::NEG_INFINITY;
+        let mut lateral_sum = 0.0;
+        for node in region_nodes {
+            ap_min = ap_min.min(node.ap_coordinate);
+            ap_max = ap_max.max(node.ap_coordinate);
+            lateral_sum += node.lateral_coordinate.abs();
+        }
+        let metric = Self {
+            region,
+            region_id: region.region_id().to_owned(),
+            label: region.label().to_owned(),
+            node_count,
+            node_fraction: node_count as f32 / total_count as f32,
+            ap_min,
+            ap_max,
+            sampled_ap_span_normalized: ap_max - ap_min,
+            mean_abs_lateral_coordinate: lateral_sum / node_count as f32,
+        };
+        metric.validate(total_count)?;
+        Ok(metric)
+    }
+
+    fn validate(&self, total_node_count: usize) -> Result<(), MatterFieldError> {
+        if self.region_id != self.region.region_id()
+            || self.label.trim().is_empty()
+            || self.node_count == 0
+            || self.node_count > total_node_count
+        {
+            return Err(MatterFieldError::InvalidField(
+                "planarian region extent metadata must match sampled regions",
+            ));
+        }
+        validate_fraction(self.node_fraction, "planarian region node fraction")?;
+        validate_fraction(self.ap_min, "planarian region AP minimum")?;
+        validate_fraction(self.ap_max, "planarian region AP maximum")?;
+        validate_fraction(
+            self.sampled_ap_span_normalized,
+            "planarian sampled region AP span",
+        )?;
+        if self.ap_min > self.ap_max {
+            return Err(MatterFieldError::InvalidField(
+                "planarian region AP extent must be ordered",
+            ));
+        }
+        if !self.mean_abs_lateral_coordinate.is_finite() || self.mean_abs_lateral_coordinate < 0.0 {
+            return Err(MatterFieldError::InvalidField(
+                "planarian region lateral coordinate summary must be finite",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Normalized planarian morphology/readout metrics for educational checks.
+///
+/// These values summarize Matter-owned sampled geometry and readouts. They are
+/// not calibrated head-size, organ-size, or physiology predictions.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianNormalizedMorphologyMetrics {
+    /// Schema identifier.
+    pub schema_id: String,
+    /// Stable metric bundle identifier.
+    pub metrics_id: String,
+    /// Source scenario identifier.
+    pub scenario_id: String,
+    /// Source substrate identifier.
+    pub source_substrate_id: String,
+    /// Source surface identifier.
+    pub source_surface_id: String,
+    /// Source axis-map identifier.
+    pub source_axis_map_id: String,
+    /// Evidence type copied from the scenario run.
+    pub evidence_type: String,
+    /// Unit policy and non-calibration boundary.
+    pub unit_policy: String,
+    /// Source-target status for this first metric slice.
+    pub source_target_status: String,
+    /// Source-target anchors represented by the metric bundle.
+    pub source_target_anchors: Vec<String>,
+    /// Sampled AP-region extent metrics.
+    pub region_extents: Vec<PlanarianRegionExtentMetric>,
+    /// Head AP-region sampled extent in normalized body coordinates.
+    pub head_region_extent_normalized: f32,
+    /// Pharyngeal trunk AP-region sampled extent in normalized body coordinates.
+    pub pharyngeal_region_extent_normalized: f32,
+    /// Fraction of sampled nodes whose final head-identity readout is at least 0.5.
+    pub head_identity_extent_normalized: f32,
+}
+
+impl PlanarianNormalizedMorphologyMetrics {
+    /// Builds normalized educational metrics from one validated planarian run.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when the source run or generated metric
+    /// contract is invalid.
+    pub fn from_scenario_run(
+        metrics_id: impl Into<String>,
+        run: &PlanarianBioelectricScenarioRun,
+    ) -> Result<Self, MatterFieldError> {
+        run.validate()?;
+        let region_extents = PlanarianAxisRegion::all()
+            .into_iter()
+            .map(|region| PlanarianRegionExtentMetric::from_axis_map(&run.axis_map, region))
+            .collect::<Result<Vec<_>, _>>()?;
+        let final_frame = run
+            .sequence
+            .frames
+            .last()
+            .ok_or(MatterFieldError::InvalidRunSummary(
+                "planarian normalized morphology metrics require a final frame",
+            ))?;
+        let head_readout = readout_values(final_frame, HEAD_IDENTITY_READOUT_ID)?;
+        let head_identity_extent_normalized = head_readout
+            .iter()
+            .filter(|value| value.is_finite() && **value >= 0.5)
+            .count() as f32
+            / head_readout.len() as f32;
+        let metrics = Self {
+            schema_id: PLANARIAN_NORMALIZED_MORPHOLOGY_METRICS_SCHEMA_ID.to_owned(),
+            metrics_id: metrics_id.into(),
+            scenario_id: run.scenario_id.clone(),
+            source_substrate_id: run.substrate.substrate_id.clone(),
+            source_surface_id: run.source_surface.surface_id.clone(),
+            source_axis_map_id: run.axis_map.map_id.clone(),
+            evidence_type: run.evidence_type.clone(),
+            unit_policy: NORMALIZED_MORPHOLOGY_UNIT_POLICY.to_owned(),
+            source_target_status: "source_reviewed_metric_path_without_calibrated_thresholds"
+                .to_owned(),
+            source_target_anchors: vec![HEAD_SIZE_SCALING_SOURCE_TARGET_ANCHOR.to_owned()],
+            head_region_extent_normalized: region_span(&region_extents, PlanarianAxisRegion::Head)?,
+            pharyngeal_region_extent_normalized: region_span(
+                &region_extents,
+                PlanarianAxisRegion::PharyngealTrunk,
+            )?,
+            head_identity_extent_normalized,
+            region_extents,
+        };
+        metrics.validate()?;
+        Ok(metrics)
+    }
+
+    /// Validates the metric bundle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when schema, source metadata, unit policy,
+    /// anchors, or normalized values are invalid.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != PLANARIAN_NORMALIZED_MORPHOLOGY_METRICS_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: PLANARIAN_NORMALIZED_MORPHOLOGY_METRICS_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.metrics_id.trim().is_empty()
+            || self.scenario_id.trim().is_empty()
+            || self.source_substrate_id.trim().is_empty()
+            || self.source_surface_id.trim().is_empty()
+            || self.source_axis_map_id.trim().is_empty()
+            || self.evidence_type.trim().is_empty()
+            || !self.unit_policy.contains("not calibrated")
+            || self.source_target_status.trim().is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian normalized morphology metric metadata must be populated",
+            ));
+        }
+        if self.source_target_anchors != [HEAD_SIZE_SCALING_SOURCE_TARGET_ANCHOR.to_owned()] {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "planarian normalized morphology metrics must keep the head-size source-target anchor",
+            ));
+        }
+        validate_fraction(
+            self.head_region_extent_normalized,
+            "planarian normalized head-region extent",
+        )?;
+        validate_fraction(
+            self.pharyngeal_region_extent_normalized,
+            "planarian normalized pharyngeal-region extent",
+        )?;
+        validate_fraction(
+            self.head_identity_extent_normalized,
+            "planarian normalized head-identity extent",
+        )?;
+        if self.region_extents.len() != PlanarianAxisRegion::all().len() {
+            return Err(MatterFieldError::InvalidField(
+                "planarian normalized morphology metrics require every AP region",
+            ));
+        }
+        let mut total_nodes = 0_usize;
+        for (metric, expected_region) in self.region_extents.iter().zip(PlanarianAxisRegion::all())
+        {
+            if metric.region != expected_region {
+                return Err(MatterFieldError::InvalidField(
+                    "planarian normalized morphology region metrics must be posterior-to-anterior",
+                ));
+            }
+            total_nodes += metric.node_count;
+        }
+        if total_nodes == 0 {
+            return Err(MatterFieldError::InvalidField(
+                "planarian normalized morphology metrics require sampled nodes",
+            ));
+        }
+        for metric in &self.region_extents {
+            metric.validate(total_nodes)?;
+        }
+        if (region_span(&self.region_extents, PlanarianAxisRegion::Head)?
+            - self.head_region_extent_normalized)
+            .abs()
+            > 1.0e-5
+            || (region_span(&self.region_extents, PlanarianAxisRegion::PharyngealTrunk)?
+                - self.pharyngeal_region_extent_normalized)
+                .abs()
+                > 1.0e-5
+        {
+            return Err(MatterFieldError::InvalidField(
+                "planarian normalized morphology summary fields must match region metrics",
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Returns the default educational comparison scenario order.
 #[must_use]
 pub const fn planarian_comparison_scenario_kinds() -> [PlanarianBioelectricScenarioKind; 5] {
@@ -481,6 +754,19 @@ fn average_nodes(values: &[f32], nodes: &[usize]) -> f32 {
         .filter_map(|node_index| values.get(node_index).copied())
         .sum::<f32>()
         / nodes.len() as f32
+}
+
+fn region_span(
+    metrics: &[PlanarianRegionExtentMetric],
+    region: PlanarianAxisRegion,
+) -> Result<f32, MatterFieldError> {
+    metrics
+        .iter()
+        .find(|metric| metric.region == region)
+        .map(|metric| metric.sampled_ap_span_normalized)
+        .ok_or(MatterFieldError::InvalidField(
+            "planarian normalized morphology metric is missing a region",
+        ))
 }
 
 fn validate_fraction(value: f32, label: &'static str) -> Result<(), MatterFieldError> {

@@ -20,7 +20,9 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   circuit debug sequences, and planarian AP bioelectric presets over a
   reviewed GLB-derived educational body mesh with synthetic fallback and
   mesh-anchored substrate nodes, plus compact scenario outcome traces and
-  comparison trace sets;
+  comparison trace sets, normalized non-calibrated morphology/readout metrics,
+  a rights-safe species-like head-label taxonomy, and a tiny PlanformDB-derived
+  review fixture that stays out of runtime dynamics;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
@@ -54,8 +56,9 @@ substrates, scalar/vector states, perturbations, runtime configs, sparse
 dynamics, bioelectric circuit contracts, circuit edit requests/results,
 circuit debug frames, GLB-derived and synthetic planarian presets,
 Planarian 3D realtime scenario switching, scenario outcome traces and trace
-sets, selected readouts, tiered voltage-neighborhood edit targets, recent
-edit-event and affected-target readouts, summaries, debug frames, and errors.
+sets, normalized morphology metrics, source-evidence fixtures, selected
+readouts, tiered voltage-neighborhood edit targets, recent edit-event and
+affected-target readouts, summaries, debug frames, and errors.
 Mesh code is split by surface, sampling/live updates, accelerated distance
 queries, coordinate maps, hand payloads, dynamic collider, and error/math
 helpers. Batch code is split by config, chunks, executor, report, and errors.
@@ -67,6 +70,17 @@ runtime code is split by facade/runtime types and orchestration errors.
 Fixture generation is split by artifact dispatch,
 summaries, fields, SDF, ADF, mesh, particle, and damaged-input families.
 Schema export is split by catalog, CLI, and error modules.
+
+## Bioelectricity Source Targets
+
+The planarian bioelectric scenarios carry public source/target anchor IDs in
+their serialized `literature_anchors` field. See
+`docs/BIOELECTRICITY_SOURCE_TARGETS.md` before changing planarian scenario
+claims, adding source-derived thresholds, or promoting PlanformDB-derived
+records into fixtures.
+The current PlanformDB-derived fixture is a small validation/review artifact
+with notice text and damaged-input coverage; it is not a runtime dynamics input
+or a calibrated phenotype predictor.
 
 ## Boundary
 

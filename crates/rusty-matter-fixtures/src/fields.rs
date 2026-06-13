@@ -1,4 +1,5 @@
 use rusty_matter_fields::{
+    default_planarian_species_like_head_taxonomy, default_planformdb_derived_fixture,
     planarian_comparison_scenario_kinds, BioelectricCircuitConfig, BioelectricCircuitEdit,
     BioelectricCircuitEditOperation, BioelectricCircuitEditResult, BioelectricCircuitRuntime,
     BioelectricCircuitState, BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge,
@@ -6,10 +7,12 @@ use rusty_matter_fields::{
     BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
     BioelectricVoltageUnit, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
     PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
-    PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence,
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary,
-    SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate,
-    SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
+    PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
+    PlanarianSpeciesLikeHeadTaxonomy, PlanformDbDerivedFixture, SurfaceFieldDebugFrame,
+    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldRunSummary, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState,
+    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
+    SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -163,6 +166,25 @@ pub(crate) fn planarian_bioelectric_outcome_trace_set(
         planarian_fixture_config(),
     )
     .map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_normalized_morphology_metrics(
+) -> Result<PlanarianNormalizedMorphologyMetrics, CliError> {
+    let run = planarian_bioelectric_scenario_run()?;
+    PlanarianNormalizedMorphologyMetrics::from_scenario_run(
+        "fixture.fields.planarian_ap.normalized_morphology_metrics",
+        &run,
+    )
+    .map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_species_like_head_taxonomy(
+) -> Result<PlanarianSpeciesLikeHeadTaxonomy, CliError> {
+    default_planarian_species_like_head_taxonomy().map_err(CliError::Field)
+}
+
+pub(crate) fn planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, CliError> {
+    default_planformdb_derived_fixture().map_err(CliError::Field)
 }
 
 fn planarian_fixture_config() -> PlanarianBioelectricPresetConfig {

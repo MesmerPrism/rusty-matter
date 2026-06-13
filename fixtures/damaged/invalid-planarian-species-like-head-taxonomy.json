@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_planarian_species_like_head_taxonomy.v1",
+  "damaged_input_id": "damaged.fields.invalid_planarian_species_like_head_taxonomy",
+  "expected_rejection_code": "field.invalid_run_summary",
+  "actual_rejection_code": "field.invalid_run_summary",
+  "message": "invalid surface-field run summary: planarian species-like head taxonomy must not repeat labels"
+}

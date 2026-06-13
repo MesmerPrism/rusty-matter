@@ -33,6 +33,10 @@ Matter owns:
 - compact planarian scenario outcome traces that summarize Matter-owned
   memory, readout, cut-band voltage, and cross-cut conductance metrics, plus
   comparison trace sets over the deterministic scenario family;
+- normalized, non-calibrated planarian morphology/readout metric fixtures,
+  rights-safe categorical species-like head label taxonomies, and tiny
+  PlanformDB-derived review fixtures that preserve source IDs, citations, and
+  notice text without becoming runtime dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -108,7 +112,14 @@ The implemented foundation slices are intentionally CPU/data-only:
   anterior/posterior preset with GLB-derived body-surface provenance,
   mesh-normalized AP region metadata, triangle/barycentric node anchors,
   gap-block, wound, memory, and no-memory control scenarios, plus compact
-  outcome traces and comparison trace sets for educational comparison;
+  outcome traces and comparison trace sets for educational comparison.
+  Public source/target anchors for this slice are tracked in
+  `docs/BIOELECTRICITY_SOURCE_TARGETS.md`;
+- normalized planarian morphology/readout metric fixtures for the first
+  `head_size_scaling` source-target path, plus rights-safe species-like head
+  label taxonomy and PlanformDB-derived review records. These are validation
+  and annotation contracts only; they do not alter conductance, voltage,
+  memory, stepping, or stochastic outcome behavior;
 - mesh coordinate maps and local displacement frames;
 - hand validation mesh frames over the generic mesh surface contract;
 - dynamic mesh collider surface inflation, closest-point, and sphere-overlap
@@ -203,7 +214,14 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   bioelectric outcome traces over scenario debug sequences, including
   posterior memory/head readout, head/tail readouts, cut-band voltage, and
   cross-cut conductance metrics, plus validated comparison trace sets across
-  baseline, wound, gap-block, memory, and no-memory presets.
+  baseline, wound, gap-block, memory, and no-memory presets. It also owns the
+  normalized, non-calibrated morphology/readout metric bundle for the current
+  head-size source-target path.
+- `rusty-matter-fields/src/planarian_evidence.rs`: source-derived planarian
+  evidence contracts that are not runtime dynamics, including the rights-safe
+  species-like head label taxonomy and the tiny PlanformDB-derived review
+  fixture with notice text, citation IDs, source IDs, normalized labels, and
+  damaged-input validation.
 - `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated reviewed
   Sketchfab Planaria GLB derivative translated into Matter `TriangleMeshSurface`
   positions, triangle indices, normalized bounds, and provenance constants.

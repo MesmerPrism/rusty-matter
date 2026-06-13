@@ -10,6 +10,7 @@ mod error;
 mod ids;
 mod perturbation;
 mod planarian;
+mod planarian_evidence;
 mod planarian_mesh_asset;
 mod planarian_metrics;
 mod runtime;
@@ -27,12 +28,15 @@ pub use error::*;
 pub use ids::*;
 pub use perturbation::*;
 pub use planarian::*;
+pub use planarian_evidence::*;
 pub use planarian_metrics::*;
 pub use runtime::*;
 pub use state::*;
 pub use substrate::*;
 pub use summary::*;
 
+#[cfg(test)]
+mod planarian_evidence_tests;
 #[cfg(test)]
 mod planarian_metrics_tests;
 #[cfg(test)]

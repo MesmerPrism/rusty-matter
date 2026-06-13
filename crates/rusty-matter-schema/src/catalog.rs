@@ -37,6 +37,11 @@ impl SchemaCatalog {
             &["fixtures/fields/planarian-ap-transient-memory-outcome-trace.json"];
         let planarian_bioelectric_outcome_set_fixtures =
             &["fixtures/fields/planarian-ap-comparison-outcome-trace-set.json"];
+        let planarian_normalized_morphology_fixtures =
+            &["fixtures/fields/planarian-normalized-morphology-metrics.json"];
+        let planarian_species_like_head_taxonomy_fixtures =
+            &["fixtures/fields/planarian-species-like-head-taxonomy.json"];
+        let planformdb_derived_fixtures = &["fixtures/fields/planformdb-derived-v0.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
         let mesh_dynamic_collider_fixtures =
@@ -60,6 +65,9 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-hand-validation-mesh-frame.json",
             "fixtures/damaged/invalid-mesh-index.json",
             "fixtures/damaged/invalid-mesh-surface-index.json",
+            "fixtures/damaged/invalid-planarian-normalized-morphology-metrics.json",
+            "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
+            "fixtures/damaged/invalid-planformdb-derived-fixture.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
             "fixtures/damaged/invalid-surface-field-perturbation.json",
@@ -243,6 +251,21 @@ impl SchemaCatalog {
                     "rusty.matter.fields.planarian_bioelectric_outcome_trace_set.v1",
                     "PlanarianBioelectricOutcomeTraceSet",
                     planarian_bioelectric_outcome_set_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_normalized_morphology_metrics.v1",
+                    "PlanarianNormalizedMorphologyMetrics",
+                    planarian_normalized_morphology_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_species_like_head_taxonomy.v1",
+                    "PlanarianSpeciesLikeHeadTaxonomy",
+                    planarian_species_like_head_taxonomy_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planformdb_derived_fixture.v1",
+                    "PlanformDbDerivedFixture",
+                    planformdb_derived_fixtures,
                 ),
                 entry(
                     "rusty.matter.mesh.coordinate_map.v1",

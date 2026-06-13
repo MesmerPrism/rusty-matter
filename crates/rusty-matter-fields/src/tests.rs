@@ -4,10 +4,11 @@ use rusty_matter_model::Vec3;
 use crate::{
     bioelectric_node_voltage_neighborhood_targets, BioelectricCircuitConfig,
     BioelectricCircuitEdit, BioelectricCircuitEditOperation, BioelectricCircuitRuntime,
-    BioelectricCircuitState, BioelectricConductanceEdge, BioelectricCurrentKind,
-    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
-    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit, MatterFieldError,
-    PlanarianAxisRegion, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
+    BioelectricCircuitState, BioelectricCircuitStepScratch, BioelectricConductanceEdge,
+    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
+    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
+    BioelectricVoltageUnit, MatterFieldError, PlanarianAxisRegion,
+    PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, SurfaceFieldDebugFrame, SurfaceFieldPerturbation,
     SurfaceFieldPerturbationEffect, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig,
     SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
@@ -324,6 +325,31 @@ fn bioelectric_circuit_step_updates_voltage_gates_memory_and_readout() {
     assert!((circuit.conductance_edges[0].conductance - initial_conductance).abs() > 1.0e-6);
     assert!(circuit.memory.expect("memory").values[0] > 0.48);
     assert!((circuit.readout_layers[0].values[0] - initial_readout).abs() > 1.0e-6);
+}
+
+#[test]
+fn bioelectric_prevalidated_step_matches_validated_step() {
+    let substrate = test_substrate();
+    let mut validated = test_circuit_state(&substrate);
+    validated.voltage.values[0] = 0.45;
+    validated.voltage.values[1] = -0.1;
+    validated.memory.as_mut().expect("memory").values[0] = 0.48;
+    let mut prevalidated = validated.clone();
+    let initial_voltage = validated.voltage.values.clone();
+    let runtime =
+        BioelectricCircuitRuntime::new(BioelectricCircuitConfig::default()).expect("config");
+
+    let validated_diagnostics = runtime
+        .step_fixed(&substrate, &mut validated, 0)
+        .expect("validated step succeeds");
+    let mut scratch = BioelectricCircuitStepScratch::for_node_count(prevalidated.node_count);
+    let prevalidated_diagnostics = runtime
+        .step_fixed_prevalidated(&mut prevalidated, 0, &mut scratch)
+        .expect("prevalidated step succeeds");
+
+    assert_eq!(prevalidated, validated);
+    assert_eq!(prevalidated_diagnostics, validated_diagnostics);
+    assert_eq!(scratch.previous_voltage(), initial_voltage.as_slice());
 }
 
 #[test]
@@ -704,6 +730,31 @@ fn planarian_default_surface_uses_reviewed_glb_mesh() {
         run.surface_provenance.source_sha256,
         "a170a62ba705a81e73dd7fcfb5808431ff1a0b5c0da6322742c1e2c6ce480dda"
     );
+}
+
+#[test]
+fn planarian_scenarios_keep_public_source_target_anchors() {
+    let baseline = planarian_run(PlanarianBioelectricScenarioKind::Baseline);
+    assert!(baseline
+        .literature_anchors
+        .contains(&"source:beane_2011_chembiol::target:head_vs_tail_voltage".to_owned()));
+    assert!(baseline
+        .literature_anchors
+        .contains(&"source:beane_2013_dev::target:head_size_scaling::future_metric".to_owned()));
+
+    let gap_block = planarian_run(PlanarianBioelectricScenarioKind::GapBlock);
+    assert!(gap_block
+        .literature_anchors
+        .contains(&"source:oviedo_2010_devbiol::target:gap_block_conductance".to_owned()));
+    assert!(gap_block.literature_anchors.contains(
+        &"source:emmons_bell_2015_ijms::target:species_like_head_labels::future_outcome_taxonomy"
+            .to_owned()
+    ));
+
+    let memory = planarian_run(PlanarianBioelectricScenarioKind::TransientDepolarizationMemory);
+    assert!(memory
+        .literature_anchors
+        .contains(&"source:durant_2019_bpj::target:ap_transient_memory".to_owned()));
 }
 
 #[test]

@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.invalid_planformdb_derived_fixture.v1",
+  "damaged_input_id": "damaged.fields.invalid_planformdb_derived_fixture",
+  "expected_rejection_code": "field.invalid_field",
+  "actual_rejection_code": "field.invalid_field",
+  "message": "invalid surface field: PlanformDB resultant morphology fields must be populated and normalized"
+}

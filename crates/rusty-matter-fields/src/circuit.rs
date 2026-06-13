@@ -1047,6 +1047,48 @@ impl BioelectricCircuitStepDiagnostics {
     }
 }
 
+/// Reusable per-step buffers for bioelectric circuit dynamics.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BioelectricCircuitStepScratch {
+    previous_voltage: Vec<f32>,
+    previous_memory: Vec<f32>,
+    net_current: Vec<f32>,
+}
+
+impl BioelectricCircuitStepScratch {
+    /// Creates scratch buffers sized for a circuit node count.
+    #[must_use]
+    pub fn for_node_count(node_count: usize) -> Self {
+        Self {
+            previous_voltage: vec![0.0; node_count],
+            previous_memory: vec![0.0; node_count],
+            net_current: vec![0.0; node_count],
+        }
+    }
+
+    /// Returns the voltage values captured before the most recent step.
+    #[must_use]
+    pub fn previous_voltage(&self) -> &[f32] {
+        &self.previous_voltage
+    }
+
+    fn prepare(&mut self, state: &BioelectricCircuitState) {
+        self.previous_voltage.clear();
+        self.previous_voltage
+            .extend_from_slice(&state.voltage.values);
+
+        self.previous_memory.resize(state.node_count, 0.0);
+        if let Some(memory) = &state.memory {
+            self.previous_memory.copy_from_slice(&memory.values);
+        } else {
+            self.previous_memory.fill(0.0);
+        }
+
+        self.net_current.resize(state.node_count, 0.0);
+        self.net_current.fill(0.0);
+    }
+}
+
 /// Deterministic CPU reference runtime for bioelectric circuit dynamics.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BioelectricCircuitRuntime {
@@ -1103,6 +1145,26 @@ impl BioelectricCircuitRuntime {
         state: &mut BioelectricCircuitState,
         step_index: u32,
     ) -> Result<BioelectricCircuitStepDiagnostics, MatterFieldError> {
+        let mut scratch = BioelectricCircuitStepScratch::default();
+        self.step_fixed_with_scratch(substrate, state, step_index, &mut scratch)
+    }
+
+    /// Advances one fixed step using caller-owned scratch buffers.
+    ///
+    /// This keeps the fully validated public stepping contract while avoiding
+    /// per-call temporary allocations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when contracts or generated values are
+    /// invalid.
+    pub fn step_fixed_with_scratch(
+        &self,
+        substrate: &SurfaceFieldSubstrate,
+        state: &mut BioelectricCircuitState,
+        step_index: u32,
+        scratch: &mut BioelectricCircuitStepScratch,
+    ) -> Result<BioelectricCircuitStepDiagnostics, MatterFieldError> {
         if step_index >= self.config.max_steps_per_run {
             return Err(MatterFieldError::InvalidRuntimeConfig(
                 "bioelectric step_index exceeds max_steps_per_run",
@@ -1110,15 +1172,37 @@ impl BioelectricCircuitRuntime {
         }
         validate_circuit_for_substrate(substrate, state)?;
         self.config.validate()?;
+        let diagnostics = self.step_fixed_prevalidated(state, step_index, scratch)?;
+        state.validate()?;
+        Ok(diagnostics)
+    }
 
+    /// Advances one fixed step after the caller has validated circuit structure.
+    ///
+    /// This is intended for tightly bounded realtime loops that validate their
+    /// substrate and circuit when the runtime is constructed and after edits.
+    /// It still clamps generated values and validates diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when the step index is out of bounds,
+    /// revision overflows, or generated diagnostics are invalid.
+    pub fn step_fixed_prevalidated(
+        &self,
+        state: &mut BioelectricCircuitState,
+        step_index: u32,
+        scratch: &mut BioelectricCircuitStepScratch,
+    ) -> Result<BioelectricCircuitStepDiagnostics, MatterFieldError> {
+        if step_index >= self.config.max_steps_per_run {
+            return Err(MatterFieldError::InvalidRuntimeConfig(
+                "bioelectric step_index exceeds max_steps_per_run",
+            ));
+        }
         let node_count = state.node_count;
-        let previous_voltage = state.voltage.values.clone();
-        let previous_memory = state
-            .memory
-            .as_ref()
-            .map(|memory| memory.values.clone())
-            .unwrap_or_else(|| vec![0.0; node_count]);
-        let mut net_current = vec![0.0_f32; node_count];
+        scratch.prepare(state);
+        let previous_voltage = scratch.previous_voltage.as_slice();
+        let previous_memory = scratch.previous_memory.as_slice();
+        let net_current = scratch.net_current.as_mut_slice();
         let mut diagnostics = BioelectricCircuitStepDiagnostics::empty(step_index + 1);
         diagnostics.updated_nodes = node_count;
 
@@ -1193,12 +1277,15 @@ impl BioelectricCircuitRuntime {
             self.config.fixed_step_seconds,
             &mut diagnostics.memory_activated_nodes,
         );
-        update_readouts(state, self.config.fixed_step_seconds);
+        update_readouts(
+            state,
+            self.config.fixed_step_seconds,
+            scratch.previous_memory.as_slice(),
+        );
         diagnostics.readout_layers_updated = state.readout_layers.len();
 
         state.time_seconds += self.config.fixed_step_seconds;
         state.advance_revision()?;
-        state.validate()?;
         diagnostics.validate(node_count, state.conductance_edges.len())?;
         Ok(diagnostics)
     }
@@ -1267,12 +1354,15 @@ fn update_memory(
     }
 }
 
-fn update_readouts(state: &mut BioelectricCircuitState, fixed_step_seconds: f32) {
+fn update_readouts(
+    state: &mut BioelectricCircuitState,
+    fixed_step_seconds: f32,
+    fallback_memory_values: &[f32],
+) {
     let memory_values = state
         .memory
         .as_ref()
-        .map(|memory| memory.values.clone())
-        .unwrap_or_else(|| vec![0.0; state.node_count]);
+        .map_or(fallback_memory_values, |memory| memory.values.as_slice());
     for layer in &mut state.readout_layers {
         for (node_index, value) in layer.values.iter_mut().enumerate() {
             let target = layer.bias

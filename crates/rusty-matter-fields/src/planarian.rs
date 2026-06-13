@@ -1180,16 +1180,25 @@ fn region_slot(region: PlanarianAxisRegion) -> usize {
 
 fn literature_anchors(scenario_kind: PlanarianBioelectricScenarioKind) -> Vec<String> {
     let mut anchors = vec![
-        "planarian_ap_axis_regeneration".to_owned(),
-        "gap_junction_bioelectric_patterning".to_owned(),
-        "voltage_driven_downstream_pattern_readout".to_owned(),
+        "source:beane_2011_chembiol::target:head_vs_tail_voltage".to_owned(),
+        "source:beane_2013_dev::target:head_size_scaling::future_metric".to_owned(),
     ];
+    if matches!(
+        scenario_kind,
+        PlanarianBioelectricScenarioKind::GapBlock
+            | PlanarianBioelectricScenarioKind::TransverseCutWound
+    ) {
+        anchors.push("source:oviedo_2010_devbiol::target:gap_block_conductance".to_owned());
+    }
+    if scenario_kind == PlanarianBioelectricScenarioKind::GapBlock {
+        anchors.push("source:emmons_bell_2015_ijms::target:species_like_head_labels::future_outcome_taxonomy".to_owned());
+    }
     if matches!(
         scenario_kind,
         PlanarianBioelectricScenarioKind::TransientDepolarizationMemory
             | PlanarianBioelectricScenarioKind::TransientDepolarizationNoMemoryControl
     ) {
-        anchors.push("transient_depolarization_and_pattern_memory_control".to_owned());
+        anchors.push("source:durant_2019_bpj::target:ap_transient_memory".to_owned());
     }
     anchors
 }

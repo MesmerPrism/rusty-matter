@@ -278,6 +278,30 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.planarian_normalized_morphology_metrics.v1",
+      "rust_type": "PlanarianNormalizedMorphologyMetrics",
+      "fixture_paths": [
+        "fixtures/fields/planarian-normalized-morphology-metrics.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.planarian_species_like_head_taxonomy.v1",
+      "rust_type": "PlanarianSpeciesLikeHeadTaxonomy",
+      "fixture_paths": [
+        "fixtures/fields/planarian-species-like-head-taxonomy.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fields.planformdb_derived_fixture.v1",
+      "rust_type": "PlanformDbDerivedFixture",
+      "fixture_paths": [
+        "fixtures/fields/planformdb-derived-v0.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.coordinate_map.v1",
       "rust_type": "MeshCoordinateMap",
       "fixture_paths": [
@@ -383,6 +407,9 @@
         "fixtures/damaged/invalid-hand-validation-mesh-frame.json",
         "fixtures/damaged/invalid-mesh-index.json",
         "fixtures/damaged/invalid-mesh-surface-index.json",
+        "fixtures/damaged/invalid-planarian-normalized-morphology-metrics.json",
+        "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
+        "fixtures/damaged/invalid-planformdb-derived-fixture.json",
         "fixtures/damaged/invalid-particle-body.json",
         "fixtures/damaged/invalid-particle-influence.json",
         "fixtures/damaged/invalid-surface-field-perturbation.json",

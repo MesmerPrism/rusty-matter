@@ -1,0 +1,74 @@
+{
+  "schema_id": "rusty.matter.fields.planarian_normalized_morphology_metrics.v1",
+  "metrics_id": "fixture.fields.planarian_ap.normalized_morphology_metrics",
+  "scenario_id": "bioelectric.planarian_ap.transient_depolarization_memory.synthetic",
+  "source_substrate_id": "fields.substrate.planarian_ap.sketchfab_educational",
+  "source_surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
+  "source_axis_map_id": "fields.planarian_ap.axis_map.sketchfab_educational",
+  "evidence_type": "synthetic_bioelectric_over_educational_glb_mesh",
+  "unit_policy": "mesh-normalized educational geometry/readout extents; not calibrated area or physiology",
+  "source_target_status": "source_reviewed_metric_path_without_calibrated_thresholds",
+  "source_target_anchors": [
+    "source:beane_2013_dev::target:head_size_scaling::future_metric"
+  ],
+  "region_extents": [
+    {
+      "region": "Tail",
+      "region_id": "region_tail",
+      "label": "tail",
+      "node_count": 12,
+      "node_fraction": 0.15,
+      "ap_min": 0.0,
+      "ap_max": 0.18784866,
+      "sampled_ap_span_normalized": 0.18784866,
+      "mean_abs_lateral_coordinate": 0.19256608
+    },
+    {
+      "region": "PostpharyngealTrunk",
+      "region_id": "region_postpharyngeal_trunk",
+      "label": "postpharyngeal trunk",
+      "node_count": 20,
+      "node_fraction": 0.25,
+      "ap_min": 0.1943116,
+      "ap_max": 0.4015412,
+      "sampled_ap_span_normalized": 0.2072296,
+      "mean_abs_lateral_coordinate": 0.30813345
+    },
+    {
+      "region": "PharyngealTrunk",
+      "region_id": "region_pharyngeal_trunk",
+      "label": "pharyngeal trunk",
+      "node_count": 14,
+      "node_fraction": 0.175,
+      "ap_min": 0.4400244,
+      "ap_max": 0.57637185,
+      "sampled_ap_span_normalized": 0.13634744,
+      "mean_abs_lateral_coordinate": 0.36224914
+    },
+    {
+      "region": "PrepharyngealTrunk",
+      "region_id": "region_prepharyngeal_trunk",
+      "label": "prepharyngeal trunk",
+      "node_count": 14,
+      "node_fraction": 0.175,
+      "ap_min": 0.6356173,
+      "ap_max": 0.8154485,
+      "sampled_ap_span_normalized": 0.1798312,
+      "mean_abs_lateral_coordinate": 0.62723583
+    },
+    {
+      "region": "Head",
+      "region_id": "region_head",
+      "label": "head",
+      "node_count": 20,
+      "node_fraction": 0.25,
+      "ap_min": 0.83661234,
+      "ap_max": 1.0,
+      "sampled_ap_span_normalized": 0.16338766,
+      "mean_abs_lateral_coordinate": 0.34680745
+    }
+  ],
+  "head_region_extent_normalized": 0.16338766,
+  "pharyngeal_region_extent_normalized": 0.13634744,
+  "head_identity_extent_normalized": 0.9125
+}
