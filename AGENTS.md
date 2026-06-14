@@ -92,6 +92,9 @@ Current crate-root maps:
   `perturbation`, `config`, `runtime`, `dynamics`, `circuit`,
   `circuit_edit`, `circuit_debug`, `planarian`, `planarian_metrics`,
   `planarian_evidence`, `summary`, `debug_frame`, and `error`.
+  `planarian_mesh_asset.rs` is a small generated loader over the compact
+  `planarian_mesh_asset/planaria_sketchfab_surface.bin` payload; do not add
+  behavior to either generated surface file.
 - `rusty-matter-fields-wasm/src/lib.rs`: target-gated browser adapter over the
   Matter surface-field runtime.
 - `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `sampling`,

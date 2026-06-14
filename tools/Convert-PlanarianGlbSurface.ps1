@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$GlbPath,
     [string]$Output = "crates\rusty-matter-fields\src\planarian_mesh_asset.rs",
+    [string]$DataOutput = "",
     [switch]$AllowShaMismatch
 )
 
@@ -37,6 +38,15 @@ $Arguments = @(
     "--output",
     $ResolvedOutput
 )
+if ($DataOutput -ne "") {
+    if ([System.IO.Path]::IsPathRooted($DataOutput)) {
+        $ResolvedDataOutput = $DataOutput
+    } else {
+        $ResolvedDataOutput = Join-Path $RepoRoot $DataOutput
+    }
+    $Arguments += "--data-output"
+    $Arguments += $ResolvedDataOutput
+}
 if ($AllowShaMismatch) {
     $Arguments += "--allow-sha-mismatch"
 }
@@ -45,6 +55,9 @@ Push-Location $RepoRoot
 try {
     Invoke-Checked "Planarian GLB surface conversion" "python" $Arguments
     Write-Output "Matter Planaria surface module: $ResolvedOutput"
+    if ($DataOutput -ne "") {
+        Write-Output "Matter Planaria surface data: $ResolvedDataOutput"
+    }
 } finally {
     Pop-Location
 }

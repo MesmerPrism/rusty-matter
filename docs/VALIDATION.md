@@ -166,8 +166,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\Convert-PlanarianGlb
 
 The converter verifies the reviewed SHA-256 by default, normalizes the mesh
 into Matter coordinates, and writes
-`crates\rusty-matter-fields\src\planarian_mesh_asset.rs`. The generated data is
-a `TriangleMeshSurface` source, not a renderer asset or runtime GLB loader.
+`crates\rusty-matter-fields\src\planarian_mesh_asset.rs` plus
+`crates\rusty-matter-fields\src\planarian_mesh_asset\planaria_sketchfab_surface.bin`.
+The generated data is a `TriangleMeshSurface` source, not a renderer asset or
+runtime GLB loader.
 
 The committed dynamic surface-field and planarian bioelectric scenario fixtures
 plus planarian outcome-trace, comparison-trace-set, normalized morphology

@@ -5,11 +5,13 @@
 Source: Sketchfab model "Planaria" by aphanizomenon.
 
 Use in this repo: the reviewed GLB was translated into Matter
-`TriangleMeshSurface` data in
-`crates/rusty-matter-fields/src/planarian_mesh_asset.rs` and is included in the
-planarian bioelectric fixture as an educational body surface. The bioelectric
-dynamics over this body are qualitative synthetic presets, not measured
-physiology, wet-lab data, or mechanistic prediction output.
+`TriangleMeshSurface` data in the generated
+`crates/rusty-matter-fields/src/planarian_mesh_asset/planaria_sketchfab_surface.bin`
+payload, with `crates/rusty-matter-fields/src/planarian_mesh_asset.rs` as the
+provenance and loader module. It is included in the planarian bioelectric
+fixture as an educational body surface. The bioelectric dynamics over this body
+are qualitative synthetic presets, not measured physiology, wet-lab data, or
+mechanistic prediction output.
 
 License: CC-BY-4.0.
 

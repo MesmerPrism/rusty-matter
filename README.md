@@ -60,6 +60,9 @@ Planarian 3D realtime scenario switching, scenario outcome traces and trace
 sets, normalized morphology metrics, source-evidence fixtures, selected
 readouts, tiered voltage-neighborhood edit targets, recent edit-event and
 affected-target readouts, summaries, debug frames, and errors.
+The reviewed Planaria surface is generated as a compact Matter mesh payload
+under `rusty-matter-fields/src/planarian_mesh_asset/`, with
+`planarian_mesh_asset.rs` kept as the provenance and loader module.
 Mesh code is split by surface, sampling/live updates, accelerated distance
 queries, coordinate maps, hand payloads, dynamic collider, and error/math
 helpers. Batch code is split by config, chunks, executor, report, and errors.

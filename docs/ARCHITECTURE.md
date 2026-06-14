@@ -225,9 +225,11 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   target metadata, and the small PlanformDB-derived review fixture with notice
   text, citation IDs, source IDs, normalized labels, and damaged-input
   validation.
-- `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated reviewed
-  Sketchfab Planaria GLB derivative translated into Matter `TriangleMeshSurface`
-  positions, triangle indices, normalized bounds, and provenance constants.
+- `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated provenance and
+  loader module for the reviewed Sketchfab Planaria GLB derivative translated
+  into Matter `TriangleMeshSurface` coordinates.
+- `rusty-matter-fields/src/planarian_mesh_asset/planaria_sketchfab_surface.bin`:
+  generated little-endian Matter mesh payload for the same reviewed surface.
 - `rusty-matter-fields/src/summary.rs`: step diagnostics and run-summary
   contracts.
 - `rusty-matter-fields/src/debug_frame.rs`: policy-free node/edge/scalar/vector
