@@ -1,8 +1,32 @@
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BinaryHeap};
+
 use rusty_matter_model::Vec3;
 
 use crate::math::normalize_or;
 use crate::surface::triangle_area;
 use crate::{MatterMeshError, MeshSurfaceTopologyKey, TriangleMeshSurface};
+
+const SURFACE_WALK_EDGE_SUBDIVISIONS: usize = 4;
+
+/// Explicit vertex-to-vertex connector used by surface-walk neighborhood
+/// generation when a caller needs to fuse otherwise disconnected components.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SurfaceWalkBridge {
+    /// First endpoint vertex index on the source surface.
+    pub a: usize,
+    /// Second endpoint vertex index on the source surface.
+    pub b: usize,
+}
+
+impl SurfaceWalkBridge {
+    /// Creates an explicit connector between two source-surface vertices.
+    #[must_use]
+    pub const fn new(a: usize, b: usize) -> Self {
+        Self { a, b }
+    }
+}
 
 /// Schema ID for mesh surface sample configuration.
 pub const MESH_SURFACE_SAMPLE_CONFIG_SCHEMA_ID: &str = "rusty.matter.mesh.surface_sample_config.v1";
@@ -81,6 +105,14 @@ impl MeshSurfaceSampleConfig {
             pattern: MeshSurfaceSamplePattern::LowDiscrepancy,
             ..Self::default()
         }
+    }
+
+    /// Returns this config with same-surface neighbor generation disabled.
+    #[must_use]
+    pub fn without_neighbors(mut self) -> Self {
+        self.first_tier_neighbor_count = 0;
+        self.second_tier_neighbor_count = 0;
+        self
     }
 
     /// Validates the sample config.
@@ -220,12 +252,71 @@ impl MeshSurfaceSampleSet {
         Ok(())
     }
 
-    /// Rebuilds nearest-neighbor tiers from current sample positions.
+    /// Rebuilds nearest-neighbor tiers from current sample positions using
+    /// straight Euclidean distance. Prefer [`Self::rebuild_surface_neighbor_tiers`]
+    /// when the source mesh is available.
     pub fn rebuild_neighbor_tiers(&mut self, first_tier_count: usize, second_tier_count: usize) {
         let (first, second) =
             build_nearest_neighbor_tiers(&self.positions(), first_tier_count, second_tier_count);
         self.first_tier_neighbors = first;
         self.second_tier_neighbors = second;
+    }
+
+    /// Rebuilds nearest-neighbor tiers by approximate distance along the mesh
+    /// surface, using the stored triangle/barycentric sample anchors.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the surface topology no longer matches
+    /// this sample set or a surface-walk graph cannot be built.
+    pub fn rebuild_surface_neighbor_tiers(
+        &mut self,
+        surface: &TriangleMeshSurface,
+        first_tier_count: usize,
+        second_tier_count: usize,
+    ) -> Result<(), MatterMeshError> {
+        self.rebuild_surface_neighbor_tiers_with_bridges(
+            surface,
+            first_tier_count,
+            second_tier_count,
+            &[],
+        )
+    }
+
+    /// Rebuilds nearest-neighbor tiers by approximate distance along the mesh
+    /// surface plus explicit vertex bridges. Bridges are useful for intentional
+    /// component fusion without adding artificial triangles that samples could
+    /// land on.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterMeshError`] when the surface topology no longer matches
+    /// this sample set or a surface-walk graph cannot be built.
+    pub fn rebuild_surface_neighbor_tiers_with_bridges(
+        &mut self,
+        surface: &TriangleMeshSurface,
+        first_tier_count: usize,
+        second_tier_count: usize,
+        bridges: &[SurfaceWalkBridge],
+    ) -> Result<(), MatterMeshError> {
+        surface.validate()?;
+        if self.topology_key != surface.topology_key() {
+            return Err(MatterMeshError::ChangedTopology);
+        }
+        let Some((first, second)) = build_surface_neighbor_tiers_with_bridges(
+            surface,
+            &self.samples,
+            first_tier_count,
+            second_tier_count,
+            bridges,
+        ) else {
+            return Err(MatterMeshError::InvalidSurface(
+                "surface walk graph could not be built",
+            ));
+        };
+        self.first_tier_neighbors = first;
+        self.second_tier_neighbors = second;
+        Ok(())
     }
 
     /// Validates sample-set consistency.
@@ -456,15 +547,16 @@ pub fn sample_mesh_surface_points(
             barycentric,
         });
     }
-    let positions = samples
-        .iter()
-        .map(|sample| sample.position)
-        .collect::<Vec<_>>();
-    let (first_tier_neighbors, second_tier_neighbors) = build_nearest_neighbor_tiers(
-        &positions,
+    let Some((first_tier_neighbors, second_tier_neighbors)) = build_surface_neighbor_tiers(
+        surface,
+        &samples,
         config.first_tier_neighbor_count,
         config.second_tier_neighbor_count,
-    );
+    ) else {
+        return Err(MatterMeshError::InvalidSurface(
+            "surface walk graph could not be built",
+        ));
+    };
     let sample_set = MeshSurfaceSampleSet {
         schema_id: MESH_SURFACE_SAMPLE_SET_SCHEMA_ID.to_owned(),
         sample_set_id: config.sample_set_id.clone(),
@@ -681,6 +773,364 @@ fn build_nearest_neighbor_tiers(
         );
     }
     (first, second)
+}
+
+#[derive(Clone, Debug)]
+struct SurfaceWalkGraph {
+    node_positions: Vec<Vec3>,
+    adjacency: Vec<Vec<SurfaceWalkEdge>>,
+    sample_node_start: usize,
+    sample_count: usize,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct SurfaceWalkEdge {
+    target: usize,
+    length: f32,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct DijkstraState {
+    distance: f32,
+    node: usize,
+}
+
+impl PartialEq for DijkstraState {
+    fn eq(&self, other: &Self) -> bool {
+        self.node == other.node && self.distance.to_bits() == other.distance.to_bits()
+    }
+}
+
+impl Eq for DijkstraState {}
+
+impl Ord for DijkstraState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other
+            .distance
+            .total_cmp(&self.distance)
+            .then_with(|| other.node.cmp(&self.node))
+    }
+}
+
+impl PartialOrd for DijkstraState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn build_surface_neighbor_tiers(
+    surface: &TriangleMeshSurface,
+    samples: &[MeshSurfaceSample],
+    first_tier_count: usize,
+    second_tier_count: usize,
+) -> Option<(Vec<Vec<usize>>, Vec<Vec<usize>>)> {
+    build_surface_neighbor_tiers_with_bridges(
+        surface,
+        samples,
+        first_tier_count,
+        second_tier_count,
+        &[],
+    )
+}
+
+fn build_surface_neighbor_tiers_with_bridges(
+    surface: &TriangleMeshSurface,
+    samples: &[MeshSurfaceSample],
+    first_tier_count: usize,
+    second_tier_count: usize,
+    bridges: &[SurfaceWalkBridge],
+) -> Option<(Vec<Vec<usize>>, Vec<Vec<usize>>)> {
+    let count = samples.len();
+    if count == 0 {
+        return Some((Vec::new(), Vec::new()));
+    }
+    let first_tier_count = first_tier_count.min(count.saturating_sub(1));
+    let second_tier_count =
+        second_tier_count.min(count.saturating_sub(1).saturating_sub(first_tier_count));
+    if first_tier_count == 0 && second_tier_count == 0 {
+        return Some((vec![Vec::new(); count], vec![Vec::new(); count]));
+    }
+
+    let graph = SurfaceWalkGraph::from_surface_and_samples(surface, samples, bridges)?;
+    let mut first = Vec::with_capacity(count);
+    let mut second = Vec::with_capacity(count);
+    let requested_count = first_tier_count + second_tier_count;
+    for origin in 0..count {
+        let candidates = surface_walk_sample_neighbors(&graph, origin, requested_count)?;
+        first.push(
+            candidates
+                .iter()
+                .take(first_tier_count)
+                .map(|(_, index)| *index)
+                .collect(),
+        );
+        second.push(
+            candidates
+                .iter()
+                .skip(first_tier_count)
+                .take(second_tier_count)
+                .map(|(_, index)| *index)
+                .collect(),
+        );
+    }
+    Some((first, second))
+}
+
+impl SurfaceWalkGraph {
+    fn from_surface_and_samples(
+        surface: &TriangleMeshSurface,
+        samples: &[MeshSurfaceSample],
+        bridges: &[SurfaceWalkBridge],
+    ) -> Option<Self> {
+        let mut node_positions = surface.positions.clone();
+        let mut adjacency = vec![Vec::new(); node_positions.len()];
+        let mut edge_connectors = BTreeMap::new();
+        let mut triangle_boundary_nodes = Vec::with_capacity(surface.triangles.len());
+
+        for triangle in surface.triangles.iter().copied() {
+            let [a, b, c] = triangle_indices(triangle, surface.positions.len())?;
+            let ab = edge_connector_nodes(
+                &mut edge_connectors,
+                &mut node_positions,
+                &mut adjacency,
+                surface.positions.as_slice(),
+                a,
+                b,
+            )?;
+            let bc = edge_connector_nodes(
+                &mut edge_connectors,
+                &mut node_positions,
+                &mut adjacency,
+                surface.positions.as_slice(),
+                b,
+                c,
+            )?;
+            let ca = edge_connector_nodes(
+                &mut edge_connectors,
+                &mut node_positions,
+                &mut adjacency,
+                surface.positions.as_slice(),
+                c,
+                a,
+            )?;
+            let mut boundary_nodes = Vec::with_capacity(3 * SURFACE_WALK_EDGE_SUBDIVISIONS);
+            boundary_nodes.extend_from_slice(&[a, b, c]);
+            boundary_nodes.extend(ab.iter().copied());
+            boundary_nodes.extend(bc.iter().copied());
+            boundary_nodes.extend(ca.iter().copied());
+            boundary_nodes.sort_unstable();
+            boundary_nodes.dedup();
+            connect_complete_surface_walk_nodes(&mut adjacency, &node_positions, &boundary_nodes)?;
+            triangle_boundary_nodes.push(boundary_nodes);
+        }
+
+        for bridge in bridges {
+            add_surface_walk_edge_between_nodes(
+                &mut adjacency,
+                &node_positions,
+                bridge.a,
+                bridge.b,
+            )?;
+        }
+
+        let sample_node_start = node_positions.len();
+        let mut sample_nodes_by_triangle = vec![Vec::new(); surface.triangles.len()];
+        for (sample_index, sample) in samples.iter().enumerate() {
+            let boundary_nodes = triangle_boundary_nodes.get(sample.triangle_index)?;
+            if !sample.position.is_finite() {
+                return None;
+            }
+            let sample_node = sample_node_start + sample_index;
+            node_positions.push(sample.position);
+            adjacency.push(Vec::new());
+            for &boundary_node in boundary_nodes {
+                add_surface_walk_edge_between_nodes(
+                    &mut adjacency,
+                    &node_positions,
+                    sample_node,
+                    boundary_node,
+                )?;
+            }
+            sample_nodes_by_triangle[sample.triangle_index].push(sample_node);
+        }
+
+        for sample_nodes in sample_nodes_by_triangle {
+            connect_complete_surface_walk_nodes(&mut adjacency, &node_positions, &sample_nodes)?;
+        }
+
+        Some(Self {
+            node_positions,
+            adjacency,
+            sample_node_start,
+            sample_count: samples.len(),
+        })
+    }
+
+    fn sample_node(&self, sample_index: usize) -> Option<usize> {
+        (sample_index < self.sample_count).then_some(self.sample_node_start + sample_index)
+    }
+
+    fn sample_index_for_node(&self, node: usize) -> Option<usize> {
+        if node < self.sample_node_start {
+            return None;
+        }
+        let sample_index = node - self.sample_node_start;
+        (sample_index < self.sample_count).then_some(sample_index)
+    }
+}
+
+fn surface_walk_sample_neighbors(
+    graph: &SurfaceWalkGraph,
+    origin: usize,
+    requested_count: usize,
+) -> Option<Vec<(f32, usize)>> {
+    if requested_count == 0 {
+        return Some(Vec::new());
+    }
+    let start = graph.sample_node(origin)?;
+    let mut distances = vec![f32::INFINITY; graph.node_positions.len()];
+    let mut heap = BinaryHeap::new();
+    let mut candidates = Vec::with_capacity(requested_count);
+    let mut cutoff_distance = None;
+
+    distances[start] = 0.0;
+    heap.push(DijkstraState {
+        distance: 0.0,
+        node: start,
+    });
+
+    while let Some(DijkstraState { distance, node }) = heap.pop() {
+        if distance > distances[node] {
+            continue;
+        }
+        if cutoff_distance.is_some_and(|cutoff| distance > cutoff) {
+            break;
+        }
+        if let Some(sample_index) = graph.sample_index_for_node(node) {
+            if sample_index != origin {
+                candidates.push((distance, sample_index));
+                if candidates.len() == requested_count && cutoff_distance.is_none() {
+                    cutoff_distance = Some(distance);
+                }
+            }
+        }
+        for edge in &graph.adjacency[node] {
+            let next_distance = distance + edge.length;
+            if next_distance < distances[edge.target] {
+                distances[edge.target] = next_distance;
+                heap.push(DijkstraState {
+                    distance: next_distance,
+                    node: edge.target,
+                });
+            }
+        }
+    }
+
+    candidates.sort_by(|left, right| left.0.total_cmp(&right.0).then(left.1.cmp(&right.1)));
+    candidates.truncate(requested_count);
+    Some(candidates)
+}
+
+fn edge_connector_nodes(
+    edge_connectors: &mut BTreeMap<(usize, usize), Vec<usize>>,
+    node_positions: &mut Vec<Vec3>,
+    adjacency: &mut Vec<Vec<SurfaceWalkEdge>>,
+    vertex_positions: &[Vec3],
+    a: usize,
+    b: usize,
+) -> Option<Vec<usize>> {
+    let key = ordered_edge(a, b);
+    if let Some(nodes) = edge_connectors.get(&key) {
+        return Some(nodes.clone());
+    }
+
+    let [start, end] = if a <= b { [a, b] } else { [b, a] };
+    let mut edge_nodes = Vec::with_capacity(SURFACE_WALK_EDGE_SUBDIVISIONS.saturating_sub(1));
+    let mut previous = start;
+    for segment in 1..SURFACE_WALK_EDGE_SUBDIVISIONS {
+        let t = segment as f32 / SURFACE_WALK_EDGE_SUBDIVISIONS as f32;
+        let position = vertex_positions[start] * (1.0 - t) + vertex_positions[end] * t;
+        if !position.is_finite() {
+            return None;
+        }
+        let node = node_positions.len();
+        node_positions.push(position);
+        adjacency.push(Vec::new());
+        add_surface_walk_edge_between_nodes(adjacency, node_positions, previous, node)?;
+        edge_nodes.push(node);
+        previous = node;
+    }
+    add_surface_walk_edge_between_nodes(adjacency, node_positions, previous, end)?;
+    edge_connectors.insert(key, edge_nodes.clone());
+    Some(edge_nodes)
+}
+
+fn connect_complete_surface_walk_nodes(
+    adjacency: &mut [Vec<SurfaceWalkEdge>],
+    node_positions: &[Vec3],
+    nodes: &[usize],
+) -> Option<()> {
+    for (left_index, &left) in nodes.iter().enumerate() {
+        for &right in nodes.iter().skip(left_index + 1) {
+            add_surface_walk_edge_between_nodes(adjacency, node_positions, left, right)?;
+        }
+    }
+    Some(())
+}
+
+fn add_surface_walk_edge_between_nodes(
+    adjacency: &mut [Vec<SurfaceWalkEdge>],
+    node_positions: &[Vec3],
+    a: usize,
+    b: usize,
+) -> Option<()> {
+    let length = finite_distance(*node_positions.get(a)?, *node_positions.get(b)?);
+    if !length.is_finite() {
+        return None;
+    }
+    add_surface_walk_edge(adjacency, a, b, length);
+    Some(())
+}
+
+fn add_surface_walk_edge(adjacency: &mut [Vec<SurfaceWalkEdge>], a: usize, b: usize, length: f32) {
+    if a == b || !length.is_finite() {
+        return;
+    }
+    upsert_surface_walk_edge(&mut adjacency[a], b, length);
+    upsert_surface_walk_edge(&mut adjacency[b], a, length);
+}
+
+fn upsert_surface_walk_edge(edges: &mut Vec<SurfaceWalkEdge>, target: usize, length: f32) {
+    if let Some(edge) = edges.iter_mut().find(|edge| edge.target == target) {
+        edge.length = edge.length.min(length);
+    } else {
+        edges.push(SurfaceWalkEdge { target, length });
+    }
+}
+
+fn triangle_indices(triangle: [u32; 3], vertex_count: usize) -> Option<[usize; 3]> {
+    let [a, b, c] = triangle;
+    let a = usize::try_from(a).ok()?;
+    let b = usize::try_from(b).ok()?;
+    let c = usize::try_from(c).ok()?;
+    (a < vertex_count && b < vertex_count && c < vertex_count).then_some([a, b, c])
+}
+
+fn ordered_edge(a: usize, b: usize) -> (usize, usize) {
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
+}
+
+fn finite_distance(a: Vec3, b: Vec3) -> f32 {
+    let distance = (a - b).length();
+    if distance.is_finite() {
+        distance
+    } else {
+        f32::INFINITY
+    }
 }
 
 fn build_cross_neighbor_lists(

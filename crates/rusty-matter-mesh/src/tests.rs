@@ -42,6 +42,23 @@ fn grid_surface(rows: usize, cols: usize) -> TriangleMeshSurface {
     TriangleMeshSurface::new("mesh.grid", positions, triangles)
 }
 
+fn close_parallel_square_patches() -> TriangleMeshSurface {
+    TriangleMeshSurface::new(
+        "mesh.close_parallel_patches",
+        vec![
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(1.0, 1.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 0.0, 0.01),
+            Vec3::new(1.0, 0.0, 0.01),
+            Vec3::new(1.0, 1.0, 0.01),
+            Vec3::new(0.0, 1.0, 0.01),
+        ],
+        vec![[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]],
+    )
+}
+
 #[test]
 fn surface_validates_and_hashes_topology() {
     let surface = unit_square_surface();
@@ -73,6 +90,73 @@ fn sampler_is_deterministic() {
 }
 
 #[test]
+fn surface_neighbors_do_not_cross_disconnected_close_patches() {
+    let surface = close_parallel_square_patches();
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.close_parallel_patches".to_owned(),
+        point_count: 16,
+        first_tier_neighbor_count: 3,
+        second_tier_neighbor_count: 3,
+        seed: 42,
+        pattern: MeshSurfaceSamplePattern::AreaStratified,
+        ..MeshSurfaceSampleConfig::default()
+    };
+
+    let samples = sample_mesh_surface_points(&surface, &config).expect("samples build");
+
+    assert_eq!(samples.len(), 16);
+    for origin in 0..samples.len() {
+        let origin_component = samples.samples[origin].triangle_index / 2;
+        for neighbor in samples.first_tier_neighbors[origin]
+            .iter()
+            .chain(samples.second_tier_neighbors[origin].iter())
+        {
+            assert_eq!(
+                samples.samples[*neighbor].triangle_index / 2,
+                origin_component,
+                "sample {origin} crossed components through Euclidean closeness"
+            );
+        }
+    }
+}
+
+#[test]
+fn surface_neighbors_can_cross_explicit_component_bridge() {
+    let surface = close_parallel_square_patches();
+    let config = MeshSurfaceSampleConfig {
+        sample_set_id: "samples.close_parallel_patches.bridged".to_owned(),
+        point_count: 16,
+        first_tier_neighbor_count: 0,
+        second_tier_neighbor_count: 0,
+        seed: 42,
+        pattern: MeshSurfaceSamplePattern::AreaStratified,
+        ..MeshSurfaceSampleConfig::default()
+    };
+
+    let mut samples = sample_mesh_surface_points(&surface, &config).expect("samples build");
+    samples
+        .rebuild_surface_neighbor_tiers_with_bridges(
+            &surface,
+            4,
+            8,
+            &[SurfaceWalkBridge::new(0, 4)],
+        )
+        .expect("bridged neighbors build");
+
+    let crossed_component = (0..samples.len()).any(|origin| {
+        let origin_component = samples.samples[origin].triangle_index / 2;
+        samples.first_tier_neighbors[origin]
+            .iter()
+            .chain(samples.second_tier_neighbors[origin].iter())
+            .any(|neighbor| samples.samples[*neighbor].triangle_index / 2 != origin_component)
+    });
+    assert!(
+        crossed_component,
+        "explicit bridge should permit neighborhood traversal across components"
+    );
+}
+
+#[test]
 fn high_quality_coordinate_map_builds_local_frames() {
     let surface = unit_square_surface();
     let mut sample_config = MeshSurfaceSampleConfig::high_quality_surface_points(12);
@@ -100,6 +184,106 @@ fn high_quality_coordinate_map_builds_local_frames() {
     assert!(
         (displaced - coordinate_map.frames.frames[0].anchor).length()
             <= coordinate_map.frames.frames[0].max_displacement.x + 1.0e-5
+    );
+}
+
+#[test]
+fn static_coordinate_map_package_validates_without_neighbors() {
+    let surface = unit_square_surface();
+    let mut sample_config =
+        MeshSurfaceSampleConfig::high_quality_surface_points(10).without_neighbors();
+    sample_config.sample_set_id = "samples.static_package".to_owned();
+    let coordinate_map = MeshCoordinateMap::from_surface(
+        "mesh.coordinate_map.static_package",
+        &surface,
+        sample_config,
+        MeshCoordinateFrameConfig::default(),
+    )
+    .expect("coordinate map builds");
+    let source = MeshSourceDescriptor::new(
+        "mesh.source.unit_square_procedural",
+        "procedural:unit_square",
+        "procedural",
+        "procedural.unit_square.v1",
+        "AGPL-3.0-or-later",
+        "Rusty Matter procedural fixture",
+    );
+    let package = MeshCoordinateMapPackage::new(
+        "mesh.coordinate_map_package.unit_square",
+        source,
+        surface,
+        coordinate_map,
+    );
+
+    package.validate().expect("package validates");
+    assert_eq!(package.coordinate_map.samples.len(), 10);
+    assert!(package
+        .coordinate_map
+        .samples
+        .first_tier_neighbors
+        .iter()
+        .all(Vec::is_empty));
+    assert!(package
+        .coordinate_map
+        .samples
+        .second_tier_neighbors
+        .iter()
+        .all(Vec::is_empty));
+}
+
+#[test]
+fn mesh_source_descriptor_rejects_missing_provenance() {
+    let mut source = MeshSourceDescriptor::new(
+        "mesh.source.invalid",
+        "procedural:invalid",
+        "procedural",
+        "procedural.invalid.v1",
+        "AGPL-3.0-or-later",
+        "Rusty Matter procedural fixture",
+    );
+    source.source_hash.clear();
+
+    assert_eq!(
+        source.validate(),
+        Err(MatterMeshError::InvalidMeshSourceDescriptor(
+            "source_hash must not be empty"
+        ))
+    );
+}
+
+#[test]
+fn coordinate_map_package_rejects_mismatched_surface() {
+    let surface = unit_square_surface();
+    let mut sample_config = MeshSurfaceSampleConfig::high_quality_surface_points(6);
+    sample_config.sample_set_id = "samples.package_mismatch".to_owned();
+    let coordinate_map = MeshCoordinateMap::from_surface(
+        "mesh.coordinate_map.package_mismatch",
+        &surface,
+        sample_config,
+        MeshCoordinateFrameConfig::default(),
+    )
+    .expect("coordinate map builds");
+    let mut changed_surface = surface.clone();
+    changed_surface.surface_id = "mesh.unit_square_other".to_owned();
+    let package = MeshCoordinateMapPackage::new(
+        "mesh.coordinate_map_package.mismatch",
+        MeshSourceDescriptor::new(
+            "mesh.source.unit_square_mismatch",
+            "procedural:unit_square",
+            "procedural",
+            "procedural.unit_square.v1",
+            "AGPL-3.0-or-later",
+            "Rusty Matter procedural fixture",
+        ),
+        changed_surface,
+        coordinate_map,
+    );
+
+    assert_eq!(
+        package.validate(),
+        Err(MatterMeshError::InvalidMeshCoordinateMapPackage(
+            "coordinate_map must match package surface"
+        ))
     );
 }
 
