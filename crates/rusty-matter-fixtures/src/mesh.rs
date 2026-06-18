@@ -1,15 +1,15 @@
 use rusty_matter_mesh::{
     DynamicMeshCollider, DynamicMeshColliderConfig, DynamicMeshColliderUpdateStatus,
     HandValidationMeshFrame, Handedness, MeshCoordinateFrameConfig, MeshCoordinateMap,
-    MeshLocalDisplacementClampMode, MeshSurfaceSampleConfig, MeshSurfaceSamplePattern,
-    TriangleMeshSurface,
+    MeshCoordinateMapPackage, MeshLocalDisplacementClampMode, MeshSourceDescriptor,
+    MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface,
 };
 use rusty_matter_model::Vec3;
 
 use crate::error::CliError;
 use crate::summary::{
-    DynamicColliderSummary, HandValidationMeshSummary, MeshCoordinateMapSummary,
-    MeshSurfaceSampleSummary,
+    DynamicColliderSummary, HandValidationMeshSummary, MeshCoordinateMapPackageSummary,
+    MeshCoordinateMapSummary, MeshSurfaceSampleSummary,
 };
 
 pub(crate) fn unit_square_surface() -> TriangleMeshSurface {
@@ -100,6 +100,66 @@ pub(crate) fn mesh_coordinate_map_summary(
         first_axis_z: first_frame.axis_z,
         first_displaced_point: first_frame
             .displace(Vec3::new(0.5, -0.25, 2.0), coordinate_map.frames.clamp_mode),
+    })
+}
+
+pub(crate) fn mesh_coordinate_map_package_summary(
+    surface: &TriangleMeshSurface,
+) -> Result<MeshCoordinateMapPackageSummary, CliError> {
+    let mut sample_config =
+        MeshSurfaceSampleConfig::high_quality_surface_points(10).without_neighbors();
+    sample_config.sample_config_id = "mesh.surface_sample.package_fixture".to_owned();
+    sample_config.sample_set_id = "mesh.surface_samples.package_fixture".to_owned();
+    let coordinate_map = MeshCoordinateMap::from_surface(
+        "mesh.coordinate_map.package_fixture",
+        surface,
+        sample_config,
+        MeshCoordinateFrameConfig::default(),
+    )
+    .map_err(CliError::Mesh)?;
+    let source = MeshSourceDescriptor::new(
+        "mesh.source.unit_square_procedural",
+        "procedural:unit_square",
+        "procedural",
+        "procedural.unit_square.v1",
+        "AGPL-3.0-or-later",
+        "Rusty Matter procedural fixture",
+    );
+    let package = MeshCoordinateMapPackage::new(
+        "mesh.coordinate_map_package.unit_square_fixture",
+        source,
+        surface.clone(),
+        coordinate_map,
+    );
+    package.validate().map_err(CliError::Mesh)?;
+    let first_sample = package
+        .coordinate_map
+        .samples
+        .samples
+        .first()
+        .expect("fixture config requests samples");
+    let first_anchor = first_sample.position;
+    let first_normal = first_sample.normal;
+    Ok(MeshCoordinateMapPackageSummary {
+        schema_id: "rusty.matter.fixture.mesh_coordinate_map_package_summary.v1".to_owned(),
+        fixture_id: "fixture.mesh.unit_square_coordinate_map_package.v1".to_owned(),
+        package_id: package.package_id,
+        source_id: package.source.source_id,
+        source_format: package.source.source_format,
+        source_hash: package.source.source_hash,
+        surface_id: package.surface.surface_id,
+        coordinate_map_id: package.coordinate_map.coordinate_map_id,
+        topology_index_hash: package.coordinate_map.topology_key.index_hash,
+        sample_count: package.coordinate_map.samples.len(),
+        has_same_surface_neighbors: package
+            .coordinate_map
+            .samples
+            .first_tier_neighbors
+            .iter()
+            .chain(package.coordinate_map.samples.second_tier_neighbors.iter())
+            .any(|neighbors| !neighbors.is_empty()),
+        first_anchor,
+        first_normal,
     })
 }
 

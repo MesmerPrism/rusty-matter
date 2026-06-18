@@ -6,8 +6,8 @@ behavior.
 The SDF foundation bundle currently includes:
 
 - mesh payload fixtures in `fixtures/mesh`;
-- dynamic mesh surface, sample, coordinate-map, and dynamic-collider summaries
-  in `fixtures/mesh`;
+- dynamic mesh surface, sample, coordinate-map, coordinate-map package, and
+  dynamic-collider summaries in `fixtures/mesh`;
 - surface-field contract summaries, policy-free debug frames, and dynamic
   debug frame sequences in `fixtures/fields`;
 - qualitative bioelectric circuit config, stepped state, and step diagnostics

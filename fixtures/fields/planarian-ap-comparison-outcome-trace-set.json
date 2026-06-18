@@ -27,7 +27,7 @@
       "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
       "fixed_step_seconds": 0.033333335,
       "frame_stride": 15,
-      "cross_cut_base_conductance_average": 0.08785712,
+      "cross_cut_base_conductance_average": 0.12,
       "sample_columns": [
         "step_index",
         "time_seconds",
@@ -51,91 +51,91 @@
           "step_index": 15,
           "time_seconds": 0.5,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.21520494,
+          "posterior_head_identity_average": 0.21499744,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.9128361,
-          "cut_band_voltage_average": 0.007991405
+          "tail_identity_at_tail_average": 0.91559625,
+          "cut_band_voltage_average": -0.0014794437
         },
         {
           "step_index": 30,
           "time_seconds": 1.0000004,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22042446,
+          "posterior_head_identity_average": 0.21981621,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.9037404,
-          "cut_band_voltage_average": 0.010246353
+          "tail_identity_at_tail_average": 0.90965515,
+          "cut_band_voltage_average": -0.0018716896
         },
         {
           "step_index": 45,
           "time_seconds": 1.4999999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22416507,
+          "posterior_head_identity_average": 0.22319435,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8974591,
-          "cut_band_voltage_average": 0.010877833
+          "tail_identity_at_tail_average": 0.905307,
+          "cut_band_voltage_average": -0.0019723664
         },
         {
           "step_index": 60,
           "time_seconds": 1.9999994,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22644965,
+          "posterior_head_identity_average": 0.2252232,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8937469,
-          "cut_band_voltage_average": 0.011037868
+          "tail_identity_at_tail_average": 0.90260094,
+          "cut_band_voltage_average": -0.0019929954
         },
         {
           "step_index": 75,
           "time_seconds": 2.499999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22775315,
+          "posterior_head_identity_average": 0.22636692,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.89168924,
-          "cut_band_voltage_average": 0.011066779
+          "tail_identity_at_tail_average": 0.9010303,
+          "cut_band_voltage_average": -0.0019935672
         },
         {
           "step_index": 90,
           "time_seconds": 2.9999986,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22847195,
+          "posterior_head_identity_average": 0.2269929,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.89058226,
-          "cut_band_voltage_average": 0.011063934
+          "tail_identity_at_tail_average": 0.90015036,
+          "cut_band_voltage_average": -0.0019905914
         },
         {
           "step_index": 105,
           "time_seconds": 3.499998,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22886142,
+          "posterior_head_identity_average": 0.22733086,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88999504,
-          "cut_band_voltage_average": 0.0110564465
+          "tail_identity_at_tail_average": 0.8996667,
+          "cut_band_voltage_average": -0.001988
         },
         {
           "step_index": 120,
           "time_seconds": 3.9999976,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22907044,
+          "posterior_head_identity_average": 0.2275122,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88968545,
-          "cut_band_voltage_average": 0.011050471
+          "tail_identity_at_tail_average": 0.89940363,
+          "cut_band_voltage_average": -0.0019863201
         },
         {
           "step_index": 135,
           "time_seconds": 4.499997,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22918212,
+          "posterior_head_identity_average": 0.22760937,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8895223,
-          "cut_band_voltage_average": 0.011046611
+          "tail_identity_at_tail_average": 0.8992612,
+          "cut_band_voltage_average": -0.0019853415
         },
         {
           "step_index": 150,
           "time_seconds": 4.9999967,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22924164,
+          "posterior_head_identity_average": 0.22766152,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88943624,
-          "cut_band_voltage_average": 0.011044311
+          "tail_identity_at_tail_average": 0.899184,
+          "cut_band_voltage_average": -0.001984799
         }
       ]
     },
@@ -150,7 +150,7 @@
       "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
       "fixed_step_seconds": 0.033333335,
       "frame_stride": 15,
-      "cross_cut_base_conductance_average": 0.08785712,
+      "cross_cut_base_conductance_average": 0.12,
       "sample_columns": [
         "step_index",
         "time_seconds",
@@ -174,91 +174,91 @@
           "step_index": 15,
           "time_seconds": 0.5,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.21527393,
+          "posterior_head_identity_average": 0.21583687,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.912836,
-          "cut_band_voltage_average": 0.5581169
+          "tail_identity_at_tail_average": 0.91559625,
+          "cut_band_voltage_average": 0.5859678
         },
         {
           "step_index": 30,
           "time_seconds": 1.0000004,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.2210715,
+          "posterior_head_identity_average": 0.22339915,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.9037371,
-          "cut_band_voltage_average": 0.7751775
+          "tail_identity_at_tail_average": 0.90965515,
+          "cut_band_voltage_average": 0.8596712
         },
         {
           "step_index": 45,
           "time_seconds": 1.4999999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22593026,
+          "posterior_head_identity_average": 0.2298639,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8974445,
-          "cut_band_voltage_average": 0.4782492
+          "tail_identity_at_tail_average": 0.905307,
+          "cut_band_voltage_average": 0.57319397
         },
         {
           "step_index": 60,
           "time_seconds": 1.9999994,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22918117,
+          "posterior_head_identity_average": 0.23275807,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.89371115,
-          "cut_band_voltage_average": 0.21261005
+          "tail_identity_at_tail_average": 0.90260094,
+          "cut_band_voltage_average": 0.27520218
         },
         {
           "step_index": 75,
           "time_seconds": 2.499999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.23067458,
+          "posterior_head_identity_average": 0.23276988,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8916308,
-          "cut_band_voltage_average": 0.10566086
+          "tail_identity_at_tail_average": 0.9010303,
+          "cut_band_voltage_average": 0.13778406
         },
         {
           "step_index": 90,
           "time_seconds": 2.9999986,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.23096713,
+          "posterior_head_identity_average": 0.23161553,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8905098,
-          "cut_band_voltage_average": 0.056427088
+          "tail_identity_at_tail_average": 0.90015036,
+          "cut_band_voltage_average": 0.07013757
         },
         {
           "step_index": 105,
           "time_seconds": 3.499998,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.23072715,
+          "posterior_head_identity_average": 0.23035313,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88992,
-          "cut_band_voltage_average": 0.03307664
+          "tail_identity_at_tail_average": 0.8996667,
+          "cut_band_voltage_average": 0.035556216
         },
         {
           "step_index": 120,
           "time_seconds": 3.9999976,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.2303563,
+          "posterior_head_identity_average": 0.22937064,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.889617,
-          "cut_band_voltage_average": 0.021888135
+          "tail_identity_at_tail_average": 0.89940363,
+          "cut_band_voltage_average": 0.017678302
         },
         {
           "step_index": 135,
           "time_seconds": 4.499997,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.23002276,
+          "posterior_head_identity_average": 0.22870824,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8894656,
-          "cut_band_voltage_average": 0.016444428
+          "tail_identity_at_tail_average": 0.8992612,
+          "cut_band_voltage_average": 0.008372418
         },
         {
           "step_index": 150,
           "time_seconds": 4.9999967,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22977175,
+          "posterior_head_identity_average": 0.22829454,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8893923,
-          "cut_band_voltage_average": 0.01375728
+          "tail_identity_at_tail_average": 0.899184,
+          "cut_band_voltage_average": 0.0034975307
         }
       ]
     },
@@ -273,7 +273,7 @@
       "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
       "fixed_step_seconds": 0.033333335,
       "frame_stride": 15,
-      "cross_cut_base_conductance_average": 0.007028571,
+      "cross_cut_base_conductance_average": 0.0095999995,
       "sample_columns": [
         "step_index",
         "time_seconds",
@@ -297,91 +297,91 @@
           "step_index": 15,
           "time_seconds": 0.5,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.2152049,
+          "posterior_head_identity_average": 0.21499744,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.9128361,
-          "cut_band_voltage_average": 0.00021774556
+          "tail_identity_at_tail_average": 0.91559625,
+          "cut_band_voltage_average": -0.0031958446
         },
         {
           "step_index": 30,
           "time_seconds": 1.0000004,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22042422,
+          "posterior_head_identity_average": 0.21981621,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.9037404,
-          "cut_band_voltage_average": 0.00023348957
+          "tail_identity_at_tail_average": 0.90965515,
+          "cut_band_voltage_average": -0.004170863
         },
         {
           "step_index": 45,
           "time_seconds": 1.4999999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22416437,
+          "posterior_head_identity_average": 0.22319435,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8974591,
-          "cut_band_voltage_average": 0.00020493039
+          "tail_identity_at_tail_average": 0.905307,
+          "cut_band_voltage_average": -0.0044651823
         },
         {
           "step_index": 60,
           "time_seconds": 1.9999994,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22644848,
+          "posterior_head_identity_average": 0.2252232,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.89374703,
-          "cut_band_voltage_average": 0.00017677427
+          "tail_identity_at_tail_average": 0.90260094,
+          "cut_band_voltage_average": -0.004545162
         },
         {
           "step_index": 75,
           "time_seconds": 2.499999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22775136,
+          "posterior_head_identity_average": 0.22636692,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8916893,
-          "cut_band_voltage_average": 0.00015754024
+          "tail_identity_at_tail_average": 0.9010303,
+          "cut_band_voltage_average": -0.004560419
         },
         {
           "step_index": 90,
           "time_seconds": 2.9999986,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22846982,
+          "posterior_head_identity_average": 0.2269929,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8905824,
-          "cut_band_voltage_average": 0.00014607287
+          "tail_identity_at_tail_average": 0.90015036,
+          "cut_band_voltage_average": -0.004558649
         },
         {
           "step_index": 105,
           "time_seconds": 3.499998,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22885898,
+          "posterior_head_identity_average": 0.22733086,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88999516,
-          "cut_band_voltage_average": 0.0001397141
+          "tail_identity_at_tail_average": 0.8996667,
+          "cut_band_voltage_average": -0.0045541045
         },
         {
           "step_index": 120,
           "time_seconds": 3.9999976,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.2290678,
+          "posterior_head_identity_average": 0.2275122,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.88968563,
-          "cut_band_voltage_average": 0.00013634721
+          "tail_identity_at_tail_average": 0.89940363,
+          "cut_band_voltage_average": -0.00455037
         },
         {
           "step_index": 135,
           "time_seconds": 4.499997,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.2291793,
+          "posterior_head_identity_average": 0.22760937,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8895224,
-          "cut_band_voltage_average": 0.00013462303
+          "tail_identity_at_tail_average": 0.8992612,
+          "cut_band_voltage_average": -0.004547901
         },
         {
           "step_index": 150,
           "time_seconds": 4.9999967,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.22923872,
+          "posterior_head_identity_average": 0.22766152,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.8894365,
-          "cut_band_voltage_average": 0.00013376353
+          "tail_identity_at_tail_average": 0.899184,
+          "cut_band_voltage_average": -0.0045464127
         }
       ]
     },
@@ -396,7 +396,7 @@
       "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
       "fixed_step_seconds": 0.033333335,
       "frame_stride": 15,
-      "cross_cut_base_conductance_average": 0.08785712,
+      "cross_cut_base_conductance_average": 0.12,
       "sample_columns": [
         "step_index",
         "time_seconds",
@@ -420,10 +420,10 @@
           "step_index": 15,
           "time_seconds": 0.5,
           "posterior_memory_average": 0.68987596,
-          "posterior_head_identity_average": 0.90565306,
+          "posterior_head_identity_average": 0.9043007,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.2820138,
-          "cut_band_voltage_average": 0.010569223
+          "tail_identity_at_tail_average": 0.28476757,
+          "cut_band_voltage_average": 0.014791681
         },
         {
           "step_index": 30,
@@ -432,7 +432,7 @@
           "posterior_head_identity_average": 1.0,
           "head_identity_at_head_average": 1.0,
           "tail_identity_at_tail_average": 0.0,
-          "cut_band_voltage_average": 0.019753315
+          "cut_band_voltage_average": 0.04505426
         },
         {
           "step_index": 45,
@@ -441,70 +441,70 @@
           "posterior_head_identity_average": 1.0,
           "head_identity_at_head_average": 1.0,
           "tail_identity_at_tail_average": 0.0,
-          "cut_band_voltage_average": 0.024636671
+          "cut_band_voltage_average": 0.04920642
         },
         {
           "step_index": 60,
           "time_seconds": 1.9999994,
-          "posterior_memory_average": 0.99900174,
+          "posterior_memory_average": 0.99897397,
           "posterior_head_identity_average": 1.0,
           "head_identity_at_head_average": 1.0,
           "tail_identity_at_tail_average": 0.0,
-          "cut_band_voltage_average": 0.023298932
+          "cut_band_voltage_average": 0.033599585
         },
         {
           "step_index": 75,
           "time_seconds": 2.499999,
-          "posterior_memory_average": 0.99900174,
+          "posterior_memory_average": 0.99897397,
           "posterior_head_identity_average": 1.0,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.012335955,
-          "cut_band_voltage_average": 0.01984051
+          "tail_identity_at_tail_average": 0.013533361,
+          "cut_band_voltage_average": 0.019769648
         },
         {
           "step_index": 90,
           "time_seconds": 2.9999986,
-          "posterior_memory_average": 0.99900174,
-          "posterior_head_identity_average": 0.9992042,
+          "posterior_memory_average": 0.99897397,
+          "posterior_head_identity_average": 0.9988321,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.11212692,
-          "cut_band_voltage_average": 0.01701629
+          "tail_identity_at_tail_average": 0.11609012,
+          "cut_band_voltage_average": 0.011312048
         },
         {
           "step_index": 105,
           "time_seconds": 3.499998,
-          "posterior_memory_average": 0.99900174,
-          "posterior_head_identity_average": 0.9827615,
+          "posterior_memory_average": 0.99897397,
+          "posterior_head_identity_average": 0.980942,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.2138005,
-          "cut_band_voltage_average": 0.015013817
+          "tail_identity_at_tail_average": 0.21970099,
+          "cut_band_voltage_average": 0.0059883757
         },
         {
           "step_index": 120,
           "time_seconds": 3.9999976,
-          "posterior_memory_average": 0.99900174,
-          "posterior_head_identity_average": 0.9635296,
+          "posterior_memory_average": 0.99897397,
+          "posterior_head_identity_average": 0.96094674,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.28562915,
-          "cut_band_voltage_average": 0.013621907
+          "tail_identity_at_tail_average": 0.29288235,
+          "cut_band_voltage_average": 0.0026609667
         },
         {
           "step_index": 135,
           "time_seconds": 4.499997,
-          "posterior_memory_average": 0.99900174,
-          "posterior_head_identity_average": 0.94946975,
+          "posterior_memory_average": 0.99897397,
+          "posterior_head_identity_average": 0.9464563,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.33040994,
-          "cut_band_voltage_average": 0.0126777785
+          "tail_identity_at_tail_average": 0.3385795,
+          "cut_band_voltage_average": 0.00065955677
         },
         {
           "step_index": 150,
           "time_seconds": 4.9999967,
-          "posterior_memory_average": 0.99900174,
-          "posterior_head_identity_average": 0.9403549,
+          "posterior_memory_average": 0.99897397,
+          "posterior_head_identity_average": 0.9372967,
           "head_identity_at_head_average": 1.0,
-          "tail_identity_at_tail_average": 0.35671303,
-          "cut_band_voltage_average": 0.012056368
+          "tail_identity_at_tail_average": 0.36548463,
+          "cut_band_voltage_average": -0.0005036555
         }
       ]
     },
@@ -519,7 +519,7 @@
       "surface_id": "mesh.planarian_ap.sketchfab_educational_surface",
       "fixed_step_seconds": 0.033333335,
       "frame_stride": 15,
-      "cross_cut_base_conductance_average": 0.08785712,
+      "cross_cut_base_conductance_average": 0.12,
       "sample_columns": [
         "step_index",
         "time_seconds",
@@ -543,91 +543,91 @@
           "step_index": 15,
           "time_seconds": 0.5,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.7599762,
-          "head_identity_at_head_average": 0.9144727,
-          "tail_identity_at_tail_average": 0.3653266,
-          "cut_band_voltage_average": 0.010569223
+          "posterior_head_identity_average": 0.7585033,
+          "head_identity_at_head_average": 0.91545594,
+          "tail_identity_at_tail_average": 0.36808038,
+          "cut_band_voltage_average": 0.014791681
         },
         {
           "step_index": 30,
           "time_seconds": 1.0000004,
           "posterior_memory_average": 0.0,
           "posterior_head_identity_average": 1.0,
-          "head_identity_at_head_average": 0.9074936,
+          "head_identity_at_head_average": 0.90943575,
           "tail_identity_at_tail_average": 0.0,
-          "cut_band_voltage_average": 0.019753315
+          "cut_band_voltage_average": 0.04505426
         },
         {
           "step_index": 45,
           "time_seconds": 1.4999999,
           "posterior_memory_average": 0.0,
           "posterior_head_identity_average": 1.0,
-          "head_identity_at_head_average": 0.902658,
+          "head_identity_at_head_average": 0.9050897,
           "tail_identity_at_tail_average": 0.0,
-          "cut_band_voltage_average": 0.024636671
+          "cut_band_voltage_average": 0.04920642
         },
         {
           "step_index": 60,
           "time_seconds": 1.9999994,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.93772745,
-          "head_identity_at_head_average": 0.8997712,
-          "tail_identity_at_tail_average": 0.09114838,
-          "cut_band_voltage_average": 0.023298932
+          "posterior_head_identity_average": 0.93617207,
+          "head_identity_at_head_average": 0.9024092,
+          "tail_identity_at_tail_average": 0.092039905,
+          "cut_band_voltage_average": 0.033599585
         },
         {
           "step_index": 75,
           "time_seconds": 2.499999,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.7256846,
-          "head_identity_at_head_average": 0.89814746,
-          "tail_identity_at_tail_average": 0.33912814,
-          "cut_band_voltage_average": 0.01984051
+          "posterior_head_identity_average": 0.7238089,
+          "head_identity_at_head_average": 0.90086174,
+          "tail_identity_at_tail_average": 0.3417391,
+          "cut_band_voltage_average": 0.019769648
         },
         {
           "step_index": 90,
           "time_seconds": 2.9999986,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.5370279,
-          "head_identity_at_head_average": 0.8972578,
-          "tail_identity_at_tail_average": 0.5501003,
-          "cut_band_voltage_average": 0.01701629
+          "posterior_head_identity_average": 0.5353677,
+          "head_identity_at_head_average": 0.89999723,
+          "tail_identity_at_tail_average": 0.5545487,
+          "cut_band_voltage_average": 0.011312048
         },
         {
           "step_index": 105,
           "time_seconds": 3.499998,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.4090501,
-          "head_identity_at_head_average": 0.8967762,
-          "tail_identity_at_tail_average": 0.6912727,
-          "cut_band_voltage_average": 0.015013817
+          "posterior_head_identity_average": 0.40764162,
+          "head_identity_at_head_average": 0.899522,
+          "tail_identity_at_tail_average": 0.6973283,
+          "cut_band_voltage_average": 0.0059883757
         },
         {
           "step_index": 120,
           "time_seconds": 3.9999976,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.3308965,
-          "head_identity_at_head_average": 0.8965167,
-          "tail_identity_at_tail_average": 0.77713376,
-          "cut_band_voltage_average": 0.013621907
+          "posterior_head_identity_average": 0.3296468,
+          "head_identity_at_head_average": 0.89926356,
+          "tail_identity_at_tail_average": 0.784425,
+          "cut_band_voltage_average": 0.0026609667
         },
         {
           "step_index": 135,
           "time_seconds": 4.499997,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.28562912,
-          "head_identity_at_head_average": 0.89637697,
-          "tail_identity_at_tail_average": 0.82689995,
-          "cut_band_voltage_average": 0.0126777785
+          "posterior_head_identity_average": 0.2844219,
+          "head_identity_at_head_average": 0.8991234,
+          "tail_identity_at_tail_average": 0.8350658,
+          "cut_band_voltage_average": 0.00065955677
         },
         {
           "step_index": 150,
           "time_seconds": 4.9999967,
           "posterior_memory_average": 0.0,
-          "posterior_head_identity_average": 0.26017278,
-          "head_identity_at_head_average": 0.89630175,
-          "tail_identity_at_tail_average": 0.8549741,
-          "cut_band_voltage_average": 0.012056368
+          "posterior_head_identity_average": 0.25892913,
+          "head_identity_at_head_average": 0.899047,
+          "tail_identity_at_tail_average": 0.8637273,
+          "cut_band_voltage_average": -0.0005036555
         }
       ]
     }

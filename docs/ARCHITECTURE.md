@@ -12,8 +12,8 @@ Matter owns:
   execution, stable logical chunks, and chunk-index-ordered diagnostics
   reduction;
 - mesh and geometry payloads;
-- dynamic mesh topology keys, surface samples, coordinate maps, and local
-  coordinate frames;
+- dynamic mesh topology keys, source/provenance descriptors, surface samples,
+  coordinate maps, coordinate-map packages, and local coordinate frames;
 - surface-field graph substrates over mesh sample nodes and same-surface
   neighbor tiers;
 - scalar/vector surface-field state buffers, perturbation descriptors, runtime
@@ -75,10 +75,10 @@ particle simulation truth.
 ## Mesh Authority
 
 `rusty-matter-mesh` is the shared mesh contract crate. Generic mesh behavior
-uses `TriangleMeshSurface`, `MeshSurfaceTopologyKey`, `MeshSurfaceSampleSet`,
-`MeshCoordinateMap`, and `DynamicMeshCollider`. Hand-specific recording payloads
-wrap the same surface contract instead of creating a separate hand-only mesh
-authority.
+uses `TriangleMeshSurface`, `MeshSurfaceTopologyKey`, `MeshSourceDescriptor`,
+`MeshSurfaceSampleSet`, `MeshCoordinateMap`, `MeshCoordinateMapPackage`, and
+`DynamicMeshCollider`. Hand-specific recording payloads wrap the same surface
+contract instead of creating a separate hand-only mesh authority.
 
 This means a platform hand provider, a PC playback/export tool, the SDF builder,
 the dynamic mesh collider, and particle/coordinate-map consumers all agree on
@@ -97,7 +97,8 @@ The implemented foundation slices are intentionally CPU/data-only:
 - model primitives;
 - triangle mesh validation;
 - dynamic mesh surface validation and topology keys;
-- deterministic surface sampling with same-surface neighbor tiers;
+- deterministic surface sampling with approximate surface-walk same-surface
+  neighbor tiers;
 - surface-field contracts over mesh surface sample nodes and first/second
   neighbor tiers;
 - sparse fixed-step surface-field dynamics for scalar diffusion/decay and
@@ -181,8 +182,11 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 `main.rs` and `lib.rs` shapes removed elsewhere in the Rusty refactor.
 
 - `rusty-matter-mesh/src/surface.rs`: generic triangle surface and topology key.
+- `rusty-matter-mesh/src/source.rs`: mesh source descriptors, provenance,
+  units, format hints, and attribution metadata for Mesh Lab workflows.
 - `rusty-matter-mesh/src/sampling.rs`: deterministic surface sampling,
-  barycentric anchor updates, live sampler updates, and cross-neighborhoods.
+  approximate surface-walk same-surface neighbor tiers, barycentric anchor
+  updates, live sampler updates, and cross-neighborhoods.
 - `rusty-matter-fields/src/substrate.rs`: surface-field nodes and graph
   substrates derived from `MeshSurfaceSampleSet` positions, normals,
   triangle/barycentric mesh anchors, topology, and first/second same-surface
@@ -246,6 +250,8 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
   triangle tests.
 - `rusty-matter-mesh/src/coordinate.rs`: coordinate-map frame configs, local
   frames, and coordinate maps.
+- `rusty-matter-mesh/src/package.rs`: source, canonical surface, and
+  coordinate-map packages for downstream consumers.
 - `rusty-matter-mesh/src/hand.rs`: hand rig, joint-frame, and validation mesh
   wrappers over the shared generic surface contract.
 - `rusty-matter-mesh/src/collider.rs`: dynamic mesh collider config, update,

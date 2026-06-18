@@ -46,6 +46,8 @@ impl SchemaCatalog {
         let planformdb_derived_fixtures = &["fixtures/fields/planformdb-derived-v0.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
+        let mesh_coordinate_map_package_fixtures =
+            &["fixtures/mesh/unit-square-coordinate-map-package-summary.json"];
         let mesh_dynamic_collider_fixtures =
             &["fixtures/mesh/unit-square-dynamic-collider-summary.json"];
         let hand_validation_mesh_fixtures =
@@ -296,6 +298,16 @@ impl SchemaCatalog {
                     mesh_coordinate_map_fixtures,
                 ),
                 entry(
+                    "rusty.matter.mesh.source_descriptor.v1",
+                    "MeshSourceDescriptor",
+                    mesh_coordinate_map_package_fixtures,
+                ),
+                entry(
+                    "rusty.matter.mesh.coordinate_map_package.v1",
+                    "MeshCoordinateMapPackage",
+                    mesh_coordinate_map_package_fixtures,
+                ),
+                entry(
                     "rusty.matter.mesh.dynamic_collider_config.v1",
                     "DynamicMeshColliderConfig",
                     mesh_dynamic_collider_fixtures,
@@ -404,6 +416,11 @@ impl SchemaCatalog {
                     "rusty.matter.fixture.mesh_coordinate_map_summary.v1",
                     "MeshCoordinateMapSummary",
                     mesh_coordinate_map_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fixture.mesh_coordinate_map_package_summary.v1",
+                    "MeshCoordinateMapPackageSummary",
+                    mesh_coordinate_map_package_fixtures,
                 ),
                 entry(
                     "rusty.matter.fixture.dynamic_collider_summary.v1",

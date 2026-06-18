@@ -22,6 +22,10 @@ pub enum MatterMeshError {
     EmptyCoordinateFrameConfigId,
     /// Coordinate frame set ID was empty.
     EmptyCoordinateFrameSetId,
+    /// Mesh source ID was empty.
+    EmptyMeshSourceId,
+    /// Mesh coordinate-map package ID was empty.
+    EmptyMeshCoordinateMapPackageId,
     /// Collider config ID was empty.
     EmptyColliderConfigId,
     /// Hand rig capture ID was empty.
@@ -59,6 +63,10 @@ pub enum MatterMeshError {
     InvalidCoordinateFrameConfig(&'static str),
     /// Coordinate map was invalid.
     InvalidCoordinateMap(&'static str),
+    /// Mesh source descriptor was invalid.
+    InvalidMeshSourceDescriptor(&'static str),
+    /// Mesh coordinate-map package was invalid.
+    InvalidMeshCoordinateMapPackage(&'static str),
     /// Hand payload was invalid.
     InvalidHandPayload(&'static str),
     /// Surface topology changed.
@@ -84,6 +92,10 @@ impl fmt::Display for MatterMeshError {
             }
             Self::EmptyCoordinateFrameSetId => {
                 formatter.write_str("coordinate frame set id must not be empty")
+            }
+            Self::EmptyMeshSourceId => formatter.write_str("mesh source id must not be empty"),
+            Self::EmptyMeshCoordinateMapPackageId => {
+                formatter.write_str("mesh coordinate-map package id must not be empty")
             }
             Self::EmptyColliderConfigId => {
                 formatter.write_str("collider config id must not be empty")
@@ -121,6 +133,12 @@ impl fmt::Display for MatterMeshError {
             }
             Self::InvalidCoordinateMap(reason) => {
                 write!(formatter, "invalid mesh coordinate map: {reason}")
+            }
+            Self::InvalidMeshSourceDescriptor(reason) => {
+                write!(formatter, "invalid mesh source descriptor: {reason}")
+            }
+            Self::InvalidMeshCoordinateMapPackage(reason) => {
+                write!(formatter, "invalid mesh coordinate-map package: {reason}")
             }
             Self::InvalidHandPayload(reason) => write!(formatter, "invalid hand payload: {reason}"),
             Self::ChangedTopology => formatter.write_str("mesh surface topology changed"),

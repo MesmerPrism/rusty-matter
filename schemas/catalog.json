@@ -342,6 +342,22 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.mesh.source_descriptor.v1",
+      "rust_type": "MeshSourceDescriptor",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-package-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.mesh.coordinate_map_package.v1",
+      "rust_type": "MeshCoordinateMapPackage",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-package-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.mesh.dynamic_collider_config.v1",
       "rust_type": "DynamicMeshColliderConfig",
       "fixture_paths": [
@@ -534,6 +550,14 @@
       "rust_type": "MeshCoordinateMapSummary",
       "fixture_paths": [
         "fixtures/mesh/unit-square-coordinate-map-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.mesh_coordinate_map_package_summary.v1",
+      "rust_type": "MeshCoordinateMapPackageSummary",
+      "fixture_paths": [
+        "fixtures/mesh/unit-square-coordinate-map-package-summary.json"
       ],
       "status": "foundation"
     },

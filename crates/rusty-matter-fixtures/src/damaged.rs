@@ -473,6 +473,8 @@ fn mesh_rejection_code(error: &MatterMeshError) -> String {
         MatterMeshError::EmptyCoordinateMapId => "mesh.empty_coordinate_map_id",
         MatterMeshError::EmptyCoordinateFrameConfigId => "mesh.empty_coordinate_frame_config_id",
         MatterMeshError::EmptyCoordinateFrameSetId => "mesh.empty_coordinate_frame_set_id",
+        MatterMeshError::EmptyMeshSourceId => "mesh.empty_source_id",
+        MatterMeshError::EmptyMeshCoordinateMapPackageId => "mesh.empty_coordinate_map_package_id",
         MatterMeshError::EmptyColliderConfigId => "mesh.empty_collider_config_id",
         MatterMeshError::EmptyHandRigCaptureId => "mesh.empty_hand_rig_capture_id",
         MatterMeshError::EmptyHandJointFrameId => "mesh.empty_hand_joint_frame_id",
@@ -485,6 +487,10 @@ fn mesh_rejection_code(error: &MatterMeshError) -> String {
         MatterMeshError::InvalidColliderConfig(_) => "mesh.invalid_collider_config",
         MatterMeshError::InvalidCoordinateFrameConfig(_) => "mesh.invalid_coordinate_frame_config",
         MatterMeshError::InvalidCoordinateMap(_) => "mesh.invalid_coordinate_map",
+        MatterMeshError::InvalidMeshSourceDescriptor(_) => "mesh.invalid_source_descriptor",
+        MatterMeshError::InvalidMeshCoordinateMapPackage(_) => {
+            "mesh.invalid_coordinate_map_package"
+        }
         MatterMeshError::InvalidHandPayload(_) => "mesh.invalid_hand_payload",
         MatterMeshError::ChangedTopology => "mesh.changed_topology",
     }

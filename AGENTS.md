@@ -75,10 +75,10 @@ sockets, media stacks, or downstream app crates.
   modules that mirror the ownership family.
 - Split before adding behavior when a file starts mixing independent families,
   even below the global 10k-line pressure threshold. For Matter, the important
-  families are surface/topology, sampling/live updates, coordinate maps, hand
-  payloads, dynamic colliders, particle state/render payloads, interactions,
-  spatial hashing, diagnostics, simulation, schema catalog export, and fixture
-  generation.
+  families are surface/topology, source/provenance, sampling/live updates,
+  coordinate maps, coordinate-map packages, hand payloads, dynamic colliders,
+  particle state/render payloads, interactions, spatial hashing, diagnostics,
+  simulation, schema catalog export, and fixture generation.
 - Preserve public names, schema IDs, serde field names, fixture outputs, CLI
   messages, validation outcomes, and dependency boundaries during mechanical
   splits. Validate with `.\tools\check_all.ps1` before continuing a feature
@@ -97,9 +97,9 @@ Current crate-root maps:
   behavior to either generated surface file.
 - `rusty-matter-fields-wasm/src/lib.rs`: target-gated browser adapter over the
   Matter surface-field runtime.
-- `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `sampling`,
-  `coordinate`, `hand`, `collider`, accelerated surface `distance`, `error`,
-  and shared `math`.
+- `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `source`,
+  `sampling`, `coordinate`, `package`, `hand`, `collider`, accelerated surface
+  `distance`, `error`, and shared `math`.
 - `rusty-matter-sdf/src/lib.rs`: facade over `builder`, `config`,
   `grid`, `geometry`, and `error`.
 - `rusty-matter-adf/src/lib.rs`: facade over `builder`, `config`, `field`

@@ -112,6 +112,20 @@ with unchanged topology can refit an existing distance-sampler tree without a
 full rebuild, while changed topology is rejected rather than silently reusing an
 invalid tree.
 
+For Mesh Lab source, coordinate-map package, and static mesh-coordinate
+contract work, the narrow test route is:
+
+```powershell
+cargo test -p rusty-matter-mesh
+cargo run -p rusty-matter-fixtures -- validate
+cargo run -p rusty-matter-schema -- export --check
+```
+
+Those tests verify source/provenance descriptor validation, coordinate-map
+packages over canonical `TriangleMeshSurface` payloads, explicit no-neighbor
+static coordinate maps, package/source/surface consistency, fixture summary
+generation, and schema catalog coverage.
+
 For native animated-surface runtime adapter work, the narrow test route is:
 
 ```powershell

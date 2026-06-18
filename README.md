@@ -31,9 +31,11 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   selected node/edge readout accessors, tiered voltage-neighborhood previews
   and mutations, bounded recent edit-event readouts, and affected-target
   readouts;
-- `rusty-matter-mesh`: dynamic mesh surfaces, stable topology keys, surface
-  sampling, accelerated surface-distance sampling, coordinate maps, hand
-  validation mesh payloads, and dynamic mesh collider CPU reference behavior;
+- `rusty-matter-mesh`: dynamic mesh surfaces, source/provenance descriptors,
+  stable topology keys, surface sampling, approximate surface-walk same-surface
+  neighborhoods, accelerated surface-distance sampling, coordinate maps,
+  coordinate-map packages, hand validation mesh payloads, and dynamic mesh
+  collider CPU reference behavior;
 - `rusty-matter-sdf`: packed SDF grids and mesh-to-SDF CPU reference behavior;
 - `rusty-matter-adf`: adaptive distance fields built from Matter SDF grids,
   with CPU reference construction, compact diagnostics, and deterministic
@@ -63,9 +65,10 @@ affected-target readouts, summaries, debug frames, and errors.
 The reviewed Planaria surface is generated as a compact Matter mesh payload
 under `rusty-matter-fields/src/planarian_mesh_asset/`, with
 `planarian_mesh_asset.rs` kept as the provenance and loader module.
-Mesh code is split by surface, sampling/live updates, accelerated distance
-queries, coordinate maps, hand payloads, dynamic collider, and error/math
-helpers. Batch code is split by config, chunks, executor, report, and errors.
+Mesh code is split by surface, source/provenance descriptors, sampling/live
+updates, accelerated distance queries, coordinate maps, coordinate-map
+packages, hand payloads, dynamic collider, and error/math helpers. Batch code
+is split by config, chunks, executor, report, and errors.
 SDF code is split by builder, config, packed grid, geometry helpers, and
 errors. ADF code is split by builder, config, field, and errors. Particle code
 is split by IDs, state, render-neutral payloads, configs,
@@ -97,6 +100,9 @@ operator UI, renderer backend imports, platform hand mesh acquisition, Quest
 tooling, or downstream app behavior.
 
 Default schema IDs use `rusty.matter.*`.
+
+Reusable mesh intake, editing, coordinate-map packaging, and validation
+workflows are tracked in `docs/MESH_LAB.md`.
 
 ## Validation
 

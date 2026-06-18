@@ -111,6 +111,23 @@ pub(crate) struct MeshCoordinateMapSummary {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub(crate) struct MeshCoordinateMapPackageSummary {
+    pub(crate) schema_id: String,
+    pub(crate) fixture_id: String,
+    pub(crate) package_id: String,
+    pub(crate) source_id: String,
+    pub(crate) source_format: String,
+    pub(crate) source_hash: String,
+    pub(crate) surface_id: String,
+    pub(crate) coordinate_map_id: String,
+    pub(crate) topology_index_hash: u64,
+    pub(crate) sample_count: usize,
+    pub(crate) has_same_surface_neighbors: bool,
+    pub(crate) first_anchor: Vec3,
+    pub(crate) first_normal: Vec3,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub(crate) struct DynamicColliderSummary {
     pub(crate) schema_id: String,
     pub(crate) fixture_id: String,

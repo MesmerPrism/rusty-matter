@@ -16,8 +16,9 @@ use crate::fields::{
     surface_field_debug_sequence,
 };
 use crate::mesh::{
-    dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_summary,
-    mesh_surface_sample_summary, synthetic_hand_validation_mesh_frame, unit_square_surface,
+    dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_package_summary,
+    mesh_coordinate_map_summary, mesh_surface_sample_summary, synthetic_hand_validation_mesh_frame,
+    unit_square_surface,
 };
 use crate::particles::{
     particle_interaction_step_summary, particle_render_payload_summary,
@@ -103,6 +104,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/mesh/unit-square-coordinate-map-summary.json",
         &mesh_coordinate_map_summary(&surface)?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/mesh/unit-square-coordinate-map-package-summary.json",
+        &mesh_coordinate_map_package_summary(&surface)?,
     )?);
     artifacts.push(FixtureArtifact::new(
         "fixtures/mesh/unit-square-dynamic-collider-summary.json",
