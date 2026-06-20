@@ -1,6 +1,7 @@
 use crate::{
     default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
-    default_planformdb_derived_fixture, MatterFieldError,
+    default_planarian_xr_display_bridge_fixture, default_planformdb_derived_fixture,
+    MatterFieldError,
 };
 
 #[test]
@@ -69,6 +70,90 @@ fn damaged_source_dynamics_targets_are_rejected() {
     let error = fixture
         .validate()
         .expect_err("malformed PlanformDB record IDs reject");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+}
+
+#[test]
+fn planarian_xr_display_bridge_preserves_matter_boundaries() {
+    let fixture = default_planarian_xr_display_bridge_fixture().expect("bridge fixture validates");
+
+    assert_eq!(
+        fixture.fixture_id,
+        "fixture.fields.planarian_xr.neuron_cloud_display_bridge.v0"
+    );
+    assert_eq!(fixture.matter_substrate_role, "display_substrate");
+    assert_eq!(fixture.matter_authority, "rusty-matter");
+    assert_eq!(fixture.optics_authority, "rusty-optics");
+    assert_eq!(fixture.source_element_count, 3_467);
+    assert_eq!(fixture.source_element_count, fixture.mapped_element_count);
+    assert!(fixture
+        .capability_policy
+        .allowed_capabilities
+        .contains(&"display_substrate".to_owned()));
+    assert!(fixture
+        .capability_policy
+        .blocked_capabilities
+        .contains(&"observed_dynamics_binding".to_owned()));
+    assert!(fixture
+        .matter_use_policy
+        .iter()
+        .any(|policy| policy.contains("not runtime dynamics")));
+    assert!(fixture
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("not measured")));
+    assert!(fixture.public_inputs.iter().any(|input| {
+        input.kind == "bridge_manifest"
+            && input.sha256 == "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f"
+    }));
+}
+
+#[test]
+fn damaged_planarian_xr_display_bridge_is_rejected() {
+    let mut fixture =
+        default_planarian_xr_display_bridge_fixture().expect("fixture validates before damage");
+    fixture.schema_id = "rusty.matter.fields.planarian_xr_display_bridge_fixture.v0".to_owned();
+
+    let error = fixture.validate().expect_err("wrong schema rejects");
+    assert!(matches!(error, MatterFieldError::UnexpectedSchema { .. }));
+
+    let mut fixture =
+        default_planarian_xr_display_bridge_fixture().expect("fixture validates before damage");
+    fixture.source_map_sha256 = "0".repeat(64);
+
+    let error = fixture
+        .validate()
+        .expect_err("source-map hash mismatch rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut fixture =
+        default_planarian_xr_display_bridge_fixture().expect("fixture validates before damage");
+    fixture.input_geometry_path = "raw/neuron-cell-cloud.glb".to_owned();
+
+    let error = fixture.validate().expect_err("unsafe path rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut fixture =
+        default_planarian_xr_display_bridge_fixture().expect("fixture validates before damage");
+    fixture.evidence_type = "observed".to_owned();
+
+    let error = fixture.validate().expect_err("evidence overclaim rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut fixture =
+        default_planarian_xr_display_bridge_fixture().expect("fixture validates before damage");
+    fixture
+        .capability_policy
+        .blocked_capabilities
+        .retain(|capability| capability != "observed_dynamics_binding");
+    fixture
+        .capability_policy
+        .allowed_capabilities
+        .push("observed_dynamics_binding".to_owned());
+
+    let error = fixture
+        .validate()
+        .expect_err("capability overclaim rejects");
     assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
 }
 

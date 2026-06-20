@@ -1,0 +1,87 @@
+{
+  "schema_id": "rusty.matter.fields.planarian_xr_display_bridge_fixture.v1",
+  "fixture_id": "fixture.fields.planarian_xr.neuron_cloud_display_bridge.v0",
+  "schema_version": 1,
+  "evidence_type": "planarian_xr_public_display_bridge",
+  "source_bridge_schema": "planarian-xr.rusty-dynamics-bridge.v1",
+  "source_bridge_id": "bridge_planarian_rusty_neuron_cloud_v0",
+  "source_bridge_manifest_path": "/data/bridges/planarian-rusty-neuron-cloud-bridge.json",
+  "source_bridge_manifest_sha256": "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f",
+  "atlas_geometry_asset_id": "geo_zenodo_neuron_cell_cloud_candidate",
+  "source_layer_id": "source_layer_zenodo_11724834_neuron_cell_cloud",
+  "source_doi": "10.5281/zenodo.11724834",
+  "source_object_name": "planarianneuronpool.Cloud",
+  "source_object_type": "HxCluster",
+  "source_map_path": "/data/source-maps/zenodo-11724834-neuron-cell-cloud-point-map.json",
+  "source_map_sha256": "e0fa27071c3d95dad6df82ce1e52860b1b12f1a0532cad1bbed7940c05621b51",
+  "input_geometry_path": "/assets/geometry/derived/neuron-cell-cloud.glb",
+  "input_geometry_sha256": "97a18266dfa0cfa0f1fac739cf01c64c5a02ea0413d5a0b7aa81e3eb24e45787",
+  "matter_substrate_role": "display_substrate",
+  "matter_authority": "rusty-matter",
+  "optics_authority": "rusty-optics",
+  "planarian_xr_role": "atlas_manifest_provider",
+  "simulation_run_id": "sim_zenodo_neuron_cloud_bioelectric_replay_v0",
+  "source_element_count": 3467,
+  "mapped_element_count": 3467,
+  "replay_node_count": 480,
+  "replay_edge_count": 1767,
+  "replay_frame_count": 96,
+  "public_inputs": [
+    {
+      "kind": "bridge_manifest",
+      "path": "/data/bridges/planarian-rusty-neuron-cloud-bridge.json",
+      "sha256": "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f",
+      "bytes": 4077
+    },
+    {
+      "kind": "geometry_glb",
+      "path": "/assets/geometry/derived/neuron-cell-cloud.glb",
+      "sha256": "97a18266dfa0cfa0f1fac739cf01c64c5a02ea0413d5a0b7aa81e3eb24e45787",
+      "bytes": 250476
+    },
+    {
+      "kind": "source_map_sidecar",
+      "path": "/data/source-maps/zenodo-11724834-neuron-cell-cloud-point-map.json",
+      "sha256": "e0fa27071c3d95dad6df82ce1e52860b1b12f1a0532cad1bbed7940c05621b51",
+      "bytes": 1940611
+    },
+    {
+      "kind": "replay_manifest",
+      "path": "/data/replays/zenodo-neuron-cloud-bioelectric-replay.json",
+      "sha256": "f22dce6a6b7dde3ea2d0ee6ac27b2dd628205e0a7d4f4cdbf60b7391b948ad12",
+      "bytes": 2344
+    },
+    {
+      "kind": "preview_gif",
+      "path": "/assets/bioelectricity/zenodo-neuron-cloud-bioelectric-replay.gif",
+      "sha256": "de307a94e2d67ae378816362c33cd43dbf49f6f288a5bbf796e057f09ab78ee2",
+      "bytes": 3471374
+    }
+  ],
+  "capability_policy": {
+    "allowed_capabilities": [
+      "source_map_inspection",
+      "read_only_element_inspection",
+      "display_substrate",
+      "model_inspired_replay_listing"
+    ],
+    "blocked_capabilities": [
+      "observed_dynamics_binding",
+      "measured_bioelectric_claims",
+      "predictive_regeneration_claims",
+      "live_matter_stepping",
+      "edit_acceptance",
+      "nearest_object_annotation"
+    ]
+  },
+  "matter_use_policy": [
+    "Treat the neuron cloud as a public display substrate, not runtime dynamics.",
+    "Public display ordinals are not measured bioelectric data.",
+    "Use this fixture only to validate bridge metadata before a separate Matter-owned scenario fixture exists."
+  ],
+  "caveats": [
+    "The Planarian XR source map provides display/source ordinals only, not measured voltage and not predictive dynamics.",
+    "The replay metadata remains model-inspired display output, not a Matter-owned observed-dynamics binding.",
+    "Observed-dynamics binding remains blocked until reviewed Matter and Optics outputs are explicitly wired."
+  ]
+}

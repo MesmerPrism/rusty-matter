@@ -74,6 +74,9 @@ pub const PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID: &str =
 /// Schema ID for source-reviewed planarian dynamics target fixtures.
 pub const PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID: &str =
     "rusty.matter.fields.planarian_source_dynamics_targets.v1";
+/// Schema ID for public Planarian XR display-bridge fixtures.
+pub const PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID: &str =
+    "rusty.matter.fields.planarian_xr_display_bridge_fixture.v1";
 /// Schema ID for curated PlanformDB-derived review fixtures.
 pub const PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID: &str =
     "rusty.matter.fields.planformdb_derived_fixture.v1";

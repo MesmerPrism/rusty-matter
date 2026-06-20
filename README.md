@@ -22,8 +22,9 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   mesh-anchored substrate nodes, plus compact scenario outcome traces and
   comparison trace sets, normalized non-calibrated morphology/readout metrics,
   a rights-safe species-like head-label taxonomy, source-reviewed qualitative
-  dynamics target metadata, and a small PlanformDB-derived review fixture that
-  stays out of runtime dynamics;
+  dynamics target metadata, a public Planarian XR display-bridge fixture for
+  the neuron-cloud source map, and a small PlanformDB-derived review fixture
+  that stays out of runtime dynamics;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
@@ -92,6 +93,10 @@ The source-reviewed dynamics-target fixture maps high-confidence literature
 targets to existing synthetic educational scenarios and future fixture gates;
 it is metadata/validation evidence, not a new solver or calibrated physiology
 claim.
+The public Planarian XR display-bridge fixture records the neuron-cloud bridge
+manifest, source-map, GLB, replay, and preview hashes as a display-substrate
+contract. It is not runtime dynamics, observed voltage evidence, or an edit
+acceptance surface.
 
 ## Boundary
 

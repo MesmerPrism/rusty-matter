@@ -30,6 +30,9 @@ The SDF foundation bundle currently includes:
 - a source-reviewed qualitative dynamics-target fixture in `fixtures/fields`,
   mapping high-confidence literature targets to current synthetic scenarios,
   future fixture gates, and explicit blocked calibration claims;
+- a public Planarian XR neuron-cloud display-bridge fixture in
+  `fixtures/fields`, preserving bridge/source-map/GLB/replay hashes and
+  blocked observed-dynamics capabilities without becoming runtime dynamics;
 - a small PlanformDB-derived review fixture in `fixtures/fields`, preserving
   source IDs, citation IDs, notice text, normalized labels, sample counts, and
   outcome frequencies without importing raw database rows or runtime dynamics;
@@ -70,6 +73,7 @@ from Matter scenario runs, not from Optics or browser-side metric code.
 `fixtures/fields/planarian-normalized-morphology-metrics.json`,
 `fixtures/fields/planarian-species-like-head-taxonomy.json`,
 `fixtures/fields/planarian-source-dynamics-targets.json`, and
+`fixtures/fields/planarian-xr-neuron-cloud-display-bridge-v0.json`, and
 `fixtures/fields/planformdb-derived-v0.json` are source-target validation and
 annotation artifacts. They do not change Matter's voltage, conductance,
 memory/readout, or stepping behavior.

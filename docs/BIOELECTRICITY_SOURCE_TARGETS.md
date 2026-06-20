@@ -46,6 +46,13 @@ high-confidence literature targets to current synthetic scenarios, future
 fixture gates, and explicit blocked uses; it does not change the Matter
 runtime or calibrate the existing synthetic dynamics.
 
+The public Planarian XR display bridge is serialized in
+`fixtures/fields/planarian-xr-neuron-cloud-display-bridge-v0.json`. It records
+the Planarian XR neuron-cloud bridge manifest, source-map sidecar, public GLB,
+model-inspired replay, and preview hashes as display-substrate metadata. It is
+not a runtime dynamics input, not measured bioelectric data, and not an edit
+acceptance surface.
+
 Head-size and species-like head-label targets are scoped in
 `docs/PLANARIAN_METRIC_TARGETS.md`. The current Matter slice implements the
 first non-calibrated metric/taxonomy fixtures only; stronger morphometric
@@ -62,6 +69,7 @@ outcome behavior remain gated.
 | `persistent_axis_recut_history` | Registered as a future source-reviewed dynamics target only. | Add session/package history fixtures before claiming persistence across repeated regeneration rounds. |
 | `head_size_scaling` | Implemented as `PlanarianNormalizedMorphologyMetrics` with mesh-normalized AP-region/readout extents and no thresholds. | Extract area/location targets before claiming source-fit head or organ size. |
 | `species_like_head_labels` | Implemented as a rights-safe categorical teaching taxonomy fixture with generated-symbol/text label policy. | Add generated silhouettes or source-derived category frequencies only after a rights/provenance review. |
+| `planarian_xr_neuron_cloud_display_bridge` | Implemented as a public display-substrate bridge fixture with public hashes and blocked observed-dynamics capabilities. | Build a separate Matter-owned substrate/scenario fixture before using the bridge for any dynamics output. |
 | `planformdb_curated_subset` | Implemented as a 14-record Matter review fixture with source IDs, citations, notice text, normalized labels, and damaged-input tests. | Keep it out of runtime dynamics; expand only through curated, traceable derived records. |
 
 ## Implementation Rules
@@ -75,6 +83,8 @@ outcome behavior remain gated.
   authority. The current derived fixture validates metadata and frequencies
   only; it does not drive circuit dynamics, conductance constants, timing
   state, or stochastic predictions.
+- Treat Planarian XR bridge manifests as public display-substrate metadata
+  until a separate Matter-owned fixture explicitly validates dynamics inputs.
 - Keep Optics as a consumer of Matter-owned source/target anchors. Optics may
   display source labels and claim boundaries, but it must not invent simulation
   semantics.

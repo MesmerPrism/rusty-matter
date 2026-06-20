@@ -1,9 +1,11 @@
 use crate::{
     MatterFieldError, PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID,
-    PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID, PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
+    PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID, PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID,
+    PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
 };
 
 const PLANFORMDB_DERIVED_RECORD_EVIDENCE_TYPE: &str = "derived_planformdb_record";
+const PLANARIAN_XR_DISPLAY_BRIDGE_EVIDENCE_TYPE: &str = "planarian_xr_public_display_bridge";
 const SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE: &str = "source_reviewed_dynamics_target";
 const SPECIES_LIKE_HEAD_TAXONOMY_EVIDENCE_TYPE: &str = "rights_safe_teaching_taxonomy";
 const SPECIES_LIKE_HEAD_SOURCE_TARGET_ANCHOR: &str =
@@ -230,6 +232,434 @@ impl PlanarianSourceDynamicsTargetFixture {
         }
         Ok(())
     }
+}
+
+/// One public artifact referenced by a Planarian XR display-bridge fixture.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianXrBridgePublicInput {
+    /// Artifact role in the public bridge.
+    pub kind: String,
+    /// Public path from the Planarian XR static asset root.
+    pub path: String,
+    /// SHA-256 of the public artifact.
+    pub sha256: String,
+    /// Public artifact byte length.
+    pub bytes: u64,
+}
+
+impl PlanarianXrBridgePublicInput {
+    fn validate(&self) -> Result<(), MatterFieldError> {
+        if !matches!(
+            self.kind.as_str(),
+            "bridge_manifest"
+                | "geometry_glb"
+                | "source_map_sidecar"
+                | "replay_manifest"
+                | "preview_gif"
+        ) {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge public input kind is not supported",
+            ));
+        }
+        if !is_sha256_hex(&self.sha256) || self.bytes == 0 {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge public inputs must carry SHA-256 hashes and byte counts",
+            ));
+        }
+        validate_planarian_xr_public_path(&self.path)?;
+        Ok(())
+    }
+}
+
+/// Allowed and blocked Matter capabilities for a public Planarian XR bridge.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianXrBridgeCapabilityPolicy {
+    /// Capabilities that Matter may use from the public bridge.
+    pub allowed_capabilities: Vec<String>,
+    /// Capabilities that Matter must continue to reject for this bridge.
+    pub blocked_capabilities: Vec<String>,
+}
+
+impl PlanarianXrBridgeCapabilityPolicy {
+    fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.allowed_capabilities.is_empty()
+            || self.blocked_capabilities.is_empty()
+            || self
+                .allowed_capabilities
+                .iter()
+                .any(|capability| capability.trim().is_empty())
+            || self
+                .blocked_capabilities
+                .iter()
+                .any(|capability| capability.trim().is_empty())
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge capability policy must be populated",
+            ));
+        }
+        for required in [
+            "source_map_inspection",
+            "read_only_element_inspection",
+            "display_substrate",
+            "model_inspired_replay_listing",
+        ] {
+            if !self
+                .allowed_capabilities
+                .iter()
+                .any(|item| item == required)
+            {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR bridge is missing a required allowed capability",
+                ));
+            }
+        }
+        for required in [
+            "observed_dynamics_binding",
+            "measured_bioelectric_claims",
+            "predictive_regeneration_claims",
+            "live_matter_stepping",
+            "edit_acceptance",
+            "nearest_object_annotation",
+        ] {
+            if !self
+                .blocked_capabilities
+                .iter()
+                .any(|item| item == required)
+            {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR bridge is missing a required blocked capability",
+                ));
+            }
+            if self
+                .allowed_capabilities
+                .iter()
+                .any(|item| item == required)
+            {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR bridge cannot allow a blocked capability",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Matter-side import fixture for a public Planarian XR display bridge.
+///
+/// This fixture is a static data contract for a display substrate. It is not a
+/// live Matter scenario, observed voltage trace, edit surface, or predictive
+/// regeneration model.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianXrDisplayBridgeFixture {
+    /// Matter schema identifier.
+    pub schema_id: String,
+    /// Stable Matter fixture identifier.
+    pub fixture_id: String,
+    /// Fixture schema version.
+    pub schema_version: u32,
+    /// Evidence type; must be `planarian_xr_public_display_bridge`.
+    pub evidence_type: String,
+    /// Source Planarian XR bridge schema identifier.
+    pub source_bridge_schema: String,
+    /// Source Planarian XR bridge manifest identifier.
+    pub source_bridge_id: String,
+    /// Public Planarian XR bridge manifest path.
+    pub source_bridge_manifest_path: String,
+    /// Public Planarian XR bridge manifest SHA-256.
+    pub source_bridge_manifest_sha256: String,
+    /// Planarian XR geometry asset identifier.
+    pub atlas_geometry_asset_id: String,
+    /// Planarian XR source layer identifier.
+    pub source_layer_id: String,
+    /// Public source DOI.
+    pub source_doi: String,
+    /// Public source object name.
+    pub source_object_name: String,
+    /// Public source object type.
+    pub source_object_type: String,
+    /// Public source-map sidecar path.
+    pub source_map_path: String,
+    /// Public source-map sidecar SHA-256.
+    pub source_map_sha256: String,
+    /// Public input geometry path.
+    pub input_geometry_path: String,
+    /// Public input geometry SHA-256.
+    pub input_geometry_sha256: String,
+    /// Matter role for this bridge; must be `display_substrate`.
+    pub matter_substrate_role: String,
+    /// Dynamics authority named by the source bridge.
+    pub matter_authority: String,
+    /// Visual/export authority named by the source bridge.
+    pub optics_authority: String,
+    /// Planarian XR role named by the source bridge.
+    pub planarian_xr_role: String,
+    /// Planarian XR replay identifier carried only as model-inspired display metadata.
+    pub simulation_run_id: String,
+    /// Number of source elements listed in the public sidecar.
+    pub source_element_count: u32,
+    /// Number of mapped public display elements.
+    pub mapped_element_count: u32,
+    /// Public replay graph node count.
+    pub replay_node_count: u32,
+    /// Public replay graph edge count.
+    pub replay_edge_count: u32,
+    /// Public replay frame count.
+    pub replay_frame_count: u32,
+    /// Public artifacts referenced by this bridge fixture.
+    pub public_inputs: Vec<PlanarianXrBridgePublicInput>,
+    /// Allowed and blocked bridge capabilities.
+    pub capability_policy: PlanarianXrBridgeCapabilityPolicy,
+    /// Matter-side use policy.
+    pub matter_use_policy: Vec<String>,
+    /// Explicit caveats preserved from the public bridge import.
+    pub caveats: Vec<String>,
+}
+
+impl PlanarianXrDisplayBridgeFixture {
+    /// Validates the Matter-side public Planarian XR display bridge fixture.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when schema, public paths, hashes, counts,
+    /// authority fields, or claim boundaries are invalid.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.fixture_id.trim().is_empty()
+            || self.schema_version == 0
+            || self.evidence_type != PLANARIAN_XR_DISPLAY_BRIDGE_EVIDENCE_TYPE
+            || self.source_bridge_schema != "planarian-xr.rusty-dynamics-bridge.v1"
+            || self.source_bridge_id.trim().is_empty()
+            || self.atlas_geometry_asset_id.trim().is_empty()
+            || self.source_layer_id.trim().is_empty()
+            || self.source_doi.trim().is_empty()
+            || self.source_object_name.trim().is_empty()
+            || self.source_object_type.trim().is_empty()
+            || self.simulation_run_id.trim().is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture metadata must be populated",
+            ));
+        }
+        if self.matter_substrate_role != "display_substrate"
+            || self.matter_authority != "rusty-matter"
+            || self.optics_authority != "rusty-optics"
+            || self.planarian_xr_role != "atlas_manifest_provider"
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture must preserve authority boundaries",
+            ));
+        }
+        if !is_sha256_hex(&self.source_bridge_manifest_sha256)
+            || !is_sha256_hex(&self.source_map_sha256)
+            || !is_sha256_hex(&self.input_geometry_sha256)
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture hashes must be SHA-256 hex",
+            ));
+        }
+        validate_planarian_xr_public_path(&self.source_bridge_manifest_path)?;
+        validate_planarian_xr_public_path(&self.source_map_path)?;
+        validate_planarian_xr_public_path(&self.input_geometry_path)?;
+        if self.source_element_count == 0
+            || self.mapped_element_count == 0
+            || self.source_element_count != self.mapped_element_count
+            || self.replay_node_count == 0
+            || self.replay_edge_count == 0
+            || self.replay_frame_count == 0
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture counts must be positive and mapped one-to-one",
+            ));
+        }
+        if self.public_inputs.is_empty() {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture must list public inputs",
+            ));
+        }
+        let mut seen_public_input_kinds = Vec::<&str>::with_capacity(self.public_inputs.len());
+        for public_input in &self.public_inputs {
+            public_input.validate()?;
+            if seen_public_input_kinds.contains(&public_input.kind.as_str()) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR bridge fixture must not repeat public input kinds",
+                ));
+            }
+            seen_public_input_kinds.push(public_input.kind.as_str());
+        }
+        for required in [
+            "bridge_manifest",
+            "geometry_glb",
+            "source_map_sidecar",
+            "replay_manifest",
+            "preview_gif",
+        ] {
+            if !seen_public_input_kinds.contains(&required) {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR bridge fixture is missing a required public input",
+                ));
+            }
+        }
+        validate_public_input_link(
+            &self.public_inputs,
+            "bridge_manifest",
+            &self.source_bridge_manifest_path,
+            &self.source_bridge_manifest_sha256,
+        )?;
+        validate_public_input_link(
+            &self.public_inputs,
+            "source_map_sidecar",
+            &self.source_map_path,
+            &self.source_map_sha256,
+        )?;
+        validate_public_input_link(
+            &self.public_inputs,
+            "geometry_glb",
+            &self.input_geometry_path,
+            &self.input_geometry_sha256,
+        )?;
+        self.capability_policy.validate()?;
+        validate_bridge_policy_text(&self.matter_use_policy)?;
+        validate_bridge_policy_text(&self.caveats)?;
+        if !self
+            .matter_use_policy
+            .iter()
+            .any(|policy| policy.contains("not runtime dynamics"))
+            || !self
+                .matter_use_policy
+                .iter()
+                .any(|policy| policy.contains("not measured bioelectric data"))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture must state the Matter non-dynamics boundary",
+            ));
+        }
+        if !self
+            .caveats
+            .iter()
+            .any(|caveat| caveat.contains("not predictive"))
+            || !self
+                .caveats
+                .iter()
+                .any(|caveat| caveat.contains("not measured"))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR bridge fixture caveats must block measured and predictive claims",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn validate_planarian_xr_public_path(path: &str) -> Result<(), MatterFieldError> {
+    if path.trim().is_empty()
+        || path.contains('\\')
+        || path.contains(':')
+        || path.split('/').any(|part| part == "..")
+        || contains_private_fragment(path)
+        || ![
+            "/data/bridges/",
+            "/data/source-maps/",
+            "/data/replays/",
+            "/assets/geometry/",
+            "/assets/bioelectricity/",
+        ]
+        .iter()
+        .any(|root| path.starts_with(root))
+    {
+        return Err(MatterFieldError::InvalidRunSummary(
+            "Planarian XR bridge paths must be public static asset paths",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_bridge_policy_text(items: &[String]) -> Result<(), MatterFieldError> {
+    if items.is_empty() || items.iter().any(|item| item.trim().is_empty()) {
+        return Err(MatterFieldError::InvalidRunSummary(
+            "Planarian XR bridge policy text must be populated",
+        ));
+    }
+    if items
+        .iter()
+        .any(|item| item.contains('\\') || item.contains(':') || contains_private_fragment(item))
+    {
+        return Err(MatterFieldError::InvalidRunSummary(
+            "Planarian XR bridge policy text must not contain private artifact markers",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_public_input_link(
+    public_inputs: &[PlanarianXrBridgePublicInput],
+    kind: &str,
+    expected_path: &str,
+    expected_sha256: &str,
+) -> Result<(), MatterFieldError> {
+    let Some(public_input) = public_inputs.iter().find(|input| input.kind == kind) else {
+        return Err(MatterFieldError::InvalidRunSummary(
+            "Planarian XR bridge public input link is missing",
+        ));
+    };
+    if public_input.path != expected_path || public_input.sha256 != expected_sha256 {
+        return Err(MatterFieldError::InvalidRunSummary(
+            "Planarian XR bridge public input link must match fixture hashes",
+        ));
+    }
+    Ok(())
+}
+
+fn bridge_public_input(
+    kind: &str,
+    path: &str,
+    sha256: &str,
+    bytes: u64,
+) -> PlanarianXrBridgePublicInput {
+    PlanarianXrBridgePublicInput {
+        kind: kind.to_owned(),
+        path: path.to_owned(),
+        sha256: sha256.to_owned(),
+        bytes,
+    }
+}
+
+fn contains_private_fragment(value: &str) -> bool {
+    let normalized = value.to_ascii_lowercase();
+    [
+        "raw/",
+        "/raw/",
+        "artifacts/",
+        "/artifacts/",
+        ".togo",
+        ".am.dat",
+        ".am.lda",
+        ".am",
+        "tileminmax",
+        "decoder",
+        "key material",
+        ".log",
+        "review packet",
+        "source request package",
+    ]
+    .iter()
+    .any(|fragment| normalized.contains(fragment))
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value.chars().all(|character| {
+            character.is_ascii_digit()
+                || ('a'..='f').contains(&character)
+                || ('A'..='F').contains(&character)
+        })
 }
 
 /// Source database metadata for a curated PlanformDB-derived fixture.
@@ -969,6 +1399,118 @@ pub fn default_planarian_source_dynamics_targets(
                     "Persistent history remains future session/package evidence, not current runtime state.",
                 )],
             ),
+        ],
+    };
+    fixture.validate()?;
+    Ok(fixture)
+}
+
+/// Builds the default public Planarian XR display bridge fixture.
+///
+/// # Errors
+///
+/// Returns [`MatterFieldError`] if the generated bridge fixture fails
+/// validation.
+pub fn default_planarian_xr_display_bridge_fixture(
+) -> Result<PlanarianXrDisplayBridgeFixture, MatterFieldError> {
+    let fixture = PlanarianXrDisplayBridgeFixture {
+        schema_id: PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID.to_owned(),
+        fixture_id: "fixture.fields.planarian_xr.neuron_cloud_display_bridge.v0".to_owned(),
+        schema_version: 1,
+        evidence_type: PLANARIAN_XR_DISPLAY_BRIDGE_EVIDENCE_TYPE.to_owned(),
+        source_bridge_schema: "planarian-xr.rusty-dynamics-bridge.v1".to_owned(),
+        source_bridge_id: "bridge_planarian_rusty_neuron_cloud_v0".to_owned(),
+        source_bridge_manifest_path:
+            "/data/bridges/planarian-rusty-neuron-cloud-bridge.json".to_owned(),
+        source_bridge_manifest_sha256:
+            "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f"
+                .to_owned(),
+        atlas_geometry_asset_id: "geo_zenodo_neuron_cell_cloud_candidate".to_owned(),
+        source_layer_id: "source_layer_zenodo_11724834_neuron_cell_cloud".to_owned(),
+        source_doi: "10.5281/zenodo.11724834".to_owned(),
+        source_object_name: "planarianneuronpool.Cloud".to_owned(),
+        source_object_type: "HxCluster".to_owned(),
+        source_map_path: "/data/source-maps/zenodo-11724834-neuron-cell-cloud-point-map.json"
+            .to_owned(),
+        source_map_sha256:
+            "e0fa27071c3d95dad6df82ce1e52860b1b12f1a0532cad1bbed7940c05621b51"
+                .to_owned(),
+        input_geometry_path: "/assets/geometry/derived/neuron-cell-cloud.glb".to_owned(),
+        input_geometry_sha256:
+            "97a18266dfa0cfa0f1fac739cf01c64c5a02ea0413d5a0b7aa81e3eb24e45787"
+                .to_owned(),
+        matter_substrate_role: "display_substrate".to_owned(),
+        matter_authority: "rusty-matter".to_owned(),
+        optics_authority: "rusty-optics".to_owned(),
+        planarian_xr_role: "atlas_manifest_provider".to_owned(),
+        simulation_run_id: "sim_zenodo_neuron_cloud_bioelectric_replay_v0".to_owned(),
+        source_element_count: 3_467,
+        mapped_element_count: 3_467,
+        replay_node_count: 480,
+        replay_edge_count: 1_767,
+        replay_frame_count: 96,
+        public_inputs: vec![
+            bridge_public_input(
+                "bridge_manifest",
+                "/data/bridges/planarian-rusty-neuron-cloud-bridge.json",
+                "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f",
+                4_077,
+            ),
+            bridge_public_input(
+                "geometry_glb",
+                "/assets/geometry/derived/neuron-cell-cloud.glb",
+                "97a18266dfa0cfa0f1fac739cf01c64c5a02ea0413d5a0b7aa81e3eb24e45787",
+                250_476,
+            ),
+            bridge_public_input(
+                "source_map_sidecar",
+                "/data/source-maps/zenodo-11724834-neuron-cell-cloud-point-map.json",
+                "e0fa27071c3d95dad6df82ce1e52860b1b12f1a0532cad1bbed7940c05621b51",
+                1_940_611,
+            ),
+            bridge_public_input(
+                "replay_manifest",
+                "/data/replays/zenodo-neuron-cloud-bioelectric-replay.json",
+                "f22dce6a6b7dde3ea2d0ee6ac27b2dd628205e0a7d4f4cdbf60b7391b948ad12",
+                2_344,
+            ),
+            bridge_public_input(
+                "preview_gif",
+                "/assets/bioelectricity/zenodo-neuron-cloud-bioelectric-replay.gif",
+                "de307a94e2d67ae378816362c33cd43dbf49f6f288a5bbf796e057f09ab78ee2",
+                3_471_374,
+            ),
+        ],
+        capability_policy: PlanarianXrBridgeCapabilityPolicy {
+            allowed_capabilities: vec![
+                "source_map_inspection".to_owned(),
+                "read_only_element_inspection".to_owned(),
+                "display_substrate".to_owned(),
+                "model_inspired_replay_listing".to_owned(),
+            ],
+            blocked_capabilities: vec![
+                "observed_dynamics_binding".to_owned(),
+                "measured_bioelectric_claims".to_owned(),
+                "predictive_regeneration_claims".to_owned(),
+                "live_matter_stepping".to_owned(),
+                "edit_acceptance".to_owned(),
+                "nearest_object_annotation".to_owned(),
+            ],
+        },
+        matter_use_policy: vec![
+            "Treat the neuron cloud as a public display substrate, not runtime dynamics."
+                .to_owned(),
+            "Public display ordinals are not measured bioelectric data.".to_owned(),
+            "Use this fixture only to validate bridge metadata before a separate Matter-owned scenario fixture exists."
+                .to_owned(),
+        ],
+        caveats: vec![
+            "The Planarian XR source map provides display/source ordinals only, not measured voltage and not predictive dynamics."
+                .to_owned(),
+            "The replay metadata remains model-inspired display output, not a Matter-owned observed-dynamics binding."
+                .to_owned(),
+            "Observed-dynamics binding remains blocked until reviewed Matter and Optics outputs are explicitly wired."
+                .to_owned(),
         ],
     };
     fixture.validate()?;
