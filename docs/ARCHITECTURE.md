@@ -36,8 +36,9 @@ Matter owns:
 - normalized, non-calibrated planarian morphology/readout metric fixtures,
   rights-safe categorical species-like head label taxonomies, source-reviewed
   qualitative dynamics target metadata, public Planarian XR display-bridge
-  fixtures, and small PlanformDB-derived review fixtures that preserve source
-  IDs, citations, and notice text without becoming runtime dynamics;
+  fixtures and display-substrate requests, and small PlanformDB-derived review
+  fixtures that preserve source IDs, citations, and notice text without
+  becoming runtime dynamics;
 - hand rig, joint-frame, and validation-mesh payload shapes that convert to a
   generic triangle mesh surface;
 - accelerated closest-surface distance samplers over the current triangle mesh;
@@ -121,7 +122,8 @@ The implemented foundation slices are intentionally CPU/data-only:
   `head_size_scaling` source-target path, plus rights-safe species-like head
   label taxonomy, source-reviewed dynamics target metadata, and
   a public Planarian XR neuron-cloud display-bridge fixture that preserves
-  bridge/source-map/asset hashes while blocking observed-dynamics claims, plus
+  bridge/source-map/asset hashes while blocking observed-dynamics claims, a
+  request-only display-substrate graph policy for later materialization, plus
   PlanformDB-derived review records. These are validation and annotation
   contracts only; they do not alter conductance, voltage, memory, stepping, or
   stochastic outcome behavior;
@@ -228,9 +230,10 @@ Crate roots stay as facades so Matter does not rebuild the monolithic
 - `rusty-matter-fields/src/planarian_evidence.rs`: source-derived planarian
   evidence contracts that are not runtime dynamics, including the rights-safe
   species-like head label taxonomy, source-reviewed qualitative dynamics
-  target metadata, the Planarian XR display-bridge fixture, and the small
-  PlanformDB-derived review fixture with notice text, citation IDs, source
-  IDs, normalized labels, and damaged-input validation.
+  target metadata, the Planarian XR display-bridge fixture, the request-only
+  display-substrate graph policy, and the small PlanformDB-derived review
+  fixture with notice text, citation IDs, source IDs, normalized labels, and
+  damaged-input validation.
 - `rusty-matter-fields/src/planarian_mesh_asset.rs`: generated provenance and
   loader module for the reviewed Sketchfab Planaria GLB derivative translated
   into Matter `TriangleMeshSurface` coordinates.

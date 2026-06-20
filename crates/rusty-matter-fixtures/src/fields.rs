@@ -1,20 +1,21 @@
 use rusty_matter_fields::{
     default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
-    default_planarian_xr_display_bridge_fixture, default_planformdb_derived_fixture,
-    planarian_comparison_scenario_kinds, BioelectricCircuitConfig, BioelectricCircuitEdit,
-    BioelectricCircuitEditOperation, BioelectricCircuitEditResult, BioelectricCircuitRuntime,
-    BioelectricCircuitState, BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge,
-    BioelectricCurrentKind, BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource,
-    BioelectricMemoryState, BioelectricReadoutLayer, BioelectricVoltageField,
-    BioelectricVoltageUnit, PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
+    default_planarian_xr_display_bridge_fixture, default_planarian_xr_display_substrate_request,
+    default_planformdb_derived_fixture, planarian_comparison_scenario_kinds,
+    BioelectricCircuitConfig, BioelectricCircuitEdit, BioelectricCircuitEditOperation,
+    BioelectricCircuitEditResult, BioelectricCircuitRuntime, BioelectricCircuitState,
+    BioelectricCircuitStepDiagnostics, BioelectricConductanceEdge, BioelectricCurrentKind,
+    BioelectricCurrentTerm, BioelectricGate, BioelectricGateSource, BioelectricMemoryState,
+    BioelectricReadoutLayer, BioelectricVoltageField, BioelectricVoltageUnit,
+    PlanarianBioelectricOutcomeTrace, PlanarianBioelectricOutcomeTraceSet,
     PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
     PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
     PlanarianSourceDynamicsTargetFixture, PlanarianSpeciesLikeHeadTaxonomy,
-    PlanarianXrDisplayBridgeFixture, PlanformDbDerivedFixture, SurfaceFieldDebugFrame,
-    SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
-    SurfaceFieldRunSummary, SurfaceFieldRuntime, SurfaceFieldRuntimeConfig, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind, SurfaceVectorField,
-    SurfaceVectorFieldKind,
+    PlanarianXrDisplayBridgeFixture, PlanarianXrDisplaySubstrateRequest, PlanformDbDerivedFixture,
+    SurfaceFieldDebugFrame, SurfaceFieldDebugFrameSequence, SurfaceFieldPerturbation,
+    SurfaceFieldPerturbationEffect, SurfaceFieldRunSummary, SurfaceFieldRuntime,
+    SurfaceFieldRuntimeConfig, SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField,
+    SurfaceScalarFieldKind, SurfaceVectorField, SurfaceVectorFieldKind,
 };
 use rusty_matter_mesh::{MeshSurfaceSampleConfig, MeshSurfaceSamplePattern, TriangleMeshSurface};
 use rusty_matter_model::Vec3;
@@ -193,6 +194,11 @@ pub(crate) fn planarian_source_dynamics_targets(
 pub(crate) fn planarian_xr_display_bridge_fixture(
 ) -> Result<PlanarianXrDisplayBridgeFixture, CliError> {
     default_planarian_xr_display_bridge_fixture().map_err(CliError::Field)
+}
+
+pub(crate) fn planarian_xr_display_substrate_request(
+) -> Result<PlanarianXrDisplaySubstrateRequest, CliError> {
+    default_planarian_xr_display_substrate_request().map_err(CliError::Field)
 }
 
 pub(crate) fn planformdb_derived_fixture() -> Result<PlanformDbDerivedFixture, CliError> {

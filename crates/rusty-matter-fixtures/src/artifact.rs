@@ -12,8 +12,9 @@ use crate::fields::{
     planarian_bioelectric_outcome_trace, planarian_bioelectric_outcome_trace_set,
     planarian_bioelectric_scenario_run, planarian_normalized_morphology_metrics,
     planarian_source_dynamics_targets, planarian_species_like_head_taxonomy,
-    planarian_xr_display_bridge_fixture, planformdb_derived_fixture,
-    surface_field_contract_summary, surface_field_debug_frame, surface_field_debug_sequence,
+    planarian_xr_display_bridge_fixture, planarian_xr_display_substrate_request,
+    planformdb_derived_fixture, surface_field_contract_summary, surface_field_debug_frame,
+    surface_field_debug_sequence,
 };
 use crate::mesh::{
     dynamic_collider_summary, hand_validation_mesh_summary, mesh_coordinate_map_package_summary,
@@ -172,6 +173,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/planarian-xr-neuron-cloud-display-bridge-v0.json",
         &planarian_xr_display_bridge_fixture()?,
+    )?);
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/fields/planarian-xr-neuron-cloud-display-substrate-request-v0.json",
+        &planarian_xr_display_substrate_request()?,
     )?);
     artifacts.push(FixtureArtifact::new(
         "fixtures/fields/planformdb-derived-v0.json",

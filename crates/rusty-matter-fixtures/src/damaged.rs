@@ -1,10 +1,10 @@
 use rusty_matter_fields::{
     default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
-    default_planarian_xr_display_bridge_fixture, default_planformdb_derived_fixture,
-    MatterFieldError, PlanarianBioelectricPresetConfig, PlanarianBioelectricScenarioKind,
-    PlanarianBioelectricScenarioRun, PlanarianNormalizedMorphologyMetrics,
-    SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect, SurfaceFieldState,
-    SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
+    default_planarian_xr_display_bridge_fixture, default_planarian_xr_display_substrate_request,
+    default_planformdb_derived_fixture, MatterFieldError, PlanarianBioelectricPresetConfig,
+    PlanarianBioelectricScenarioKind, PlanarianBioelectricScenarioRun,
+    PlanarianNormalizedMorphologyMetrics, SurfaceFieldPerturbation, SurfaceFieldPerturbationEffect,
+    SurfaceFieldState, SurfaceFieldSubstrate, SurfaceScalarField, SurfaceScalarFieldKind,
 };
 use rusty_matter_mesh::{
     HandValidationMeshFrame, Handedness, MatterMeshError, MeshCoordinateFrameConfig,
@@ -196,6 +196,13 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
             "damaged.fields.invalid_planarian_xr_display_bridge",
             "field.invalid_run_summary",
             damaged_planarian_xr_display_bridge(),
+        )?,
+        damaged_field_report(
+            "fixtures/damaged/invalid-planarian-xr-display-substrate-request.json",
+            "fixture.damaged.invalid_planarian_xr_display_substrate_request.v1",
+            "damaged.fields.invalid_planarian_xr_display_substrate_request",
+            "field.invalid_run_summary",
+            damaged_planarian_xr_display_substrate_request(),
         )?,
         damaged_field_report(
             "fixtures/damaged/invalid-planformdb-derived-fixture.json",
@@ -390,6 +397,14 @@ fn damaged_planarian_xr_display_bridge() -> Result<(), MatterFieldError> {
         .allowed_capabilities
         .push("observed_dynamics_binding".to_owned());
     fixture.validate()
+}
+
+fn damaged_planarian_xr_display_substrate_request() -> Result<(), MatterFieldError> {
+    let mut request = default_planarian_xr_display_substrate_request()?;
+    request
+        .allowed_outputs
+        .push("observed_dynamics_binding".to_owned());
+    request.validate()
 }
 
 fn damaged_planformdb_derived_fixture() -> Result<(), MatterFieldError> {

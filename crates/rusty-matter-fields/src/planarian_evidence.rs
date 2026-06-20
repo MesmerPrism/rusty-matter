@@ -1,11 +1,13 @@
 use crate::{
     MatterFieldError, PLANARIAN_SOURCE_DYNAMICS_TARGETS_SCHEMA_ID,
     PLANARIAN_SPECIES_LIKE_HEAD_TAXONOMY_SCHEMA_ID, PLANARIAN_XR_DISPLAY_BRIDGE_FIXTURE_SCHEMA_ID,
-    PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
+    PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_SCHEMA_ID, PLANFORMDB_DERIVED_FIXTURE_SCHEMA_ID,
 };
 
 const PLANFORMDB_DERIVED_RECORD_EVIDENCE_TYPE: &str = "derived_planformdb_record";
 const PLANARIAN_XR_DISPLAY_BRIDGE_EVIDENCE_TYPE: &str = "planarian_xr_public_display_bridge";
+const PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_EVIDENCE_TYPE: &str =
+    "planarian_xr_display_substrate_request";
 const SOURCE_REVIEWED_DYNAMICS_EVIDENCE_TYPE: &str = "source_reviewed_dynamics_target";
 const SPECIES_LIKE_HEAD_TAXONOMY_EVIDENCE_TYPE: &str = "rights_safe_teaching_taxonomy";
 const SPECIES_LIKE_HEAD_SOURCE_TARGET_ANCHOR: &str =
@@ -552,6 +554,246 @@ impl PlanarianXrDisplayBridgeFixture {
         {
             return Err(MatterFieldError::InvalidRunSummary(
                 "Planarian XR bridge fixture caveats must block measured and predictive claims",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Matter-owned policy for materializing a Planarian XR public source map as a
+/// display substrate.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianXrDisplaySubstrateGraphPolicy {
+    /// Materialization state for this fixture.
+    pub materialization_status: String,
+    /// Node construction policy.
+    pub node_policy: String,
+    /// Coordinate interpretation policy.
+    pub coordinate_policy: String,
+    /// Edge construction policy.
+    pub edge_policy: String,
+    /// Requested nearest-neighbor count for later graph materialization.
+    pub nearest_neighbors_per_node: u32,
+    /// Edge weight semantics.
+    pub edge_weight_policy: String,
+}
+
+impl PlanarianXrDisplaySubstrateGraphPolicy {
+    fn validate(&self) -> Result<(), MatterFieldError> {
+        validate_bridge_policy_text(&[
+            self.materialization_status.clone(),
+            self.node_policy.clone(),
+            self.coordinate_policy.clone(),
+            self.edge_policy.clone(),
+            self.edge_weight_policy.clone(),
+        ])?;
+        if self.materialization_status != "request_only_not_materialized"
+            || !self
+                .node_policy
+                .contains("one node per mapped public element")
+            || !self
+                .coordinate_policy
+                .contains("source-map atlas positions")
+            || !self.coordinate_policy.contains("not calibrated")
+            || !self.edge_policy.contains("deterministic")
+            || !self.edge_policy.contains("nearest")
+            || self.nearest_neighbors_per_node == 0
+            || self.nearest_neighbors_per_node > 12
+            || !self.edge_weight_policy.contains("not conductance")
+            || !self.edge_weight_policy.contains("not voltage")
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate graph policy must remain request-only and non-dynamics",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Matter-owned request fixture for turning a public Planarian XR bridge into
+/// a deterministic display-substrate graph in a later slice.
+///
+/// This fixture consumes the bridge metadata and fixes the graph policy. It
+/// still does not materialize nodes, voltage, conductance, or runtime stepping.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlanarianXrDisplaySubstrateRequest {
+    /// Matter schema identifier.
+    pub schema_id: String,
+    /// Stable request identifier.
+    pub request_id: String,
+    /// Request schema version.
+    pub schema_version: u32,
+    /// Evidence type; must be `planarian_xr_display_substrate_request`.
+    pub evidence_type: String,
+    /// Source bridge fixture consumed by this request.
+    pub source_bridge_fixture_id: String,
+    /// Source Planarian XR bridge manifest SHA-256.
+    pub source_bridge_manifest_sha256: String,
+    /// Public source-map sidecar path.
+    pub source_map_path: String,
+    /// Public source-map sidecar SHA-256.
+    pub source_map_sha256: String,
+    /// Public input geometry path.
+    pub input_geometry_path: String,
+    /// Public input geometry SHA-256.
+    pub input_geometry_sha256: String,
+    /// Source elements available in the public map.
+    pub source_element_count: u32,
+    /// Requested display-substrate graph node count.
+    pub requested_node_count: u32,
+    /// Graph materialization policy.
+    pub graph_policy: PlanarianXrDisplaySubstrateGraphPolicy,
+    /// Allowed and blocked bridge capabilities carried into the request.
+    pub capability_policy: PlanarianXrBridgeCapabilityPolicy,
+    /// Output families this request may produce later.
+    pub allowed_outputs: Vec<String>,
+    /// Output families this request must not produce.
+    pub blocked_outputs: Vec<String>,
+    /// Explicit caveats for the request.
+    pub caveats: Vec<String>,
+}
+
+impl PlanarianXrDisplaySubstrateRequest {
+    /// Builds a request from a validated public Planarian XR bridge fixture.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when either input or generated request
+    /// violates the non-dynamics boundary.
+    pub fn from_bridge(
+        request_id: impl Into<String>,
+        bridge: &PlanarianXrDisplayBridgeFixture,
+        graph_policy: PlanarianXrDisplaySubstrateGraphPolicy,
+    ) -> Result<Self, MatterFieldError> {
+        bridge.validate()?;
+        let request = Self {
+            schema_id: PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_SCHEMA_ID.to_owned(),
+            request_id: request_id.into(),
+            schema_version: 1,
+            evidence_type: PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_EVIDENCE_TYPE.to_owned(),
+            source_bridge_fixture_id: bridge.fixture_id.clone(),
+            source_bridge_manifest_sha256: bridge.source_bridge_manifest_sha256.clone(),
+            source_map_path: bridge.source_map_path.clone(),
+            source_map_sha256: bridge.source_map_sha256.clone(),
+            input_geometry_path: bridge.input_geometry_path.clone(),
+            input_geometry_sha256: bridge.input_geometry_sha256.clone(),
+            source_element_count: bridge.source_element_count,
+            requested_node_count: bridge.mapped_element_count,
+            graph_policy,
+            capability_policy: bridge.capability_policy.clone(),
+            allowed_outputs: vec![
+                "display_substrate_graph_fixture".to_owned(),
+                "source_map_node_index".to_owned(),
+            ],
+            blocked_outputs: vec![
+                "observed_dynamics_binding".to_owned(),
+                "measured_bioelectric_state".to_owned(),
+                "predictive_regeneration_output".to_owned(),
+                "live_matter_stepping".to_owned(),
+                "edit_acceptance".to_owned(),
+            ],
+            caveats: vec![
+                "Request-only display-substrate graph policy; not runtime dynamics."
+                    .to_owned(),
+                "Public source-map positions are not measured bioelectric data.".to_owned(),
+                "Nearest-neighbor display edges are not conductance, not voltage, and not predictive regeneration output."
+                    .to_owned(),
+            ],
+        };
+        request.validate()?;
+        Ok(request)
+    }
+
+    /// Validates the display-substrate request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MatterFieldError`] when schema, hashes, counts, graph policy,
+    /// output policy, or caveats violate the request-only boundary.
+    pub fn validate(&self) -> Result<(), MatterFieldError> {
+        if self.schema_id != PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_SCHEMA_ID {
+            return Err(MatterFieldError::UnexpectedSchema {
+                expected: PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_SCHEMA_ID,
+                actual: self.schema_id.clone(),
+            });
+        }
+        if self.request_id.trim().is_empty()
+            || self.schema_version == 0
+            || self.evidence_type != PLANARIAN_XR_DISPLAY_SUBSTRATE_REQUEST_EVIDENCE_TYPE
+            || self.source_bridge_fixture_id.trim().is_empty()
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate request metadata must be populated",
+            ));
+        }
+        if !is_sha256_hex(&self.source_bridge_manifest_sha256)
+            || !is_sha256_hex(&self.source_map_sha256)
+            || !is_sha256_hex(&self.input_geometry_sha256)
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate request hashes must be SHA-256 hex",
+            ));
+        }
+        validate_planarian_xr_public_path(&self.source_map_path)?;
+        validate_planarian_xr_public_path(&self.input_geometry_path)?;
+        if self.source_element_count == 0
+            || self.requested_node_count == 0
+            || self.source_element_count != self.requested_node_count
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate request must request one node per mapped element",
+            ));
+        }
+        self.graph_policy.validate()?;
+        self.capability_policy.validate()?;
+        validate_bridge_policy_text(&self.allowed_outputs)?;
+        validate_bridge_policy_text(&self.blocked_outputs)?;
+        validate_bridge_policy_text(&self.caveats)?;
+        if !self
+            .allowed_outputs
+            .iter()
+            .any(|output| output == "display_substrate_graph_fixture")
+            || !self
+                .allowed_outputs
+                .iter()
+                .any(|output| output == "source_map_node_index")
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate request must name allowed display outputs",
+            ));
+        }
+        for blocked in [
+            "observed_dynamics_binding",
+            "measured_bioelectric_state",
+            "predictive_regeneration_output",
+            "live_matter_stepping",
+            "edit_acceptance",
+        ] {
+            if !self.blocked_outputs.iter().any(|output| output == blocked)
+                || self.allowed_outputs.iter().any(|output| output == blocked)
+            {
+                return Err(MatterFieldError::InvalidRunSummary(
+                    "Planarian XR display-substrate request must keep blocked outputs blocked",
+                ));
+            }
+        }
+        if !self
+            .caveats
+            .iter()
+            .any(|caveat| caveat.contains("not runtime dynamics"))
+            || !self
+                .caveats
+                .iter()
+                .any(|caveat| caveat.contains("not measured"))
+            || !self
+                .caveats
+                .iter()
+                .any(|caveat| caveat.contains("not predictive"))
+        {
+            return Err(MatterFieldError::InvalidRunSummary(
+                "Planarian XR display-substrate request caveats must block dynamics and measurement claims",
             ));
         }
         Ok(())
@@ -1515,6 +1757,33 @@ pub fn default_planarian_xr_display_bridge_fixture(
     };
     fixture.validate()?;
     Ok(fixture)
+}
+
+/// Builds the default request-only Planarian XR display-substrate graph policy.
+///
+/// # Errors
+///
+/// Returns [`MatterFieldError`] if the generated request fails validation.
+pub fn default_planarian_xr_display_substrate_request(
+) -> Result<PlanarianXrDisplaySubstrateRequest, MatterFieldError> {
+    PlanarianXrDisplaySubstrateRequest::from_bridge(
+        "request.fields.planarian_xr.neuron_cloud_display_substrate.v0",
+        &default_planarian_xr_display_bridge_fixture()?,
+        PlanarianXrDisplaySubstrateGraphPolicy {
+            materialization_status: "request_only_not_materialized".to_owned(),
+            node_policy: "one node per mapped public element from the validated source map"
+                .to_owned(),
+            coordinate_policy:
+                "source-map atlas positions after Planarian XR normalization; not calibrated physical coordinates"
+                    .to_owned(),
+            edge_policy:
+                "deterministic nearest-neighbor display graph requested for later materialization"
+                    .to_owned(),
+            nearest_neighbors_per_node: 4,
+            edge_weight_policy: "qualitative display adjacency only; not conductance and not voltage"
+                .to_owned(),
+        },
+    )
 }
 
 /// Builds the default small PlanformDB-derived fixture.

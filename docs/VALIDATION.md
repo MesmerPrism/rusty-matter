@@ -167,8 +167,8 @@ planarian AP circuit behavior over the reviewed GLB-derived educational mesh,
 scenario outcome trace and trace-set contracts, normalized non-calibrated
 planarian morphology/readout metric contracts, rights-safe species-like head
 taxonomy contracts, source-reviewed dynamics target metadata contracts, small
-Planarian XR display-bridge fixture contracts, PlanformDB-derived review
-fixture contracts,
+Planarian XR display-bridge and display-substrate request fixture contracts,
+PlanformDB-derived review fixture contracts,
 synthetic fallback coverage, and damaged neighbor/buffer/runtime/edit/trace/
 mesh-anchor/source-evidence inputs.
 
@@ -189,8 +189,9 @@ runtime GLB loader.
 The committed dynamic surface-field and planarian bioelectric scenario fixtures
 plus planarian outcome-trace, comparison-trace-set, normalized morphology
 metric, species-like head taxonomy, source-reviewed dynamics targets,
-Planarian XR display bridge, PlanformDB-derived review, and damaged-input
-fixtures are regenerated with the normal fixture route:
+Planarian XR display bridge, display-substrate request, PlanformDB-derived
+review, and damaged-input fixtures are regenerated with the normal fixture
+route:
 
 ```powershell
 cargo run -p rusty-matter-fixtures -- write

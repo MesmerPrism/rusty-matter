@@ -45,6 +45,8 @@ impl SchemaCatalog {
             &["fixtures/fields/planarian-source-dynamics-targets.json"];
         let planarian_xr_display_bridge_fixtures =
             &["fixtures/fields/planarian-xr-neuron-cloud-display-bridge-v0.json"];
+        let planarian_xr_display_substrate_request_fixtures =
+            &["fixtures/fields/planarian-xr-neuron-cloud-display-substrate-request-v0.json"];
         let planformdb_derived_fixtures = &["fixtures/fields/planformdb-derived-v0.json"];
         let mesh_coordinate_map_fixtures =
             &["fixtures/mesh/unit-square-coordinate-map-summary.json"];
@@ -75,6 +77,7 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
             "fixtures/damaged/invalid-planarian-source-dynamics-targets.json",
             "fixtures/damaged/invalid-planarian-xr-display-bridge.json",
+            "fixtures/damaged/invalid-planarian-xr-display-substrate-request.json",
             "fixtures/damaged/invalid-planformdb-derived-fixture.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
@@ -279,6 +282,11 @@ impl SchemaCatalog {
                     "rusty.matter.fields.planarian_xr_display_bridge_fixture.v1",
                     "PlanarianXrDisplayBridgeFixture",
                     planarian_xr_display_bridge_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fields.planarian_xr_display_substrate_request.v1",
+                    "PlanarianXrDisplaySubstrateRequest",
+                    planarian_xr_display_substrate_request_fixtures,
                 ),
                 entry(
                     "rusty.matter.fields.planformdb_derived_fixture.v1",

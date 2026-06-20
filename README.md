@@ -23,8 +23,9 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
   comparison trace sets, normalized non-calibrated morphology/readout metrics,
   a rights-safe species-like head-label taxonomy, source-reviewed qualitative
   dynamics target metadata, a public Planarian XR display-bridge fixture for
-  the neuron-cloud source map, and a small PlanformDB-derived review fixture
-  that stays out of runtime dynamics;
+  the neuron-cloud source map, a request-only display-substrate graph fixture,
+  and a small PlanformDB-derived review fixture that stays out of runtime
+  dynamics;
 - `rusty-matter-fields-wasm`: optional browser WebAssembly adapter over the
   Matter-owned realtime surface-field runtime and planarian bioelectric
   runtime/edit surface, including deterministic scenario resets for the
@@ -97,6 +98,9 @@ The public Planarian XR display-bridge fixture records the neuron-cloud bridge
 manifest, source-map, GLB, replay, and preview hashes as a display-substrate
 contract. It is not runtime dynamics, observed voltage evidence, or an edit
 acceptance surface.
+The follow-on display-substrate request fixture fixes the deterministic
+one-node-per-public-element and nearest-neighbor graph policy for later
+materialization while still carrying no voltage state or Matter stepping.
 
 ## Boundary
 

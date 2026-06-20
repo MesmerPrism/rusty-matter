@@ -310,6 +310,14 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.fields.planarian_xr_display_substrate_request.v1",
+      "rust_type": "PlanarianXrDisplaySubstrateRequest",
+      "fixture_paths": [
+        "fixtures/fields/planarian-xr-neuron-cloud-display-substrate-request-v0.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.fields.planformdb_derived_fixture.v1",
       "rust_type": "PlanformDbDerivedFixture",
       "fixture_paths": [
@@ -443,6 +451,7 @@
         "fixtures/damaged/invalid-planarian-species-like-head-taxonomy.json",
         "fixtures/damaged/invalid-planarian-source-dynamics-targets.json",
         "fixtures/damaged/invalid-planarian-xr-display-bridge.json",
+        "fixtures/damaged/invalid-planarian-xr-display-substrate-request.json",
         "fixtures/damaged/invalid-planformdb-derived-fixture.json",
         "fixtures/damaged/invalid-particle-body.json",
         "fixtures/damaged/invalid-particle-influence.json",

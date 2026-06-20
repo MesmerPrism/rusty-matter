@@ -52,6 +52,12 @@ the Planarian XR neuron-cloud bridge manifest, source-map sidecar, public GLB,
 model-inspired replay, and preview hashes as display-substrate metadata. It is
 not a runtime dynamics input, not measured bioelectric data, and not an edit
 acceptance surface.
+The request-only display-substrate graph policy is serialized in
+`fixtures/fields/planarian-xr-neuron-cloud-display-substrate-request-v0.json`.
+It requests one Matter display node per mapped public source-map element and a
+deterministic nearest-neighbor display graph for later materialization. It
+still carries no voltage state, conductance, live stepping, or observed
+bioelectric binding.
 
 Head-size and species-like head-label targets are scoped in
 `docs/PLANARIAN_METRIC_TARGETS.md`. The current Matter slice implements the
@@ -69,7 +75,7 @@ outcome behavior remain gated.
 | `persistent_axis_recut_history` | Registered as a future source-reviewed dynamics target only. | Add session/package history fixtures before claiming persistence across repeated regeneration rounds. |
 | `head_size_scaling` | Implemented as `PlanarianNormalizedMorphologyMetrics` with mesh-normalized AP-region/readout extents and no thresholds. | Extract area/location targets before claiming source-fit head or organ size. |
 | `species_like_head_labels` | Implemented as a rights-safe categorical teaching taxonomy fixture with generated-symbol/text label policy. | Add generated silhouettes or source-derived category frequencies only after a rights/provenance review. |
-| `planarian_xr_neuron_cloud_display_bridge` | Implemented as a public display-substrate bridge fixture with public hashes and blocked observed-dynamics capabilities. | Build a separate Matter-owned substrate/scenario fixture before using the bridge for any dynamics output. |
+| `planarian_xr_neuron_cloud_display_bridge` | Implemented as a public display-substrate bridge fixture plus request-only graph policy with public hashes and blocked observed-dynamics capabilities. | Materialize and validate a separate Matter-owned substrate graph before using the bridge for any dynamics output. |
 | `planformdb_curated_subset` | Implemented as a 14-record Matter review fixture with source IDs, citations, notice text, normalized labels, and damaged-input tests. | Keep it out of runtime dynamics; expand only through curated, traceable derived records. |
 
 ## Implementation Rules

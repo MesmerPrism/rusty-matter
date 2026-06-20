@@ -1,0 +1,54 @@
+{
+  "schema_id": "rusty.matter.fields.planarian_xr_display_substrate_request.v1",
+  "request_id": "request.fields.planarian_xr.neuron_cloud_display_substrate.v0",
+  "schema_version": 1,
+  "evidence_type": "planarian_xr_display_substrate_request",
+  "source_bridge_fixture_id": "fixture.fields.planarian_xr.neuron_cloud_display_bridge.v0",
+  "source_bridge_manifest_sha256": "7a0ce4c93162ff7ec4308222155f5c6ca31ff20305e06af477655750b481ca2f",
+  "source_map_path": "/data/source-maps/zenodo-11724834-neuron-cell-cloud-point-map.json",
+  "source_map_sha256": "e0fa27071c3d95dad6df82ce1e52860b1b12f1a0532cad1bbed7940c05621b51",
+  "input_geometry_path": "/assets/geometry/derived/neuron-cell-cloud.glb",
+  "input_geometry_sha256": "97a18266dfa0cfa0f1fac739cf01c64c5a02ea0413d5a0b7aa81e3eb24e45787",
+  "source_element_count": 3467,
+  "requested_node_count": 3467,
+  "graph_policy": {
+    "materialization_status": "request_only_not_materialized",
+    "node_policy": "one node per mapped public element from the validated source map",
+    "coordinate_policy": "source-map atlas positions after Planarian XR normalization; not calibrated physical coordinates",
+    "edge_policy": "deterministic nearest-neighbor display graph requested for later materialization",
+    "nearest_neighbors_per_node": 4,
+    "edge_weight_policy": "qualitative display adjacency only; not conductance and not voltage"
+  },
+  "capability_policy": {
+    "allowed_capabilities": [
+      "source_map_inspection",
+      "read_only_element_inspection",
+      "display_substrate",
+      "model_inspired_replay_listing"
+    ],
+    "blocked_capabilities": [
+      "observed_dynamics_binding",
+      "measured_bioelectric_claims",
+      "predictive_regeneration_claims",
+      "live_matter_stepping",
+      "edit_acceptance",
+      "nearest_object_annotation"
+    ]
+  },
+  "allowed_outputs": [
+    "display_substrate_graph_fixture",
+    "source_map_node_index"
+  ],
+  "blocked_outputs": [
+    "observed_dynamics_binding",
+    "measured_bioelectric_state",
+    "predictive_regeneration_output",
+    "live_matter_stepping",
+    "edit_acceptance"
+  ],
+  "caveats": [
+    "Request-only display-substrate graph policy; not runtime dynamics.",
+    "Public source-map positions are not measured bioelectric data.",
+    "Nearest-neighbor display edges are not conductance, not voltage, and not predictive regeneration output."
+  ]
+}

@@ -1,7 +1,7 @@
 use crate::{
     default_planarian_source_dynamics_targets, default_planarian_species_like_head_taxonomy,
-    default_planarian_xr_display_bridge_fixture, default_planformdb_derived_fixture,
-    MatterFieldError,
+    default_planarian_xr_display_bridge_fixture, default_planarian_xr_display_substrate_request,
+    default_planformdb_derived_fixture, MatterFieldError,
 };
 
 #[test]
@@ -154,6 +154,76 @@ fn damaged_planarian_xr_display_bridge_is_rejected() {
     let error = fixture
         .validate()
         .expect_err("capability overclaim rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+}
+
+#[test]
+fn planarian_xr_display_substrate_request_is_request_only() {
+    let request =
+        default_planarian_xr_display_substrate_request().expect("substrate request validates");
+
+    assert_eq!(
+        request.request_id,
+        "request.fields.planarian_xr.neuron_cloud_display_substrate.v0"
+    );
+    assert_eq!(
+        request.source_bridge_fixture_id,
+        "fixture.fields.planarian_xr.neuron_cloud_display_bridge.v0"
+    );
+    assert_eq!(request.source_element_count, 3_467);
+    assert_eq!(request.requested_node_count, 3_467);
+    assert_eq!(
+        request.graph_policy.materialization_status,
+        "request_only_not_materialized"
+    );
+    assert_eq!(request.graph_policy.nearest_neighbors_per_node, 4);
+    assert!(request
+        .allowed_outputs
+        .contains(&"display_substrate_graph_fixture".to_owned()));
+    assert!(request
+        .blocked_outputs
+        .contains(&"observed_dynamics_binding".to_owned()));
+    assert!(request
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("not runtime dynamics")));
+}
+
+#[test]
+fn damaged_planarian_xr_display_substrate_request_is_rejected() {
+    let mut request =
+        default_planarian_xr_display_substrate_request().expect("request validates before damage");
+    request.schema_id = "rusty.matter.fields.planarian_xr_display_substrate_request.v0".to_owned();
+
+    let error = request.validate().expect_err("wrong schema rejects");
+    assert!(matches!(error, MatterFieldError::UnexpectedSchema { .. }));
+
+    let mut request =
+        default_planarian_xr_display_substrate_request().expect("request validates before damage");
+    request.requested_node_count = request.requested_node_count.saturating_sub(1);
+
+    let error = request.validate().expect_err("count mismatch rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut request =
+        default_planarian_xr_display_substrate_request().expect("request validates before damage");
+    request.source_map_path = "raw/neuron-cloud-source-map.json".to_owned();
+
+    let error = request.validate().expect_err("unsafe path rejects");
+    assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
+
+    let mut request =
+        default_planarian_xr_display_substrate_request().expect("request validates before damage");
+    request
+        .blocked_outputs
+        .retain(|output| output != "observed_dynamics_binding");
+    request
+        .allowed_outputs
+        .push("observed_dynamics_binding".to_owned());
+
+    let error = request
+        .validate()
+        .expect_err("blocked-output overclaim rejects");
     assert!(matches!(error, MatterFieldError::InvalidRunSummary(_)));
 }
 
