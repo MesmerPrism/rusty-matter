@@ -39,12 +39,14 @@ The SDF foundation bundle currently includes:
 - a small PlanformDB-derived review fixture in `fixtures/fields`, preserving
   source IDs, citation IDs, notice text, normalized labels, sample counts, and
   outcome frequencies without importing raw database rows or runtime dynamics;
-- synthetic hand validation mesh frame fixtures in `fixtures/hand`;
+- synthetic hand validation mesh frames and the provider-bound
+  `hand-substrate-conformance.json` CPU-skinning oracle in `fixtures/hand`;
 - full packed SDF grid fixtures in `fixtures/sdf`;
 - compact SDF summary goldens in `fixtures/sdf`;
 - adaptive distance field fixtures and compact ADF summary goldens in
   `fixtures/adf`;
-- damaged-input rejection reports in `fixtures/damaged`, including
+- damaged-input rejection reports and hand provider-mixup/invalid-rig cases in
+  `fixtures/damaged`, including
   surface-field cases and strict rejection of application, platform, renderer,
   private-driver, and high-rate-control particle-contract leakage;
 - particle step summaries in `fixtures/particles`, including SDF attraction and

@@ -217,6 +217,7 @@ version = "0.1.0"
 dependencies = [
  "rusty-matter-model",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

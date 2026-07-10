@@ -1,0 +1,63 @@
+{
+  "schema": "rusty.matter.hand.substrate.v1",
+  "conformance_id": "hand.substrate.generic-left.0001",
+  "provider_id": "generic-tracked-hand-provider",
+  "lattice_frame_id": "generic-left-hand-joint-frame-0001",
+  "lattice_frame_schema_id": "rusty.lattice.hand_joint_frame.v1",
+  "coordinate_basis": "right_handed_y_up_negative_z_forward",
+  "rig": {
+    "schema_id": "rusty.matter.hand.rig_capture.v1",
+    "rig_capture_id": "hand.rig.generic-left.v1",
+    "handedness": "Left",
+    "reference_space": "local-stage",
+    "source": "generic-tracked-hand-provider",
+    "bind_surface": {
+      "schema_id": "rusty.matter.mesh.surface.v1",
+      "surface_id": "mesh.hand.generic-left.bind",
+      "positions": [
+        {"x": -0.02, "y": 0.00, "z": 0.00},
+        {"x": 0.02, "y": 0.00, "z": 0.00},
+        {"x": 0.02, "y": 0.08, "z": 0.00},
+        {"x": -0.02, "y": 0.08, "z": 0.00}
+      ],
+      "triangles": [[0, 1, 2], [0, 2, 3]]
+    },
+    "bind_normals": [
+      {"x": 0.0, "y": 0.0, "z": 1.0},
+      {"x": 0.0, "y": 0.0, "z": 1.0},
+      {"x": 0.0, "y": 0.0, "z": 1.0},
+      {"x": 0.0, "y": 0.0, "z": 1.0}
+    ],
+    "topology_key": {
+      "schema_id": "rusty.matter.mesh.surface_topology_key.v1",
+      "vertex_count": 4,
+      "triangle_count": 2,
+      "index_hash": 16112794849697168423
+    },
+    "joint_parent_indices": [-1, 0, 1, 2],
+    "joint_radii_m": [0.02, 0.018, 0.012, 0.008],
+    "joint_bind_poses": [
+      {"position":{"x":0.0,"y":0.00,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.02},
+      {"position":{"x":0.0,"y":0.02,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.018},
+      {"position":{"x":0.0,"y":0.05,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.012},
+      {"position":{"x":0.0,"y":0.08,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.008}
+    ],
+    "vertex_joint_indices": [[0,0,0,0],[0,0,0,0],[3,0,0,0],[3,0,0,0]],
+    "vertex_joint_weights": [[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0]]
+  },
+  "joint_frame": {
+    "schema_id": "rusty.matter.hand.joint_frame.v1",
+    "frame_id": "hand.joints.generic-left.0001",
+    "handedness": "Left",
+    "reference_space": "local-stage",
+    "source": "generic-tracked-hand-provider",
+    "time_seconds": 1.0,
+    "poses": [
+      {"position":{"x":0.0,"y":0.00,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.02},
+      {"position":{"x":0.0,"y":0.02,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.018},
+      {"position":{"x":0.0,"y":0.05,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.012},
+      {"position":{"x":0.0,"y":0.09,"z":0.0},"orientation_xyzw":[0.0,0.0,0.0,1.0],"radius_m":0.008}
+    ],
+    "confidence": [1.0, 1.0, 1.0, 1.0]
+  }
+}

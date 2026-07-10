@@ -406,6 +406,23 @@
       "status": "foundation"
     },
     {
+      "schema_id": "rusty.matter.hand.substrate.v1",
+      "rust_type": "HandSubstrateConformance",
+      "fixture_paths": [
+        "fixtures/hand/hand-substrate-conformance.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.hand.substrate_damage.v1",
+      "rust_type": "HandSubstrateDamageFixture",
+      "fixture_paths": [
+        "fixtures/damaged/hand-substrate-provider-mixup.json",
+        "fixtures/damaged/hand-substrate-invalid-rig.json"
+      ],
+      "status": "foundation"
+    },
+    {
       "schema_id": "rusty.matter.sdf.packed_grid.v1",
       "rust_type": "PackedSdfGrid",
       "fixture_paths": [

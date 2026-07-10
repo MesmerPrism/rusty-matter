@@ -50,6 +50,10 @@ sockets, media stacks, or downstream app crates.
 - XR/device adapters own platform hand mesh acquisition and device runtime
   lifecycle. They convert platform frames into Matter payloads and Lattice
   relation snapshots outside Matter core.
+- `rusty.matter.hand.substrate.v1` binds a provider/Lattice frame identity to
+  the existing Matter rig and joint-frame contracts, then uses Matter's CPU
+  skinning path as the oracle. Reject provider/hand/reference-space/count
+  mixups, invalid rigs, backend fields, and platform policy.
 - Keep app-specific dynamics, control bindings, study defaults, and downstream
   visual-driver behavior out of Matter unless a later explicit generalization
   decision is recorded.
@@ -103,7 +107,7 @@ Current crate-root maps:
 - `rusty-matter-fields-wasm/src/lib.rs`: target-gated browser adapter over the
   Matter surface-field runtime.
 - `rusty-matter-mesh/src/lib.rs`: facade over `surface`, `source`,
-  `sampling`, `coordinate`, `package`, `hand`, `collider`, accelerated surface
+  `sampling`, `coordinate`, `package`, `hand`, `hand_substrate`, `collider`, accelerated surface
   `distance`, `error`, and shared `math`.
 - `rusty-matter-sdf/src/lib.rs`: facade over `builder`, `config`,
   `grid`, `geometry`, and `error`.

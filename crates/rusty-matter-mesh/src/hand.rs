@@ -86,6 +86,7 @@ impl HandSkinningMeshBufferOracle {
 
 /// Hand rig capture metadata around a bind-pose triangle mesh.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct HandRigCapture {
     /// Schema identifier.
@@ -495,6 +496,7 @@ impl HandRigCapture {
 
 /// One hand joint pose in a provider reference space.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct HandJointPose {
     /// Joint position.
@@ -518,6 +520,7 @@ impl HandJointPose {
 
 /// One recorded hand joint-motion frame.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct HandJointFrame {
     /// Schema identifier.
@@ -582,6 +585,7 @@ impl HandJointFrame {
 
 /// Deformed hand validation mesh frame.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct HandValidationMeshFrame {
     /// Schema identifier.

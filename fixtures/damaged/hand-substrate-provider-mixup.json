@@ -1,0 +1,5 @@
+{
+  "schema": "rusty.matter.hand.substrate_damage.v1",
+  "damage_id": "provider-mixup",
+  "joint_frame_source": "different-provider"
+}

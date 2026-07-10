@@ -58,6 +58,11 @@ impl SchemaCatalog {
             &["fixtures/hand/synthetic-hand-validation-mesh-frame.json"];
         let hand_validation_mesh_summary_fixtures =
             &["fixtures/hand/synthetic-hand-validation-mesh-summary.json"];
+        let hand_substrate_fixtures = &["fixtures/hand/hand-substrate-conformance.json"];
+        let hand_substrate_damage_fixtures = &[
+            "fixtures/damaged/hand-substrate-provider-mixup.json",
+            "fixtures/damaged/hand-substrate-invalid-rig.json",
+        ];
         let sdf_grid_fixtures = &[
             "fixtures/sdf/unit-triangle-packed-grid.json",
             "fixtures/sdf/unit-tetrahedron-packed-grid.json",
@@ -352,6 +357,16 @@ impl SchemaCatalog {
                     "rusty.matter.hand.validation_mesh_frame.v1",
                     "HandValidationMeshFrame",
                     hand_validation_mesh_fixtures,
+                ),
+                entry(
+                    "rusty.matter.hand.substrate.v1",
+                    "HandSubstrateConformance",
+                    hand_substrate_fixtures,
+                ),
+                entry(
+                    "rusty.matter.hand.substrate_damage.v1",
+                    "HandSubstrateDamageFixture",
+                    hand_substrate_damage_fixtures,
                 ),
                 entry(
                     "rusty.matter.sdf.packed_grid.v1",

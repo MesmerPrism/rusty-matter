@@ -1,0 +1,5 @@
+{
+  "schema": "rusty.matter.hand.substrate_damage.v1",
+  "damage_id": "skinning-weight-overflow",
+  "first_weight": 1.5
+}

@@ -14,5 +14,8 @@ serde = ["dep:serde", "rusty-matter-model/serde"]
 rusty-matter-model = { path = "../rusty-matter-model" }
 serde = { version = "1", features = ["derive"], optional = true }
 
+[dev-dependencies]
+serde_json = "1"
+
 [lints]
 workspace = true

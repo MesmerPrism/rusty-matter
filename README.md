@@ -36,8 +36,9 @@ This repository starts with a narrow mesh, SDF, ADF, and particle foundation:
 - `rusty-matter-mesh`: dynamic mesh surfaces, source/provenance descriptors,
   stable topology keys, surface sampling, approximate surface-walk same-surface
   neighborhoods, accelerated surface-distance sampling, coordinate maps,
-  coordinate-map packages, hand validation mesh payloads, and dynamic mesh
-  collider CPU reference behavior;
+  coordinate-map packages, provider-bound hand rig/joint-frame conformance,
+  deterministic CPU skinning and hand validation mesh payloads, and dynamic
+  mesh collider CPU reference behavior;
 - `rusty-matter-sdf`: packed SDF grids and mesh-to-SDF CPU reference behavior;
 - `rusty-matter-adf`: adaptive distance fields built from Matter SDF grids,
   with CPU reference construction, compact diagnostics, and deterministic
