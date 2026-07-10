@@ -20,6 +20,7 @@ use rusty_matter_sdf::{
 
 use crate::error::CliError;
 use crate::mesh::unit_square_surface;
+use crate::particles::particle_contract_leak_rejection;
 use crate::sdf::unit_triangle_mesh;
 use crate::summary::DamagedFixtureReport;
 
@@ -87,6 +88,12 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
                 ParticleInfluenceMode::Attract,
             )
             .validate(),
+        )?,
+        damaged_serde_report(
+            "fixtures/damaged/particle-contract-boundary-leak.json",
+            "fixture.damaged.particle_contract_boundary_leak.v1",
+            "damaged.particle.contract_boundary_leak",
+            particle_contract_leak_rejection(),
         )?,
         damaged_particle_report(
             "fixtures/damaged/invalid-particle-body.json",
@@ -212,6 +219,29 @@ pub(crate) fn damaged_fixture_reports() -> Result<Vec<DamagedArtifact>, CliError
             damaged_planformdb_derived_fixture(),
         )?,
     ])
+}
+
+fn damaged_serde_report(
+    path: &'static str,
+    fixture_id: impl Into<String>,
+    damaged_input_id: impl Into<String>,
+    result: Result<(), serde_json::Error>,
+) -> Result<DamagedArtifact, CliError> {
+    let fixture_id = fixture_id.into();
+    let Err(error) = result else {
+        return Err(CliError::ExpectedRejection { fixture_id });
+    };
+    Ok(DamagedArtifact {
+        path,
+        report: DamagedFixtureReport {
+            schema_id: "rusty.matter.fixture.damaged_input_report.v1".to_owned(),
+            fixture_id,
+            damaged_input_id: damaged_input_id.into(),
+            expected_rejection_code: "serde.unknown_field".to_owned(),
+            actual_rejection_code: "serde.unknown_field".to_owned(),
+            message: error.to_string(),
+        },
+    })
 }
 
 fn damaged_report(

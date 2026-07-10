@@ -56,6 +56,11 @@ sockets, media stacks, or downstream app crates.
 - Use `rusty.matter.*` schema IDs for default Matter contracts. Legacy XR names
   may appear only in explicitly named compatibility layers outside Matter core.
 - Add fixtures and damaged-input expectations before runtime adapters.
+- Reuse the accepted particle contract set (`particle.state`, `particle.set`,
+  `particle.fixed_step_config`, `particle.simulation_diagnostics`,
+  `particle.render_payload`, and `surface_runtime.particle_snapshot`) through
+  `fixtures/particles/contract-conformance.json`; do not add app, platform,
+  renderer-resource, private-driver, or high-rate-control fields to it.
 - Keep high-rate particle arrays and grids out of command/control JSON routes;
   use artifacts, bounded summaries, or data-plane adapters.
 - Keep particle integration/render cadence, particle force-source refresh,

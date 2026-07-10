@@ -6,10 +6,81 @@ use rusty_matter_particles::{
     SdfParticleInteractionMode,
 };
 use rusty_matter_sdf::{build_sdf_from_mesh, MeshSdfSignMode, MeshToSdfConfig};
+use rusty_matter_surface_runtime::MatterSurfaceRuntime;
 
 use crate::error::CliError;
 use crate::sdf::unit_triangle_mesh;
-use crate::summary::{ParticleRenderPayloadSummary, ParticleStepSummary};
+use crate::summary::{
+    ParticleContractConformance, ParticleRenderPayloadSummary, ParticleStepSummary,
+};
+
+pub(crate) fn particle_contract_conformance() -> Result<ParticleContractConformance, CliError> {
+    let mut particles = ParticleSet::new("particles.contract_conformance");
+    let mut first = ParticleState::new("particle.contract.0", Vec3::new(-0.05, 0.0, 0.0), 0.015);
+    first.velocity = Vec3::new(0.0, 0.20, 0.0);
+    particles.push(first);
+    particles.push(ParticleState::new(
+        "particle.contract.1",
+        Vec3::new(0.05, 0.01, 0.0),
+        0.020,
+    ));
+
+    let fixed_step = ParticleFixedStepConfig {
+        fixed_step_seconds: 1.0 / 60.0,
+        max_steps_per_frame: 2,
+        ..ParticleFixedStepConfig::default()
+    };
+    let mut simulator = ParticleSimulator::new(
+        particles,
+        fixed_step.clone(),
+        SdfParticleInteractionConfig {
+            mode: SdfParticleInteractionMode::Disabled,
+            ..SdfParticleInteractionConfig::default()
+        },
+    )
+    .map_err(CliError::Particle)?;
+    let mut diagnostics = simulator.step_frame(1.0 / 60.0);
+    diagnostics.execution.elapsed_micros = 0;
+    let particle_set = simulator.particles().clone();
+    let render_payload =
+        ParticleRenderPayload::from_particle_set("particle.payload.contract", &particle_set)
+            .map_err(CliError::Particle)?;
+    let surface_snapshot = MatterSurfaceRuntime::default().particle_snapshot();
+
+    Ok(ParticleContractConformance {
+        schema_id: "rusty.matter.fixture.particle_contract_conformance.v1".to_owned(),
+        fixture_id: "fixture.particle.contract_conformance.v1".to_owned(),
+        particle_set,
+        fixed_step,
+        diagnostics,
+        render_payload,
+        surface_snapshot,
+    })
+}
+
+pub(crate) fn particle_contract_leak_rejection() -> Result<(), serde_json::Error> {
+    let mut value = serde_json::to_value(
+        particle_contract_conformance().expect("particle conformance fixture must build"),
+    )?;
+    let object = value
+        .as_object_mut()
+        .expect("serialized particle conformance fixture is an object");
+    object.insert(
+        "application_scene".to_owned(),
+        serde_json::json!("spatial-panel"),
+    );
+    object.insert("platform_handle".to_owned(), serde_json::json!(42));
+    object.insert(
+        "renderer_resource".to_owned(),
+        serde_json::json!("vk-buffer"),
+    );
+    object.insert(
+        "private_driver".to_owned(),
+        serde_json::json!("vendor-secret"),
+    );
+    object.insert("control_rate_hz".to_owned(), serde_json::json!(240));
+    serde_json::from_value::<ParticleContractConformance>(value).map(|_| ())
+}
 
 pub(crate) fn particle_sdf_attraction_step_summary() -> Result<ParticleStepSummary, CliError> {
     let mut particles = ParticleSet::new("particles.sdf_attraction_fixture");

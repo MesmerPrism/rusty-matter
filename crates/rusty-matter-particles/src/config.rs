@@ -172,6 +172,7 @@ impl SdfParticleInteractionConfig {
 
 /// Fixed-step simulation configuration.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleFixedStepConfig {
     /// Schema identifier.

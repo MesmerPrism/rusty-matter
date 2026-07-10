@@ -7,6 +7,7 @@ use crate::{
 
 /// One render-neutral particle sample prepared from simulation state.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleRenderSample {
     /// Schema identifier.
@@ -89,6 +90,7 @@ impl ParticleRenderSample {
 
 /// Render-neutral particle payload for Optics or renderer adapters to consume.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleRenderPayload {
     /// Schema identifier.

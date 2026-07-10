@@ -80,6 +80,13 @@ Fixture generation is split by artifact dispatch,
 summaries, fields, SDF, ADF, mesh, particle, and damaged-input families.
 Schema export is split by catalog, CLI, and error modules.
 
+The particle conformance entrypoint is
+`fixtures/particles/contract-conformance.json`. It proves the existing Matter
+state, fixed-step, diagnostics, render-neutral payload, and surface-runtime
+snapshot contracts together. Its damaged companion rejects app scene,
+platform-handle, renderer-resource, private-driver, and high-rate-control
+leakage rather than extending core for one consumer.
+
 ## Bioelectricity Source Targets
 
 The planarian bioelectric scenarios carry public source/target anchor IDs in

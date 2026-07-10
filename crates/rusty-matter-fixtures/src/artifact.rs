@@ -22,8 +22,8 @@ use crate::mesh::{
     unit_square_surface,
 };
 use crate::particles::{
-    particle_interaction_step_summary, particle_render_payload_summary,
-    particle_sdf_attraction_step_summary,
+    particle_contract_conformance, particle_interaction_step_summary,
+    particle_render_payload_summary, particle_sdf_attraction_step_summary,
 };
 use crate::sdf::{sdf_fixture_cases, summarize_sdf_fixture};
 use rusty_matter_sdf::build_sdf_from_mesh;
@@ -196,6 +196,10 @@ pub(crate) fn build_fixture_artifacts() -> Result<Vec<FixtureArtifact>, CliError
     for damaged in damaged_fixture_reports()? {
         artifacts.push(FixtureArtifact::new(damaged.path, &damaged.report)?);
     }
+    artifacts.push(FixtureArtifact::new(
+        "fixtures/particles/contract-conformance.json",
+        &particle_contract_conformance()?,
+    )?);
     artifacts.push(FixtureArtifact::new(
         "fixtures/particles/sdf-attraction-step-summary.json",
         &particle_sdf_attraction_step_summary()?,

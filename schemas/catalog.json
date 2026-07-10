@@ -453,6 +453,7 @@
         "fixtures/damaged/invalid-planarian-xr-display-bridge.json",
         "fixtures/damaged/invalid-planarian-xr-display-substrate-request.json",
         "fixtures/damaged/invalid-planformdb-derived-fixture.json",
+        "fixtures/damaged/particle-contract-boundary-leak.json",
         "fixtures/damaged/invalid-particle-body.json",
         "fixtures/damaged/invalid-particle-influence.json",
         "fixtures/damaged/invalid-surface-field-perturbation.json",
@@ -466,6 +467,7 @@
       "schema_id": "rusty.matter.particle.state.v1",
       "rust_type": "ParticleState",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/interaction-step-summary.json",
         "fixtures/particles/sdf-attraction-step-summary.json"
       ],
@@ -475,6 +477,7 @@
       "schema_id": "rusty.matter.particle.set.v1",
       "rust_type": "ParticleSet",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/interaction-step-summary.json",
         "fixtures/particles/sdf-attraction-step-summary.json"
       ],
@@ -493,6 +496,7 @@
       "schema_id": "rusty.matter.particle.fixed_step_config.v1",
       "rust_type": "ParticleFixedStepConfig",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/interaction-step-summary.json",
         "fixtures/particles/sdf-attraction-step-summary.json"
       ],
@@ -534,6 +538,7 @@
       "schema_id": "rusty.matter.particle.render_sample.v1",
       "rust_type": "ParticleRenderSample",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/render-payload-summary.json"
       ],
       "status": "foundation"
@@ -542,6 +547,7 @@
       "schema_id": "rusty.matter.particle.render_payload.v1",
       "rust_type": "ParticleRenderPayload",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/render-payload-summary.json"
       ],
       "status": "foundation"
@@ -550,8 +556,25 @@
       "schema_id": "rusty.matter.particle.simulation_diagnostics.v1",
       "rust_type": "ParticleSimulationDiagnostics",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/interaction-step-summary.json",
         "fixtures/particles/sdf-attraction-step-summary.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.surface_runtime.particle_snapshot.v1",
+      "rust_type": "MatterSurfaceParticleSnapshot",
+      "fixture_paths": [
+        "fixtures/particles/contract-conformance.json"
+      ],
+      "status": "foundation"
+    },
+    {
+      "schema_id": "rusty.matter.fixture.particle_contract_conformance.v1",
+      "rust_type": "ParticleContractConformance",
+      "fixture_paths": [
+        "fixtures/particles/contract-conformance.json"
       ],
       "status": "foundation"
     },
@@ -608,6 +631,7 @@
       "schema_id": "rusty.matter.fixture.particle_render_payload_summary.v1",
       "rust_type": "ParticleRenderPayloadSummary",
       "fixture_paths": [
+        "fixtures/particles/contract-conformance.json",
         "fixtures/particles/render-payload-summary.json"
       ],
       "status": "foundation"

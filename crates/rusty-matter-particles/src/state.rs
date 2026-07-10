@@ -4,6 +4,7 @@ use crate::{ParticleError, PARTICLE_SET_SCHEMA_ID, PARTICLE_STATE_SCHEMA_ID};
 
 /// One particle in a Matter-owned particle set.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleState {
     /// Schema identifier.
@@ -87,6 +88,7 @@ impl ParticleState {
 
 /// Snapshot of a particle set.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleSet {
     /// Schema identifier.

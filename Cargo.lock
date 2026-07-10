@@ -195,6 +195,7 @@ dependencies = [
  "rusty-matter-model",
  "rusty-matter-particles",
  "rusty-matter-sdf",
+ "rusty-matter-surface-runtime",
  "serde",
  "serde_json",
 ]

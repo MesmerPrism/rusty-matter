@@ -45,10 +45,14 @@ The SDF foundation bundle currently includes:
 - adaptive distance field fixtures and compact ADF summary goldens in
   `fixtures/adf`;
 - damaged-input rejection reports in `fixtures/damaged`, including
-  surface-field state and perturbation rejection cases;
+  surface-field cases and strict rejection of application, platform, renderer,
+  private-driver, and high-rate-control particle-contract leakage;
 - particle step summaries in `fixtures/particles`, including SDF attraction and
   richer interaction summaries.
-- a render-neutral particle payload summary in `fixtures/particles`.
+- a render-neutral particle payload summary in `fixtures/particles`;
+- `fixtures/particles/contract-conformance.json`, which binds the existing
+  state, fixed-step, diagnostics, render-payload, and surface-snapshot schemas
+  without adding an application-derived particle type.
 
 Regenerate fixtures with:
 

@@ -303,6 +303,7 @@ impl MatterSurfaceFrameInput {
 
 /// Update summary after installing a new animated mesh surface.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct MatterSurfaceRuntimeUpdate {
     /// Schema identifier.
@@ -332,6 +333,7 @@ pub struct MatterSurfaceRuntimeUpdate {
 
 /// Runtime statistics for evidence and adapter decisions.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct MatterSurfaceRuntimeStats {
     /// Schema identifier.
@@ -438,6 +440,7 @@ pub struct MatterSurfaceParticleSample {
 
 /// Browser-parity typed particle snapshot.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct MatterSurfaceParticleSnapshot {
     /// Schema identifier.

@@ -79,6 +79,7 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-planarian-xr-display-bridge.json",
             "fixtures/damaged/invalid-planarian-xr-display-substrate-request.json",
             "fixtures/damaged/invalid-planformdb-derived-fixture.json",
+            "fixtures/damaged/particle-contract-boundary-leak.json",
             "fixtures/damaged/invalid-particle-body.json",
             "fixtures/damaged/invalid-particle-influence.json",
             "fixtures/damaged/invalid-surface-field-perturbation.json",
@@ -86,12 +87,21 @@ impl SchemaCatalog {
             "fixtures/damaged/invalid-voxel-size.json",
             "fixtures/damaged/voxel-budget-overflow.json",
         ];
+        let particle_state_fixtures = &[
+            "fixtures/particles/contract-conformance.json",
+            "fixtures/particles/interaction-step-summary.json",
+            "fixtures/particles/sdf-attraction-step-summary.json",
+        ];
         let particle_step_fixtures = &[
             "fixtures/particles/interaction-step-summary.json",
             "fixtures/particles/sdf-attraction-step-summary.json",
         ];
         let particle_interaction_fixtures = &["fixtures/particles/interaction-step-summary.json"];
-        let particle_render_fixtures = &["fixtures/particles/render-payload-summary.json"];
+        let particle_render_fixtures = &[
+            "fixtures/particles/contract-conformance.json",
+            "fixtures/particles/render-payload-summary.json",
+        ];
+        let particle_conformance_fixtures = &["fixtures/particles/contract-conformance.json"];
 
         Self {
             schema_id: "rusty.matter.schema.catalog.v1",
@@ -371,12 +381,12 @@ impl SchemaCatalog {
                 entry(
                     "rusty.matter.particle.state.v1",
                     "ParticleState",
-                    particle_step_fixtures,
+                    particle_state_fixtures,
                 ),
                 entry(
                     "rusty.matter.particle.set.v1",
                     "ParticleSet",
-                    particle_step_fixtures,
+                    particle_state_fixtures,
                 ),
                 entry(
                     "rusty.matter.particle.sdf_interaction_config.v1",
@@ -386,7 +396,7 @@ impl SchemaCatalog {
                 entry(
                     "rusty.matter.particle.fixed_step_config.v1",
                     "ParticleFixedStepConfig",
-                    particle_step_fixtures,
+                    particle_state_fixtures,
                 ),
                 entry(
                     "rusty.matter.particle.interactions.v1",
@@ -421,7 +431,17 @@ impl SchemaCatalog {
                 entry(
                     "rusty.matter.particle.simulation_diagnostics.v1",
                     "ParticleSimulationDiagnostics",
-                    particle_step_fixtures,
+                    particle_state_fixtures,
+                ),
+                entry(
+                    "rusty.matter.surface_runtime.particle_snapshot.v1",
+                    "MatterSurfaceParticleSnapshot",
+                    particle_conformance_fixtures,
+                ),
+                entry(
+                    "rusty.matter.fixture.particle_contract_conformance.v1",
+                    "ParticleContractConformance",
+                    particle_conformance_fixtures,
                 ),
                 entry(
                     "rusty.matter.fixture.mesh_surface_sample_summary.v1",

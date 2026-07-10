@@ -1,0 +1,144 @@
+{
+  "schema_id": "rusty.matter.fixture.particle_contract_conformance.v1",
+  "fixture_id": "fixture.particle.contract_conformance.v1",
+  "particle_set": {
+    "schema_id": "rusty.matter.particle.set.v1",
+    "set_id": "particles.contract_conformance",
+    "time_seconds": 0.016666668,
+    "particles": [
+      {
+        "schema_id": "rusty.matter.particle.state.v1",
+        "particle_id": "particle.contract.0",
+        "position": {
+          "x": -0.05,
+          "y": 0.0033277778,
+          "z": 0.0
+        },
+        "velocity": {
+          "x": 0.0,
+          "y": 0.19966666,
+          "z": 0.0
+        },
+        "radius": 0.015,
+        "inverse_mass": 1.0,
+        "age_seconds": 0.016666668,
+        "flags": 0
+      },
+      {
+        "schema_id": "rusty.matter.particle.state.v1",
+        "particle_id": "particle.contract.1",
+        "position": {
+          "x": 0.05,
+          "y": 0.01,
+          "z": 0.0
+        },
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "radius": 0.02,
+        "inverse_mass": 1.0,
+        "age_seconds": 0.016666668,
+        "flags": 0
+      }
+    ]
+  },
+  "fixed_step": {
+    "schema_id": "rusty.matter.particle.fixed_step_config.v1",
+    "step_config_id": "particle.fixed_step.default",
+    "fixed_step_seconds": 0.016666668,
+    "max_steps_per_frame": 2,
+    "neighbor_radius": 0.0,
+    "neighbor_repulsion_strength": 0.0
+  },
+  "diagnostics": {
+    "schema_id": "rusty.matter.particle.simulation_diagnostics.v1",
+    "diagnostics_id": "diagnostics.particle_frame.0",
+    "fixed_steps": 1,
+    "dropped_steps": 0,
+    "particle_count": 2,
+    "sampled_particles": 0,
+    "affected_particles": 0,
+    "rejected_particles": 0,
+    "clamped_particles": 0,
+    "neighbor_checks": 0,
+    "influence_samples": 0,
+    "impulses_applied": 0,
+    "body_collisions": 0,
+    "max_speed": 0.19966666,
+    "execution": {
+      "backend": "Serial",
+      "batch_size": 256,
+      "chunk_count": 1,
+      "worker_count": 1,
+      "particle_count": 2,
+      "elapsed_micros": 0
+    }
+  },
+  "render_payload": {
+    "schema_id": "rusty.matter.particle.render_payload.v1",
+    "payload_id": "particle.payload.contract",
+    "source_set_id": "particles.contract_conformance",
+    "time_seconds": 0.016666668,
+    "samples": [
+      {
+        "schema_id": "rusty.matter.particle.render_sample.v1",
+        "particle_id": "particle.contract.0",
+        "position": {
+          "x": -0.05,
+          "y": 0.0033277778,
+          "z": 0.0
+        },
+        "radius": 0.015,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.19966666,
+          "z": 0.0
+        },
+        "speed": 0.19966666,
+        "age_seconds": 0.016666668,
+        "flags": 0
+      },
+      {
+        "schema_id": "rusty.matter.particle.render_sample.v1",
+        "particle_id": "particle.contract.1",
+        "position": {
+          "x": 0.05,
+          "y": 0.01,
+          "z": 0.0
+        },
+        "radius": 0.02,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "speed": 0.0,
+        "age_seconds": 0.016666668,
+        "flags": 0
+      }
+    ],
+    "bounds_min": {
+      "x": -0.065,
+      "y": -0.011672222,
+      "z": -0.02
+    },
+    "bounds_max": {
+      "x": 0.07,
+      "y": 0.03,
+      "z": 0.02
+    }
+  },
+  "surface_snapshot": {
+    "schema_id": "rusty.matter.surface_runtime.particle_snapshot.v1",
+    "source_set_id": "particles.surface_runtime.default",
+    "time_seconds": 0.0,
+    "samples": [],
+    "distance_diagnostics": {
+      "node_tests": 0,
+      "leaf_tests": 0,
+      "triangle_tests": 0
+    }
+  }
+}

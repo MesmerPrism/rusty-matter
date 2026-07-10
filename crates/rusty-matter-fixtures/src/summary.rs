@@ -1,4 +1,8 @@
 use rusty_matter_model::Vec3;
+use rusty_matter_particles::{
+    ParticleFixedStepConfig, ParticleRenderPayload, ParticleSet, ParticleSimulationDiagnostics,
+};
+use rusty_matter_surface_runtime::MatterSurfaceParticleSnapshot;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -75,6 +79,18 @@ pub(crate) struct ParticleRenderPayloadSummary {
     pub(crate) first_speed: f32,
     pub(crate) bounds_min: Option<Vec3>,
     pub(crate) bounds_max: Option<Vec3>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ParticleContractConformance {
+    pub(crate) schema_id: String,
+    pub(crate) fixture_id: String,
+    pub(crate) particle_set: ParticleSet,
+    pub(crate) fixed_step: ParticleFixedStepConfig,
+    pub(crate) diagnostics: ParticleSimulationDiagnostics,
+    pub(crate) render_payload: ParticleRenderPayload,
+    pub(crate) surface_snapshot: MatterSurfaceParticleSnapshot,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

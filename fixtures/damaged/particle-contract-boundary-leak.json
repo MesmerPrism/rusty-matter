@@ -1,0 +1,8 @@
+{
+  "schema_id": "rusty.matter.fixture.damaged_input_report.v1",
+  "fixture_id": "fixture.damaged.particle_contract_boundary_leak.v1",
+  "damaged_input_id": "damaged.particle.contract_boundary_leak",
+  "expected_rejection_code": "serde.unknown_field",
+  "actual_rejection_code": "serde.unknown_field",
+  "message": "unknown field `application_scene`, expected one of `schema_id`, `fixture_id`, `particle_set`, `fixed_step`, `diagnostics`, `render_payload`, `surface_snapshot`"
+}
