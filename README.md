@@ -126,3 +126,15 @@ workflows are tracked in `docs/MESH_LAB.md`.
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\check_all.ps1
 ```
+
+Before hashing, signing, or publishing tracked evidence, run the portable
+raw-byte advisory from a compatible Work Environment checkout:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass `
+  -File <work-environment-root>/scripts/Test-CanonicalTextBytes.ps1 `
+  -RepositoryRoot .
+```
+
+The check is non-mutating. Covered text must be UTF-8 without BOM and LF-only;
+binary paths remain explicitly byte-exact.

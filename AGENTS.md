@@ -141,6 +141,10 @@ Manifold package descriptor.
 - Keep `AGENTS.md`, README, and skill files as concise routing indexes. Move
   lane-specific recipes, device/build detail, compatibility ledgers, and long
   validation flows into named docs or runbooks.
+- Treat raw tracked bytes as evidence. Repository-owned attributes enroll text
+  as UTF-8 without BOM and LF-only; binary paths stay explicit `-text`. Run the
+  canonical-byte advisory named in `README.md` before hashing, signing, or
+  publishing, and never normalize a dirty or historical checkout in place.
 - Keep legacy Rusty-XR names as explicit compatibility surfaces only. New
   schemas, routes, and types use the owning lane (`rusty.manifold.*`,
   `rusty.lattice.*`, `rusty.matter.*`, `rusty.optics.*`, `rusty.quest.*`, or
