@@ -1,6 +1,6 @@
 param(
     [string]$OutputDir = "",
-    [string]$WasmBindgenVersion = "0.2.122"
+    [string]$WasmBindgenVersion = "0.2.127"
 )
 
 $ErrorActionPreference = "Stop"

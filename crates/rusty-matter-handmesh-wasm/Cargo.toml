@@ -14,7 +14,7 @@ js-sys = "0.3"
 rusty-matter-mesh = { path = "../rusty-matter-mesh" }
 rusty-matter-model = { path = "../rusty-matter-model" }
 rusty-matter-particles = { path = "../rusty-matter-particles" }
-wasm-bindgen = "0.2.122"
+wasm-bindgen = "0.2.127"
 
 [lints]
 workspace = true
